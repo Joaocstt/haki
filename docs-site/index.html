@@ -1345,16 +1345,98 @@ Formats::UFS;                        // lista com as 27 siglas</code></pre>
       </div>
 
       <h2 id="validacao-objetos-listas">Objetos e listas</h2>
-      <h3 id="validacao-objetos">Objetos</h3>
-      <p>Um array dentro das regras vira um objeto, com o mesmo formato do JSON que chega:</p>
+      <h3 id="validacao-objetos">Objetos (um grupo de campos dentro de outro)</h3>
+      <p>Use quando o cliente envia um <strong>objeto dentro de outro</strong> no JSON. A regra simplesmente copia o formato do JSON que chega. Imagine que o front-end envia este cadastro:</p>
       <div class="code">
-        <pre><code data-lang="php">'endereco' =&gt; [
+        <div class="code-title">JSON enviado</div>
+        <pre><code data-lang="json">{
+  "nome": "Nami",
+  "endereco": {
+    "rua": "Rua das Laranjas",
+    "numero": 42,
+    "cidade": "Cocoyashi"
+  }
+}</code></pre>
+      </div>
+      <p>Repare que <code>endereco</code> não é um texto: é um <strong>grupo de campos</strong> entre <code>{ }</code>. Por isso a regra também é um grupo, entre <code>[ ]</code>:</p>
+      <div class="code">
+        <div class="code-title">rules()</div>
+        <pre><code data-lang="php">return [
+    'nome' =&gt; $rule-&gt;text(),
+
+    'endereco' =&gt; [                    // "endereco" é um objeto com estes campos:
+        'rua'    =&gt; $rule-&gt;text(),     //    endereco.rua    precisa ser texto
+        'numero' =&gt; $rule-&gt;integer(),  //    endereco.numero precisa ser inteiro
+        'cidade' =&gt; $rule-&gt;text(),     //    endereco.cidade precisa ser texto
+    ],
+];</code></pre>
+      </div>
+      <p>Lendo em português: <em>"<code>endereco</code> é obrigatório e precisa ter <code>rua</code> (texto), <code>numero</code> (inteiro) e <code>cidade</code> (texto)."</em> Veja como os dois têm o mesmo formato:</p>
+      <div class="code">
+        <pre><code data-lang="text">JSON                          Regra
+{                             [
+  "nome": "Nami",               'nome' =&gt; $rule-&gt;text(),
+  "endereco": {                 'endereco' =&gt; [
+    "rua": "...",                   'rua'    =&gt; $rule-&gt;text(),
+    "numero": 42,                   'numero' =&gt; $rule-&gt;integer(),
+    "cidade": "..."                 'cidade' =&gt; $rule-&gt;text(),
+  }                             ],
+}                             ]</code></pre>
+      </div>
+
+      <h3 id="validacao-objetos-valores">Pegando os valores do objeto</h3>
+      <div class="code">
+        <pre><code data-lang="php">$request-&gt;get('endereco.cidade');   // 'Cocoyashi' (o ponto entra dentro do objeto)
+$request-&gt;endereco;                 // ['rua' =&gt; '...', 'numero' =&gt; 42, 'cidade' =&gt; 'Cocoyashi']
+$request-&gt;endereco['numero'];       // 42 (já convertido para inteiro)</code></pre>
+      </div>
+
+      <h3 id="validacao-objetos-erros">Como os erros aparecem</h3>
+      <p>Se o cliente mandar o endereço sem a cidade e com o número errado:</p>
+      <div class="code">
+        <pre><code data-lang="json">{ "nome": "Nami", "endereco": { "rua": "Rua das Laranjas", "numero": "abc" } }</code></pre>
+      </div>
+      <p>A resposta usa o <strong>ponto</strong> para mostrar onde está o erro:</p>
+      <div class="code">
+        <pre><code data-lang="json">"campos": {
+  "endereco.numero": ["O campo numero precisa ser um número inteiro."],
+  "endereco.cidade": ["O campo cidade é obrigatório."]
+}</code></pre>
+      </div>
+      <p>E se o cliente não mandar o <code>endereco</code> inteiro:</p>
+      <div class="code">
+        <pre><code data-lang="json">"campos": { "endereco": ["O campo endereco é obrigatório."] }</code></pre>
+      </div>
+
+      <h3 id="validacao-objetos-soltos">Quando você não precisa de objeto</h3>
+      <p>Se o seu front-end envia os campos soltos, sem agrupar:</p>
+      <div class="code">
+        <pre><code data-lang="json">{ "nome": "Nami", "rua": "Rua das Laranjas", "numero": 42, "cidade": "Cocoyashi" }</code></pre>
+      </div>
+      <p>então as regras também ficam soltas, sem o array em volta:</p>
+      <div class="code">
+        <pre><code data-lang="php">return [
+    'nome'   =&gt; $rule-&gt;text(),
     'rua'    =&gt; $rule-&gt;text(),
     'numero' =&gt; $rule-&gt;integer(),
     'cidade' =&gt; $rule-&gt;text(),
-],</code></pre>
+];</code></pre>
       </div>
-      <p>Para um objeto opcional, use <code>object()</code>: <code>'endereco' =&gt; $rule-&gt;object([...])-&gt;optional()</code>.</p>
+
+      <div class="callout tip">
+        <span class="callout-label">Regra prática</span>
+        <p>Use o array interno só quando o JSON também tiver um objeto interno. Os dois formatos funcionam; escolha o que combina com o que o seu front-end envia.</p>
+      </div>
+
+      <h3 id="validacao-objetos-opcional">Objeto opcional</h3>
+      <p>Um array dentro das regras é sempre obrigatório. Para um objeto que pode faltar, use <code>$rule-&gt;object()</code> com <code>optional()</code>:</p>
+      <div class="code">
+        <pre><code data-lang="php">'endereco' =&gt; $rule-&gt;object([
+    'rua'    =&gt; $rule-&gt;text(),
+    'numero' =&gt; $rule-&gt;integer(),
+    'cidade' =&gt; $rule-&gt;text(),
+])-&gt;optional(),   // se não vier, endereco fica null</code></pre>
+      </div>
 
       <h3 id="validacao-listas">Listas</h3>
       <div class="code">
