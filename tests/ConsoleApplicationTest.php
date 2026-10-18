@@ -23,7 +23,7 @@ final class ConsoleApplicationTest extends TestCase
         rewind($stream);
         $help = (string) stream_get_contents($stream);
 
-        foreach (['init', 'key:generate', 'auth:install', 'auth:clean'] as $command) {
+        foreach (['init', 'make:request', 'key:generate', 'auth:install', 'auth:clean'] as $command) {
             self::assertStringContainsString($command, $help);
         }
     }

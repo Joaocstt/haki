@@ -7,6 +7,7 @@ namespace Haki\Errors;
 use Haki\Exceptions\HakiException;
 use Haki\Exceptions\HttpException;
 use Haki\Http\Response;
+use Haki\Validation\ValidationException;
 use Throwable;
 
 /**
@@ -33,6 +34,10 @@ final class ErrorHandler
         }
 
         $payload = ['erro' => $message, 'status' => $status];
+
+        if ($e instanceof ValidationException) {
+            $payload['campos'] = $e->errors();
+        }
 
         $details = $this->debug ? $this->details($e, $status >= 500) : [];
 

@@ -17,6 +17,7 @@ final class InitCommand implements CommandInterface
     /** Pastas da estrutura recomendada (as vazias ganham um .gitkeep). */
     private const DIRECTORIES = [
         'app/Controllers',
+        'app/Requests',
         'app/Services',
         'app/Repositories',
         'app/Contracts',

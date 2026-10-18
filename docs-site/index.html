@@ -31,7 +31,7 @@
   </button>
 
   <div class="header-actions">
-    <span class="version">Versão 1.2</span>
+    <span class="version">Versão 1.3</span>
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Tema">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
     </button>
@@ -64,6 +64,7 @@
         <li><a href="#rotas">Rotas</a></li>
         <li><a href="#controllers">Controllers</a></li>
         <li><a href="#requisicoes">Requisições</a></li>
+        <li><a href="#validacao">Validação</a></li>
         <li><a href="#respostas">Respostas</a></li>
         <li><a href="#middleware">Middleware</a></li>
         <li><a href="#erros">Tratamento de erros</a></li>
@@ -304,6 +305,7 @@ RewriteRule ^ index.php [L]</code></pre>
 <div class="tree"><span class="dir">minha-api/</span>
 ├── <span class="dir">app/</span>
 │   ├── <span class="dir">Controllers/</span>      <span class="note">recebem a requisição e devolvem a resposta</span>
+│   ├── <span class="dir">Requests/</span>         <span class="note">classes de validação (make:request)</span>
 │   ├── <span class="dir">Services/</span>         <span class="note">regras de negócio (login, cálculo, envio...)</span>
 │   ├── <span class="dir">Repositories/</span>     <span class="note">acesso a dados (banco, API externa, arquivo)</span>
 │   ├── <span class="dir">Contracts/</span>        <span class="note">interfaces que os serviços usam</span>
@@ -359,7 +361,7 @@ RewriteRule ^ index.php [L]</code></pre>
 ✔ Autoload atualizado.</code></pre>
       </div>
 
-      <p>As pastas vazias (<code>Services</code>, <code>Repositories</code>, <code>Contracts</code>, <code>Models</code>, <code>Middleware</code>, <code>storage</code>) ganham um arquivo <code>.gitkeep</code> para o Git guardá-las. Veja abaixo o que vem em cada arquivo.</p>
+      <p>As pastas vazias (<code>Requests</code>, <code>Services</code>, <code>Repositories</code>, <code>Contracts</code>, <code>Models</code>, <code>Middleware</code>, <code>storage</code>) ganham um arquivo <code>.gitkeep</code> para o Git guardá-las. Veja abaixo o que vem em cada arquivo.</p>
 
       <h3 id="estrutura-index">public/index.php</h3>
       <p>A única porta de entrada. Ele só carrega a aplicação e a executa:</p>
@@ -458,7 +460,7 @@ final class HomeController
         <div class="code-title">composer.json</div>
         <pre><code data-lang="json">{
     "require": {
-        "shankscode/haki": "^1.2"
+        "shankscode/haki": "^1.3"
     },
     "autoload": {
         "psr-4": {
@@ -483,6 +485,7 @@ $app-&gt;get('/produtos', [ProdutoController::class, 'index']);</code></pre>
           <thead><tr><th>O quê</th><th>Exemplo</th><th>Onde</th></tr></thead>
           <tbody>
             <tr><td>Controller</td><td><code>ProdutoController</code></td><td><code>app/Controllers/ProdutoController.php</code></td></tr>
+            <tr><td>Validação</td><td><code>CriarPedidoRequest</code></td><td><code>app/Requests/CriarPedidoRequest.php</code></td></tr>
             <tr><td>Service</td><td><code>CriarPedidoService</code></td><td><code>app/Services/CriarPedidoService.php</code></td></tr>
             <tr><td>Interface</td><td><code>ProdutoRepositoryInterface</code></td><td><code>app/Contracts/ProdutoRepositoryInterface.php</code></td></tr>
             <tr><td>Repository</td><td><code>PdoProdutoRepository</code></td><td><code>app/Repositories/PdoProdutoRepository.php</code></td></tr>
@@ -1055,6 +1058,7 @@ $request-&gt;user();     // usuário autenticado ou null (veja "Usuário autenti
             <tr><td><code>all()</code></td><td>Corpo inteiro como array</td></tr>
             <tr><td><code>only([...])</code></td><td>Só os campos informados</td></tr>
             <tr><td><code>body()</code></td><td>Corpo cru, como texto</td></tr>
+            <tr><td><code>validate($regras, $nomes = [])</code></td><td>Valida os dados e devolve só os campos validados (veja <a href="#validacao-rapida">Validação</a>)</td></tr>
             <tr><td><code>header($nome, $padrao = null)</code></td><td>Um cabeçalho</td></tr>
             <tr><td><code>headers()</code></td><td>Todos os cabeçalhos (nomes em minúsculas)</td></tr>
             <tr><td><code>isJson()</code></td><td><code>true</code> se o corpo é JSON</td></tr>
@@ -1069,38 +1073,16 @@ $request-&gt;user();     // usuário autenticado ou null (veja "Usuário autenti
       </div>
 
       <h2 id="requisicoes-validacao">Validando o que chega</h2>
-      <p>Tudo o que vem da requisição deve ser tratado como não confiável. O Haki não tem um validador embutido (está no <a href="#roadmap">roadmap</a>), então valide no service e responda com <code>HttpException</code>:</p>
-
+      <p>Tudo o que vem da requisição deve ser tratado como não confiável. Em vez de conferir campo por campo com <code>if</code>, descreva as regras e deixe o Haki validar e converter os tipos:</p>
       <div class="code">
-        <div class="code-title">app/Services/CriarClienteService.php</div>
-        <pre><code data-lang="php">use Haki\Exceptions\HttpException;
-
-public function executar(array $dados): Cliente
-{
-    $nome = $dados['nome'] ?? null;
-    $email = $dados['email'] ?? null;
-
-    if (!is_string($nome) || mb_strlen(trim($nome)) &lt; 3) {
-        throw new HttpException(422, 'O nome precisa ter pelo menos 3 letras');
-    }
-
-    if (!is_string($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new HttpException(422, 'Informe um e-mail válido');
-    }
-
-    return $this-&gt;clientes-&gt;criar(trim($nome), strtolower($email));
-}</code></pre>
+        <pre><code data-lang="php">$dados = $request-&gt;validate(function (Rule $rule) {
+    return [
+        &#039;nome&#039;  =&gt; $rule-&gt;text()-&gt;length(3, 100),
+        &#039;email&#039; =&gt; $rule-&gt;email(),
+    ];
+});</code></pre>
       </div>
-
-      <div class="code">
-        <div class="code-title">app/Controllers/ClienteController.php</div>
-        <pre><code data-lang="php">public function store(Request $request, Response $response): Response
-{
-    $cliente = $this-&gt;criarCliente-&gt;executar($request-&gt;only(['nome', 'email']));
-
-    return $response-&gt;json(['cliente' =&gt; $cliente], 201);
-}</code></pre>
-      </div>
+      <p>Veja tudo sobre isso na página <a href="#validacao">Validação</a>, incluindo as classes de validação.</p>
 
       <h2 id="requisicoes-testes">Criando requisições em testes</h2>
       <p><code>Request::create()</code> monta uma requisição sem servidor, para usar com <code>$app-&gt;handle()</code>:</p>
@@ -1112,6 +1094,343 @@ Request::create('POST', '/clientes', ['nome' =&gt; 'Nami']);              // cor
 Request::create('GET', '/eu', [], ['Authorization' =&gt; 'Bearer ...']);  // com cabeçalhos</code></pre>
       </div>
       <p>Em produção, o <code>$app-&gt;run()</code> monta a requisição real a partir das variáveis do PHP (<code>Request::capture()</code>). Você não precisa chamar isso.</p>
+    </article>
+
+    <!-- ================================================================== VALIDAÇÃO -->
+    <article class="doc-page" id="validacao">
+      <h1>Validação</h1>
+
+      <h2 id="validacao-visao">Visão geral</h2>
+      <p class="lead">Validar é conferir se os dados enviados pelo cliente estão certos antes de usá-los. No Haki, você descreve cada campo com <code>$rule</code>, e o framework confere, converte os tipos e responde com mensagens em português quando algo está errado.</p>
+
+      <div class="code">
+        <pre><code data-lang="php">'nome'  =&gt; $rule-&gt;text()-&gt;length(3, 100),     // texto de 3 a 100 caracteres
+'email' =&gt; $rule-&gt;email(),                     // e-mail válido
+'idade' =&gt; $rule-&gt;integer()-&gt;min(18)-&gt;optional(), // inteiro, 18 ou mais, pode faltar</code></pre>
+      </div>
+
+      <p>Há duas formas de validar:</p>
+      <ul>
+        <li><strong>Classe de validação</strong> (<code>FormRequest</code>): o jeito recomendado. Deixa o controller limpo e a regra reaproveitável.</li>
+        <li><strong><code>$request-&gt;validate()</code></strong>: um atalho para casos rápidos, direto no controller.</li>
+      </ul>
+
+      <h2 id="validacao-classe">Criando uma classe de validação</h2>
+      <ol class="steps">
+        <li>
+          <strong>Gere a classe</strong>
+          <div class="code">
+            <pre><code data-lang="bash">php vendor/bin/haki make:request CriarClienteRequest</code></pre>
+          </div>
+          <p>O arquivo é criado em <code>app/Requests/CriarClienteRequest.php</code>.</p>
+        </li>
+        <li>
+          <strong>Descreva os campos em <code>rules()</code></strong>
+          <div class="code">
+            <div class="code-title">app/Requests/CriarClienteRequest.php</div>
+            <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Requests;
+
+use Haki\Validation\FormRequest;
+use Haki\Validation\Rule;
+
+final class CriarClienteRequest extends FormRequest
+{
+    public function rules(Rule $rule): array
+    {
+        return [
+            'nome'  =&gt; $rule-&gt;text()-&gt;length(3, 100),
+            'email' =&gt; $rule-&gt;email(),
+            'idade' =&gt; $rule-&gt;integer()-&gt;min(18)-&gt;optional(),
+
+            'endereco' =&gt; [
+                'cidade' =&gt; $rule-&gt;text(),
+                'cep'    =&gt; $rule-&gt;text()-&gt;pattern('/^\d{5}-?\d{3}$/'),
+            ],
+
+            'tags' =&gt; $rule-&gt;list($rule-&gt;oneOf('vip', 'novo')),
+        ];
+    }
+}</code></pre>
+          </div>
+        </li>
+        <li>
+          <strong>Peça a classe no controller</strong>
+          <div class="code">
+            <div class="code-title">app/Controllers/ClienteController.php</div>
+            <pre><code data-lang="php">use App\Requests\CriarClienteRequest;
+
+public function store(CriarClienteRequest $request, Response $response): Response
+{
+    $cliente = $this-&gt;clientes-&gt;criar($request-&gt;validated());
+
+    return $response-&gt;json(['cliente' =&gt; $cliente], 201);
+}</code></pre>
+          </div>
+          <p>Pronto. O Haki valida <strong>antes</strong> do controller rodar. Se algo estiver errado, o controller nem é chamado.</p>
+        </li>
+      </ol>
+
+      <h2 id="validacao-resposta">O que o cliente recebe</h2>
+      <p>Com dados inválidos, a resposta é <strong>422</strong>, com as mensagens separadas por campo:</p>
+      <div class="code">
+        <pre><code data-lang="json">{
+  "erro": "Dados inválidos",
+  "status": 422,
+  "campos": {
+    "nome": ["O campo nome precisa ter entre 3 e 100 caracteres."],
+    "email": ["O campo email precisa ser um e-mail válido."],
+    "endereco.cep": ["O campo cep está em um formato inválido."],
+    "tags.1": ["O item 2 de tags precisa ser um destes: vip, novo."]
+  }
+}</code></pre>
+      </div>
+      <p>Campos dentro de objetos usam ponto (<code>endereco.cep</code>), e itens de lista usam a posição, começando em zero (<code>tags.1</code> é o segundo item). No front-end, mostre cada mensagem embaixo do campo correspondente.</p>
+
+      <h2 id="validacao-usando">Usando os dados validados</h2>
+      <div class="code">
+        <pre><code data-lang="php">$request-&gt;nome;                      // 'Nami' (acesso direto)
+$request-&gt;get('endereco.cidade');    // 'Cocoyashi' (notação de ponto)
+$request-&gt;get('telefone', '-');      // com valor padrão
+$request-&gt;only(['nome', 'email']);   // só alguns campos
+$request-&gt;validated();               // todos os campos validados
+
+$request-&gt;user();                    // usuário autenticado
+$request-&gt;request();                 // a requisição original (cabeçalhos, IP, parâmetros de rota...)</code></pre>
+      </div>
+
+      <h3 id="validacao-convertidos">Os valores já chegam convertidos</h3>
+      <p>Diferente de <code>$request-&gt;input()</code>, que entrega o que o cliente mandou, os dados validados vêm no tipo certo:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Regra</th><th>Cliente enviou</th><th>Você recebe</th></tr></thead>
+          <tbody>
+            <tr><td><code>text()</code></td><td><code>"  Nami  "</code></td><td><code>'Nami'</code> (sem espaços nas pontas)</td></tr>
+            <tr><td><code>integer()</code></td><td><code>"20"</code></td><td><code>20</code></td></tr>
+            <tr><td><code>number()</code></td><td><code>"9.9"</code></td><td><code>9.9</code></td></tr>
+            <tr><td><code>boolean()</code></td><td><code>"sim"</code>, <code>"1"</code>, <code>"on"</code></td><td><code>true</code></td></tr>
+            <tr><td><code>date()</code></td><td><code>"2026-12-31"</code></td><td><code>DateTimeImmutable</code></td></tr>
+            <tr><td><code>enum(Plano::class)</code></td><td><code>"pro"</code></td><td><code>Plano::Pro</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-label">Proteção automática</span>
+        <p><code>validated()</code> só traz os campos declarados em <code>rules()</code>. Se alguém enviar <code>"perfil": "admin"</code> sem que esse campo exista nas regras, ele é ignorado. Por isso é seguro passar <code>validated()</code> direto para o banco.</p>
+      </div>
+
+      <h2 id="validacao-obrigatorio">Obrigatório e opcional</h2>
+      <p><strong>Todo campo é obrigatório.</strong> Você só escreve a exceção, com <code>optional()</code>:</p>
+      <div class="code">
+        <pre><code data-lang="php">'apelido' =&gt; $rule-&gt;text()-&gt;optional(),         // se faltar: null
+'pagina'  =&gt; $rule-&gt;integer()-&gt;optional(1),     // se faltar: 1
+'ativo'   =&gt; $rule-&gt;boolean()-&gt;optional(true),  // se faltar: true</code></pre>
+      </div>
+      <p>Um campo vazio (<code>""</code>, só espaços ou <code>null</code>) conta como não enviado. Campos opcionais sempre aparecem em <code>validated()</code>, com o valor enviado ou com o padrão.</p>
+
+      <h2 id="validacao-tipos">Tipos de campo</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Regra</th><th>Aceita</th></tr></thead>
+          <tbody>
+            <tr><td><code>$rule-&gt;text()</code></td><td>Texto. Números também são aceitos e viram texto.</td></tr>
+            <tr><td><code>$rule-&gt;integer()</code></td><td>Número inteiro: <code>20</code> ou <code>"20"</code>.</td></tr>
+            <tr><td><code>$rule-&gt;number()</code></td><td>Inteiro ou decimal: <code>9.9</code> ou <code>"9.9"</code>.</td></tr>
+            <tr><td><code>$rule-&gt;boolean()</code></td><td><code>true</code>/<code>false</code>, <code>1</code>/<code>0</code>, <code>"sim"</code>/<code>"não"</code>, <code>"on"</code>/<code>"off"</code>, <code>"yes"</code>/<code>"no"</code>.</td></tr>
+            <tr><td><code>$rule-&gt;email()</code></td><td>E-mail válido.</td></tr>
+            <tr><td><code>$rule-&gt;url()</code></td><td>URL começando com <code>http://</code> ou <code>https://</code>.</td></tr>
+            <tr><td><code>$rule-&gt;uuid()</code></td><td>UUID (é convertido para minúsculas).</td></tr>
+            <tr><td><code>$rule-&gt;date()</code></td><td>Data <code>2026-12-31</code>. Outro formato: <code>date('d/m/Y')</code> ou <code>date('Y-m-d H:i')</code>.</td></tr>
+            <tr><td><code>$rule-&gt;oneOf('a', 'b')</code></td><td>Um dos valores listados.</td></tr>
+            <tr><td><code>$rule-&gt;enum(Plano::class)</code></td><td>Um dos valores de um enum; vira o próprio enum.</td></tr>
+            <tr><td><code>$rule-&gt;list($regra)</code></td><td>Uma lista em que cada item segue a regra.</td></tr>
+            <tr><td><code>[ ... ]</code> ou <code>$rule-&gt;object([ ... ])</code></td><td>Um objeto com campos próprios.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="validacao-restricoes">Restrições</h2>
+      <p>Encadeie depois do tipo, na ordem que preferir:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Para</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><code>length($min, $max)</code></td><td>Quantidade de <strong>caracteres</strong> (textos) ou de <strong>itens</strong> (listas)</td><td><code>length(3, 100)</code>, <code>length(3)</code>, <code>length(max: 100)</code></td></tr>
+            <tr><td><code>min($valor)</code></td><td>Menor <strong>valor</strong> (números)</td><td><code>min(18)</code></td></tr>
+            <tr><td><code>max($valor)</code></td><td>Maior <strong>valor</strong> (números)</td><td><code>max(100)</code></td></tr>
+            <tr><td><code>between($min, $max)</code></td><td>Faixa de valores (números)</td><td><code>between(1, 5)</code></td></tr>
+            <tr><td><code>oneOf(...)</code></td><td>Lista de valores aceitos</td><td><code>$rule-&gt;text()-&gt;oneOf('P', 'M', 'G')</code></td></tr>
+            <tr><td><code>pattern($regex, $mensagem)</code></td><td>Formato por expressão regular</td><td><code>pattern('/^\d{5}-?\d{3}$/')</code></td></tr>
+            <tr><td><code>same('campo')</code></td><td>Igual a outro campo do mesmo nível</td><td><code>same('senha')</code></td></tr>
+            <tr><td><code>check($funcao, $mensagem)</code></td><td>Regra própria</td><td>veja abaixo</td></tr>
+            <tr><td><code>optional($padrao)</code></td><td>Campo pode faltar</td><td><code>optional()</code>, <code>optional(1)</code></td></tr>
+            <tr><td><code>message($mensagem)</code></td><td>Uma mensagem única para o campo</td><td><code>message('Escolha um apelido')</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">length ou min?</span>
+        <p><code>length</code> conta <strong>tamanho</strong> (letras de um texto, itens de uma lista). <code>min</code> e <code>max</code> comparam o <strong>valor</strong> de um número. Uma senha de pelo menos 8 caracteres é <code>text()-&gt;length(8)</code>; uma idade de pelo menos 18 anos é <code>integer()-&gt;min(18)</code>.</p>
+      </div>
+
+      <h2 id="validacao-objetos-listas">Objetos e listas</h2>
+      <h3 id="validacao-objetos">Objetos</h3>
+      <p>Um array dentro das regras vira um objeto, com o mesmo formato do JSON que chega:</p>
+      <div class="code">
+        <pre><code data-lang="php">'endereco' =&gt; [
+    'rua'    =&gt; $rule-&gt;text(),
+    'numero' =&gt; $rule-&gt;integer(),
+    'cidade' =&gt; $rule-&gt;text(),
+],</code></pre>
+      </div>
+      <p>Para um objeto opcional, use <code>object()</code>: <code>'endereco' =&gt; $rule-&gt;object([...])-&gt;optional()</code>.</p>
+
+      <h3 id="validacao-listas">Listas</h3>
+      <div class="code">
+        <pre><code data-lang="php">// Lista de textos, de 1 a 5 itens
+'tags' =&gt; $rule-&gt;list($rule-&gt;text())-&gt;length(1, 5),
+
+// Lista de objetos (itens de um pedido)
+'itens' =&gt; $rule-&gt;list([
+    'produto_id' =&gt; $rule-&gt;integer(),
+    'quantidade' =&gt; $rule-&gt;integer()-&gt;min(1),
+])-&gt;length(1),</code></pre>
+      </div>
+
+      <h2 id="validacao-mensagens">Mensagens e nomes dos campos</h2>
+      <p>As mensagens usam o nome do campo. Para trocar por um nome mais amigável, defina <code>labels()</code>:</p>
+      <div class="code">
+        <pre><code data-lang="php">public function labels(): array
+{
+    return [
+        'email'        =&gt; 'e-mail',
+        'endereco.cep' =&gt; 'CEP',
+    ];
+}
+// "O campo e-mail precisa ser um e-mail válido."</code></pre>
+      </div>
+      <p>Para trocar a mensagem inteira de uma regra, use o segundo argumento de <code>pattern()</code> e <code>check()</code>, ou <code>message()</code> para o campo todo:</p>
+      <div class="code">
+        <pre><code data-lang="php">'cep' =&gt; $rule-&gt;text()-&gt;pattern('/^\d{5}-?\d{3}$/', 'Informe um CEP como 12345-678.'),
+'apelido' =&gt; $rule-&gt;text()-&gt;length(3, 20)-&gt;message('O apelido precisa ter de 3 a 20 letras.'),</code></pre>
+      </div>
+
+      <h2 id="validacao-preparar">Preparando os dados: prepare()</h2>
+      <p><code>prepare()</code> roda <strong>antes</strong> da validação. Use para limpar os dados, como tirar a máscara de um CPF:</p>
+      <div class="code">
+        <pre><code data-lang="php">protected function prepare(array $data): array
+{
+    $data['cpf'] = preg_replace('/\D/', '', (string) ($data['cpf'] ?? '')); // "123.456.789-01" → "12345678901"
+    $data['email'] = strtolower((string) ($data['email'] ?? ''));
+
+    return $data;
+}</code></pre>
+      </div>
+
+      <h2 id="validacao-regras-proprias">Regras com lógica própria</h2>
+      <h3 id="validacao-check-campo">check() em um campo</h3>
+      <p>Para uma regra que não existe pronta, passe uma função que recebe o valor (já convertido) e retorna <code>true</code> se estiver certo:</p>
+      <div class="code">
+        <pre><code data-lang="php">'cpf' =&gt; $rule-&gt;text()-&gt;check(function (string $cpf): bool {
+    return Cpf::valido($cpf);
+}, 'Informe um CPF válido.'),</code></pre>
+      </div>
+
+      <h3 id="validacao-check-classe">check() na classe</h3>
+      <p>Para regras que dependem do banco ou de vários campos, sobrescreva <code>check()</code>. Ele roda <strong>depois</strong> que todas as regras de <code>rules()</code> passaram e recebe os dados validados. Use <code>$this-&gt;fail()</code> para marcar um erro. A classe recebe dependências pelo construtor, como um controller:</p>
+      <div class="code">
+        <pre><code data-lang="php">final class CriarClienteRequest extends FormRequest
+{
+    public function __construct(private readonly ClienteRepositoryInterface $clientes)
+    {
+    }
+
+    public function rules(Rule $rule): array
+    {
+        return [
+            'email'       =&gt; $rule-&gt;email(),
+            'data_inicio' =&gt; $rule-&gt;date(),
+            'data_fim'    =&gt; $rule-&gt;date(),
+        ];
+    }
+
+    protected function check(array $data): void
+    {
+        if ($this-&gt;clientes-&gt;emailExiste($data['email'])) {
+            $this-&gt;fail('email', 'Este e-mail já está cadastrado.');
+        }
+
+        if ($data['data_fim'] &lt; $data['data_inicio']) {
+            $this-&gt;fail('data_fim', 'A data final precisa ser depois da inicial.');
+        }
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="validacao-confirmacao">Exemplo: cadastro com confirmação de senha</h2>
+      <div class="code">
+        <div class="code-title">app/Requests/CadastroRequest.php</div>
+        <pre><code data-lang="php">public function rules(Rule $rule): array
+{
+    return [
+        'nome'              =&gt; $rule-&gt;text()-&gt;length(3, 100),
+        'email'             =&gt; $rule-&gt;email(),
+        'senha'             =&gt; $rule-&gt;text()-&gt;length(8, 72),
+        'senha_confirmacao' =&gt; $rule-&gt;text()-&gt;same('senha'),
+        'aceitou_termos'    =&gt; $rule-&gt;boolean()-&gt;check(function (bool $aceitou): bool {
+            return $aceitou;
+        }, 'Você precisa aceitar os termos de uso.'),
+    ];
+}</code></pre>
+      </div>
+
+      <h2 id="validacao-rapida">Validação rápida: $request-&gt;validate()</h2>
+      <p>Para poucos campos, valide direto no controller, sem criar uma classe:</p>
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Validation\Rule;
+
+public function login(Request $request, Auth $auth): array
+{
+    $dados = $request-&gt;validate(function (Rule $rule) {
+        return [
+            'email' =&gt; $rule-&gt;email(),
+            'senha' =&gt; $rule-&gt;text()-&gt;length(8),
+        ];
+    });
+
+    // $dados = ['email' =&gt; '...', 'senha' =&gt; '...']
+}</code></pre>
+      </div>
+      <p>O comportamento é o mesmo: resposta 422 automática e dados convertidos. O segundo argumento opcional define os nomes amigáveis: <code>$request-&gt;validate(..., ['email' =&gt; 'e-mail'])</code>.</p>
+
+      <h2 id="validacao-query">Validando a query string</h2>
+      <p>As regras valem para a query string e para o corpo juntos (se o mesmo campo vier nos dois, vale o do corpo). Assim, a mesma técnica serve para filtros de listagem:</p>
+      <div class="code">
+        <pre><code data-lang="php">// GET /produtos?busca=espada&amp;pagina=2
+public function rules(Rule $rule): array
+{
+    return [
+        'busca'  =&gt; $rule-&gt;text()-&gt;length(2)-&gt;optional(),
+        'pagina' =&gt; $rule-&gt;integer()-&gt;min(1)-&gt;optional(1),
+        'ordem'  =&gt; $rule-&gt;oneOf('nome', 'preco')-&gt;optional('nome'),
+    ];
+}</code></pre>
+      </div>
+
+      <h2 id="validacao-ordem">Em que momento a validação roda</h2>
+      <ol>
+        <li>Middlewares, autenticação (<code>-&gt;auth()</code>) e perfil (<code>-&gt;role()</code>).</li>
+        <li><code>prepare()</code> ajusta os dados.</li>
+        <li>As regras de <code>rules()</code> são aplicadas.</li>
+        <li>Se passaram, <code>check()</code> roda.</li>
+        <li>Se tudo deu certo, o controller é chamado.</li>
+      </ol>
+      <p>Por isso uma requisição sem token recebe <strong>401</strong>, e não 422: a autenticação vem antes.</p>
     </article>
 
     <!-- ================================================================== RESPOSTAS -->
@@ -1388,6 +1707,7 @@ throw new HttpException(429);   // { "erro": "Muitas requisições", "status": 4
             <tr><td><code>AuthorizationException</code></td><td>403</td><td>Usuário sem o perfil exigido</td></tr>
             <tr><td><code>RouteNotFoundException</code></td><td>404</td><td>Nenhuma rota para o caminho</td></tr>
             <tr><td><code>MethodNotAllowedException</code></td><td>405</td><td>O caminho existe, com outro método</td></tr>
+            <tr><td><code>ValidationException</code></td><td>422</td><td>Dados inválidos; <code>errors()</code> traz as mensagens por campo (namespace <code>Haki\Validation</code>)</td></tr>
             <tr><td><code>ContainerException</code></td><td>500</td><td>Uma dependência não pôde ser criada ou injetada</td></tr>
             <tr><td><code>ConfigurationException</code></td><td>500</td><td>Configuração inválida (segredo curto, chave RSA inválida, extensão faltando)</td></tr>
             <tr><td><code>HakiException</code></td><td>500</td><td>Base de todas as anteriores; tem <code>getHint()</code></td></tr>
@@ -1412,7 +1732,7 @@ throw new HttpException(429);   // { "erro": "Muitas requisições", "status": 4
             <tr><td><code>403</code></td><td>Autenticado, mas sem permissão</td></tr>
             <tr><td><code>404</code></td><td>Rota ou recurso não encontrado</td></tr>
             <tr><td><code>405</code></td><td>Método HTTP não permitido nesse caminho</td></tr>
-            <tr><td><code>422</code></td><td>Dados com formato válido, mas conteúdo inválido</td></tr>
+            <tr><td><code>422</code></td><td>Dados inválidos (validação), com as mensagens em <code>campos</code></td></tr>
             <tr><td><code>500</code></td><td>Erro inesperado no servidor</td></tr>
           </tbody>
         </table>
@@ -2170,6 +2490,7 @@ $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, ApiUsuarioRepos
           <thead><tr><th>Comando</th><th>Faz</th></tr></thead>
           <tbody>
             <tr><td><code>init</code></td><td>Cria a estrutura padrão do projeto com uma rota e um controller de exemplo (<code>--force</code> recria os arquivos)</td></tr>
+            <tr><td><code>make:request Nome</code></td><td>Cria uma classe de validação em <code>app/Requests</code></td></tr>
             <tr><td><code>key:generate</code></td><td>Cria um <code>JWT_SECRET</code> aleatório no <code>.env</code> (cria o arquivo se não existir)</td></tr>
             <tr><td><code>key:generate --force</code></td><td>Troca o segredo existente (desconecta todos os usuários)</td></tr>
             <tr><td><code>key:generate --rsa</code></td><td>Cria o par de chaves RS256 em <code>storage/keys/</code></td></tr>
@@ -2634,6 +2955,7 @@ curl localhost:8000/admin/painel -H "Authorization: Bearer SEU_TOKEN"</code></pr
             <tr><td>Query string</td><td><code>query()</code></td></tr>
             <tr><td>Rota</td><td><code>param()</code>, <code>params()</code></td></tr>
             <tr><td>Corpo</td><td><code>input()</code>, <code>has()</code>, <code>all()</code>, <code>only()</code>, <code>body()</code>, <code>isJson()</code></td></tr>
+            <tr><td>Validação</td><td><code>validate()</code></td></tr>
             <tr><td>Cabeçalhos</td><td><code>header()</code>, <code>headers()</code>, <code>bearerToken()</code></td></tr>
             <tr><td>Informações</td><td><code>method()</code>, <code>path()</code>, <code>uri()</code>, <code>ip()</code>, <code>user()</code></td></tr>
             <tr><td>Criar</td><td><code>Request::create()</code> (testes), <code>Request::capture()</code> (usado pelo <code>run()</code>)</td></tr>
@@ -2747,6 +3069,29 @@ interface MiddlewareInterface
       </div>
       <p><code>RefreshTokenRecord</code> tem as propriedades <code>hash</code>, <code>userId</code>, <code>familyId</code>, <code>claims</code>, <code>createdAt</code>, <code>expiresAt</code>, <code>usedAt</code> e <code>revokedAt</code>.</p>
 
+      <h2 id="ref-validacao">Validação</h2>
+      <p><code>Haki\Validation\FormRequest</code>: classe base das classes de validação. Veja <a href="#validacao">Validação</a>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>rules(Rule $rule): array</code></td><td>Obrigatório. As regras de cada campo.</td></tr>
+            <tr><td><code>labels(): array</code></td><td>Opcional. Nomes amigáveis para as mensagens.</td></tr>
+            <tr><td><code>prepare(array $data): array</code></td><td>Opcional. Ajusta os dados antes de validar.</td></tr>
+            <tr><td><code>check(array $data): void</code></td><td>Opcional. Regras com lógica, depois de <code>rules()</code>.</td></tr>
+            <tr><td><code>fail($campo, $mensagem)</code></td><td>Marca um erro (use dentro de <code>check()</code>).</td></tr>
+            <tr><td><code>validated()</code></td><td>Todos os campos validados e convertidos.</td></tr>
+            <tr><td><code>get($campo, $padrao = null)</code></td><td>Um campo; aceita <code>'endereco.cidade'</code>.</td></tr>
+            <tr><td><code>only([...])</code></td><td>Só os campos informados.</td></tr>
+            <tr><td><code>$request-&gt;nome</code></td><td>Acesso direto a um campo validado.</td></tr>
+            <tr><td><code>user()</code> / <code>request()</code></td><td>Usuário autenticado / requisição original.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><code>Haki\Validation\Rule</code> (o <code>$rule</code>) cria os campos: <code>text()</code>, <code>integer()</code>, <code>number()</code>, <code>boolean()</code>, <code>email()</code>, <code>url()</code>, <code>uuid()</code>, <code>date($formato)</code>, <code>oneOf(...)</code>, <code>enum($classe)</code>, <code>list($regra)</code> e <code>object([...])</code>.</p>
+      <p>Cada campo aceita: <code>optional($padrao)</code>, <code>length($min, $max)</code>, <code>min()</code>, <code>max()</code>, <code>between()</code>, <code>oneOf(...)</code>, <code>pattern($regex, $mensagem)</code>, <code>same($campo)</code>, <code>check($funcao, $mensagem)</code> e <code>message($mensagem)</code>.</p>
+      <p>Sem classe: <code>$request-&gt;validate(function (Rule $rule) { return [...]; }, $nomes = [])</code> devolve os dados validados.</p>
+
       <h2 id="ref-excecoes">Exceções</h2>
       <div class="table-wrap">
         <table>
@@ -2789,6 +3134,7 @@ interface MiddlewareInterface
           <tbody>
             <tr><td><code>php vendor/bin/haki</code></td><td>Lista os comandos.</td></tr>
             <tr><td><code>php vendor/bin/haki init [--force]</code></td><td>Cria a estrutura padrão do projeto.</td></tr>
+            <tr><td><code>php vendor/bin/haki make:request Nome [--force]</code></td><td>Cria uma classe de validação.</td></tr>
             <tr><td><code>php vendor/bin/haki key:generate [--force]</code></td><td>Cria o <code>JWT_SECRET</code> no <code>.env</code>.</td></tr>
             <tr><td><code>php vendor/bin/haki key:generate --rsa [--force]</code></td><td>Cria as chaves RS256 em <code>storage/keys/</code>.</td></tr>
             <tr><td><code>php vendor/bin/haki auth:install</code></td><td>Cria o banco de tokens.</td></tr>
@@ -2807,12 +3153,11 @@ interface MiddlewareInterface
         <li>O armazenamento SQLite padrão atende <strong>um servidor</strong>. Com vários servidores, use um <a href="#armazenamento-proprio">TokenStore compartilhado</a>.</li>
         <li>Mudanças de perfil ou bloqueios só valem depois de <code>logoutAll()</code> ou da expiração do access token.</li>
         <li>Só existe uma chave ativa por vez: trocar o segredo desconecta todos.</li>
-        <li>Validação de entrada, ORM e limitação de tentativas não estão incluídos.</li>
+        <li>ORM e limitação de tentativas não estão incluídos.</li>
       </ul>
 
       <h2 id="roadmap-proximos">Próximos passos</h2>
       <ul>
-        <li>Validação declarativa: <code>$request-&gt;validate(['email' =&gt; 'required|email'])</code></li>
         <li>Query builder leve sobre PDO</li>
         <li>Várias chaves ativas (rotação sem derrubar sessões) e ES256</li>
         <li>Middleware de CORS e de limitação de tentativas prontos</li>
@@ -2820,7 +3165,7 @@ interface MiddlewareInterface
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
 
-      <p class="footer-note">Haki 1.2 · Licença MIT · shankscode/haki</p>
+      <p class="footer-note">Haki 1.3 · Licença MIT · shankscode/haki</p>
     </article>
 
   </main>

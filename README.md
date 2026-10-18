@@ -39,7 +39,7 @@ O `init` cria a estrutura padrão do projeto, com uma rota e um controller de ex
 
 ```
 app/Controllers/HomeController.php
-app/{Services,Repositories,Contracts,Models,Middleware}/
+app/{Requests,Services,Repositories,Contracts,Models,Middleware}/
 bootstrap/app.php
 routes/api.php
 public/index.php
@@ -61,6 +61,32 @@ use App\Controllers\HomeController;
 $app->get('/', [HomeController::class, 'index']);
 ```
 
+## Validação
+
+```bash
+php vendor/bin/haki make:request CriarClienteRequest
+```
+
+```php
+final class CriarClienteRequest extends FormRequest
+{
+    public function rules(Rule $rule): array
+    {
+        return [
+            'nome'  => $rule->text()->length(3, 100),
+            'email' => $rule->email(),
+            'idade' => $rule->integer()->min(18)->optional(),
+        ];
+    }
+}
+
+// No controller: se algo estiver inválido, responde 422 antes de chegar aqui.
+public function store(CriarClienteRequest $request): array
+{
+    return ['cliente' => $this->clientes->criar($request->validated())];
+}
+```
+
 ## Rodando
 
 ```bash
@@ -74,6 +100,7 @@ Acesse `http://localhost:8000`.
 | Comando | Faz |
 | --- | --- |
 | `php vendor/bin/haki init` | Cria a estrutura padrão do projeto |
+| `php vendor/bin/haki make:request Nome` | Cria uma classe de validação em `app/Requests` |
 | `php vendor/bin/haki key:generate` | Cria `JWT_SECRET` no `.env` (`--rsa` para chaves RS256) |
 | `php vendor/bin/haki auth:install` | Cria o banco SQLite de tokens |
 | `php vendor/bin/haki auth:clean` | Remove tokens vencidos |

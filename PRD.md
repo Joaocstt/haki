@@ -73,12 +73,13 @@ $app->run();
 | CLI | `init`, `key:generate`, `auth:install`, `auth:clean` |
 | Erros | JSON padronizado, detalhes só em dev |
 | Depuração | Função global `haki()` (dump legível em HTML e terminal) |
+| Validação | `FormRequest` com `$rule->...`, `$request->validate()`, comando `make:request` |
 | Qualidade | Testes PHPUnit das partes principais |
 
 ### 3.2 Fora do escopo da v1.0
 
 - ORM ou query builder.
-- Validação de dados de entrada.
+
 - Templates/views.
 - Filas, eventos, cache.
 - Rate limiting integrado.
@@ -699,7 +700,6 @@ PHPUnit, focado no comportamento real:
 
 ## 12. Roadmap (pós v1.0)
 
-- Validação de entrada (`$request->validate([...])`).
 - Query builder leve sobre PDO.
 - Múltiplas chaves ativas (rotação sem derrubar sessões) e ES256.
 - Rate limiting integrado.

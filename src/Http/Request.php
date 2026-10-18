@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Haki\Http;
 
+use Closure;
 use Haki\Auth\Identity;
 use Haki\Exceptions\HttpException;
+use Haki\Validation\Field;
+use Haki\Validation\Rule;
+use Haki\Validation\ValidationException;
+use Haki\Validation\Validator;
 use JsonException;
 
 /**
@@ -216,6 +221,29 @@ class Request
     public function body(): string
     {
         return $this->body;
+    }
+
+    /**
+     * Valida os dados sem criar uma classe. Responde 422 automaticamente se algo estiver inválido.
+     *
+     *     $dados = $request->validate(function (Rule $rule) {
+     *         return ['email' => $rule->email(), 'senha' => $rule->text()->length(8)];
+     *     });
+     *
+     * Os dados vêm da query string e do corpo juntos (o corpo tem prioridade).
+     *
+     * @param (Closure(Rule): array<string, Field|array<mixed>>)|array<string, Field|array<mixed>> $rules
+     * @param array<string, string>                                                              $labels
+     * @return array<string, mixed> só os campos validados, já convertidos
+     * @throws ValidationException
+     */
+    public function validate(Closure|array $rules, array $labels = []): array
+    {
+        if ($rules instanceof Closure) {
+            $rules = $rules(new Rule());
+        }
+
+        return (new Validator())->validate(array_replace($this->query, $this->all()), $rules, $labels);
     }
 
     public function header(string $name, ?string $default = null): ?string

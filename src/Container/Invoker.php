@@ -9,6 +9,7 @@ use Haki\Exceptions\ContainerException;
 use Haki\Exceptions\HttpException;
 use Haki\Http\Request;
 use Haki\Http\Response;
+use Haki\Validation\FormRequest;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
@@ -103,6 +104,14 @@ final class Invoker
 
             if ($typeName === Response::class) {
                 return new Response();
+            }
+
+            // Classe de validação: criada com as dependências e validada antes do controller.
+            if (is_a($typeName, FormRequest::class, true)) {
+                $form = $this->container->build($typeName);
+                $form->validateRequest($request);
+
+                return $form;
             }
 
             return $this->container->get($typeName);
