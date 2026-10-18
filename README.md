@@ -1,5 +1,7 @@
 # Haki
 
+**Documentação:** https://joaocstt.github.io/haki/
+
 Miniframework PHP para APIs REST: rotas, injeção de dependências, middleware e autenticação JWT própria (HS256/RS256, refresh token e logout). Não depende de nenhuma biblioteca externa.
 
 ```php

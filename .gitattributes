@@ -2,6 +2,7 @@
 # (nem para o .zip baixado do GitHub). O pacote leva só: src/, bin/, composer.json, LICENSE e README.md.
 /tests              export-ignore
 /docs-site          export-ignore
+/.github            export-ignore
 /PRD.md             export-ignore
 /phpunit.xml        export-ignore
 /composer.lock      export-ignore
