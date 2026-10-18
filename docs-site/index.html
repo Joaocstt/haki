@@ -31,7 +31,7 @@
   </button>
 
   <div class="header-actions">
-    <span class="version">Versão 1.3</span>
+    <span class="version">Versão 1.4</span>
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Tema">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
     </button>
@@ -460,7 +460,7 @@ final class HomeController
         <div class="code-title">composer.json</div>
         <pre><code data-lang="json">{
     "require": {
-        "shankscode/haki": "^1.3"
+        "shankscode/haki": "^1.4"
     },
     "autoload": {
         "psr-4": {
@@ -1245,12 +1245,78 @@ $request-&gt;request();                 // a requisição original (cabeçalhos,
             <tr><td><code>$rule-&gt;url()</code></td><td>URL começando com <code>http://</code> ou <code>https://</code>.</td></tr>
             <tr><td><code>$rule-&gt;uuid()</code></td><td>UUID (é convertido para minúsculas).</td></tr>
             <tr><td><code>$rule-&gt;date()</code></td><td>Data <code>2026-12-31</code>. Outro formato: <code>date('d/m/Y')</code> ou <code>date('Y-m-d H:i')</code>.</td></tr>
+            <tr><td><code>$rule-&gt;cep()</code>, <code>cpf()</code>, <code>cnpj()</code>, <code>phone()</code>...</td><td>Formatos brasileiros prontos. Veja <a href="#validacao-formatos">Formatos prontos</a>.</td></tr>
             <tr><td><code>$rule-&gt;oneOf('a', 'b')</code></td><td>Um dos valores listados.</td></tr>
             <tr><td><code>$rule-&gt;enum(Plano::class)</code></td><td>Um dos valores de um enum; vira o próprio enum.</td></tr>
             <tr><td><code>$rule-&gt;list($regra)</code></td><td>Uma lista em que cada item segue a regra.</td></tr>
             <tr><td><code>[ ... ]</code> ou <code>$rule-&gt;object([ ... ])</code></td><td>Um objeto com campos próprios.</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <h2 id="validacao-formatos">Formatos prontos (CEP, CPF, telefone...)</h2>
+      <p>Para os formatos mais usados no Brasil você não precisa escrever expressão regular. Use o tipo pronto:</p>
+      <div class="code">
+        <pre><code data-lang="php">return [
+    'cpf'      =&gt; $rule-&gt;cpf(),
+    'cep'      =&gt; $rule-&gt;cep(),
+    'celular'  =&gt; $rule-&gt;mobile(),
+    'telefone' =&gt; $rule-&gt;phone()-&gt;optional(),
+    'uf'       =&gt; $rule-&gt;uf(),
+];</code></pre>
+      </div>
+
+      <p>Todos aceitam o valor <strong>com ou sem máscara</strong> e entregam a versão <strong>limpa</strong>, pronta para salvar no banco:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Regra</th><th>Aceita</th><th>Você recebe</th></tr></thead>
+          <tbody>
+            <tr><td><code>$rule-&gt;cep()</code></td><td><code>12345-678</code>, <code>12345678</code></td><td><code>'12345678'</code></td></tr>
+            <tr><td><code>$rule-&gt;cpf()</code></td><td><code>529.982.247-25</code>, <code>52998224725</code></td><td><code>'52998224725'</code></td></tr>
+            <tr><td><code>$rule-&gt;cnpj()</code></td><td><code>11.222.333/0001-81</code> e o novo alfanumérico <code>12.ABC.345/01DE-35</code></td><td><code>'11222333000181'</code></td></tr>
+            <tr><td><code>$rule-&gt;cpfOrCnpj()</code></td><td>CPF ou CNPJ (campo "documento")</td><td>Só os caracteres, sem máscara</td></tr>
+            <tr><td><code>$rule-&gt;phone()</code></td><td>Fixo ou celular com DDD: <code>(11) 3456-7890</code>, <code>(11) 98765-4321</code>, <code>+55 11 98765-4321</code></td><td><code>'1134567890'</code>, <code>'11987654321'</code></td></tr>
+            <tr><td><code>$rule-&gt;mobile()</code></td><td>Só celular com DDD: <code>(11) 98765-4321</code></td><td><code>'11987654321'</code></td></tr>
+            <tr><td><code>$rule-&gt;plate()</code></td><td>Placa antiga <code>ABC-1234</code> ou Mercosul <code>abc-1d23</code></td><td><code>'ABC1D23'</code></td></tr>
+            <tr><td><code>$rule-&gt;uf()</code></td><td>Sigla de estado: <code>sp</code>, <code>RJ</code></td><td><code>'SP'</code></td></tr>
+            <tr><td><code>$rule-&gt;time()</code></td><td>Horário: <code>9:05</code>, <code>18:30</code></td><td><code>'09:05'</code></td></tr>
+            <tr><td><code>$rule-&gt;slug()</code></td><td><code>meu-produto-2</code></td><td><code>'meu-produto-2'</code></td></tr>
+            <tr><td><code>$rule-&gt;hexColor()</code></td><td><code>#FF8800</code>, <code>#f80</code></td><td><code>'#ff8800'</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-label">Mais que uma expressão regular</span>
+        <p><code>cpf()</code> e <code>cnpj()</code> conferem os <strong>dígitos verificadores</strong>: <code>529.982.247-24</code> tem o formato certo, mas é recusado porque o último dígito não confere. Sequências repetidas, como <code>111.111.111-11</code>, também são recusadas. O <code>cnpj()</code> já aceita o CNPJ alfanumérico adotado pela Receita Federal.</p>
+      </div>
+
+      <p>As mensagens de erro dizem o que se espera:</p>
+      <div class="code">
+        <pre><code data-lang="json">"campos": {
+  "cpf": ["O campo cpf precisa ser um CPF válido."],
+  "cep": ["O campo cep precisa ser um CEP válido (ex.: 12345-678)."],
+  "celular": ["O campo celular precisa ser um celular válido com DDD (ex.: (11) 98765-4321)."]
+}</code></pre>
+      </div>
+
+      <p>Os formatos podem ser combinados com as outras restrições, como <code>optional()</code>, <code>check()</code> e <code>message()</code>:</p>
+      <div class="code">
+        <pre><code data-lang="php">'documento' =&gt; $rule-&gt;cpfOrCnpj()-&gt;message('Informe um CPF ou CNPJ válido.'),
+'whatsapp'  =&gt; $rule-&gt;mobile()-&gt;optional(),</code></pre>
+      </div>
+
+      <h3 id="validacao-formatos-fora">Usando os formatos fora da validação</h3>
+      <p>A classe <code>Formats</code> faz a mesma conferência em qualquer lugar do código. Ela devolve o valor limpo, ou <code>null</code> se for inválido:</p>
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Validation\Formats;
+
+Formats::cpf('529.982.247-25');      // '52998224725'
+Formats::cpf('111.111.111-11');      // null
+Formats::phone('+55 11 98765-4321'); // '11987654321'
+Formats::uf('mg');                   // 'MG'
+Formats::UFS;                        // lista com as 27 siglas</code></pre>
       </div>
 
       <h2 id="validacao-restricoes">Restrições</h2>
@@ -3088,8 +3154,9 @@ interface MiddlewareInterface
           </tbody>
         </table>
       </div>
-      <p><code>Haki\Validation\Rule</code> (o <code>$rule</code>) cria os campos: <code>text()</code>, <code>integer()</code>, <code>number()</code>, <code>boolean()</code>, <code>email()</code>, <code>url()</code>, <code>uuid()</code>, <code>date($formato)</code>, <code>oneOf(...)</code>, <code>enum($classe)</code>, <code>list($regra)</code> e <code>object([...])</code>.</p>
+      <p><code>Haki\Validation\Rule</code> (o <code>$rule</code>) cria os campos: <code>text()</code>, <code>integer()</code>, <code>number()</code>, <code>boolean()</code>, <code>email()</code>, <code>url()</code>, <code>uuid()</code>, <code>date($formato)</code>, <code>cep()</code>, <code>cpf()</code>, <code>cnpj()</code>, <code>cpfOrCnpj()</code>, <code>phone()</code>, <code>mobile()</code>, <code>plate()</code>, <code>uf()</code>, <code>time()</code>, <code>slug()</code>, <code>hexColor()</code>, <code>oneOf(...)</code>, <code>enum($classe)</code>, <code>list($regra)</code> e <code>object([...])</code>.</p>
       <p>Cada campo aceita: <code>optional($padrao)</code>, <code>length($min, $max)</code>, <code>min()</code>, <code>max()</code>, <code>between()</code>, <code>oneOf(...)</code>, <code>pattern($regex, $mensagem)</code>, <code>same($campo)</code>, <code>check($funcao, $mensagem)</code> e <code>message($mensagem)</code>.</p>
+      <p><code>Haki\Validation\Formats</code> faz as mesmas conferências fora da validação: <code>Formats::cpf($valor)</code> devolve o valor limpo ou <code>null</code>. Métodos: <code>cep</code>, <code>cpf</code>, <code>cnpj</code>, <code>cpfOrCnpj</code>, <code>phone</code>, <code>mobile</code>, <code>plate</code>, <code>uf</code>, <code>time</code>, <code>slug</code>, <code>hexColor</code>; constante <code>UFS</code>.</p>
       <p>Sem classe: <code>$request-&gt;validate(function (Rule $rule) { return [...]; }, $nomes = [])</code> devolve os dados validados.</p>
 
       <h2 id="ref-excecoes">Exceções</h2>
@@ -3165,7 +3232,7 @@ interface MiddlewareInterface
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
 
-      <p class="footer-note">Haki 1.3 · Licença MIT · shankscode/haki</p>
+      <p class="footer-note">Haki 1.4 · Licença MIT · shankscode/haki</p>
     </article>
 
   </main>

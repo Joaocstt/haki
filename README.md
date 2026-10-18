@@ -76,6 +76,7 @@ final class CriarClienteRequest extends FormRequest
             'nome'  => $rule->text()->length(3, 100),
             'email' => $rule->email(),
             'idade' => $rule->integer()->min(18)->optional(),
+            'cpf'   => $rule->cpf(),      // formatos prontos: cep, cpf, cnpj, phone, mobile, plate, uf...
         ];
     }
 }

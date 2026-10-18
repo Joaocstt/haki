@@ -63,6 +63,77 @@ final class Rule
         return new Field('uuid');
     }
 
+    // ------------------------------------------------------------------ formatos prontos
+    // Aceitam o valor com ou sem máscara e entregam a versão limpa.
+
+    /** CEP. "12345-678" → "12345678". */
+    public function cep(): Field
+    {
+        return new Field('cep');
+    }
+
+    /** CPF, conferindo os dígitos verificadores. "529.982.247-25" → "52998224725". */
+    public function cpf(): Field
+    {
+        return new Field('cpf');
+    }
+
+    /** CNPJ numérico ou alfanumérico, conferindo os dígitos verificadores. → "11222333000181". */
+    public function cnpj(): Field
+    {
+        return new Field('cnpj');
+    }
+
+    /** CPF ou CNPJ (útil para "documento" de pessoa física ou jurídica). */
+    public function cpfOrCnpj(): Field
+    {
+        return new Field('cpfOrCnpj');
+    }
+
+    /** Telefone fixo ou celular com DDD, com ou sem +55. "(11) 98765-4321" → "11987654321". */
+    public function phone(): Field
+    {
+        return new Field('phone');
+    }
+
+    /** Só celular com DDD. "(11) 98765-4321" → "11987654321". */
+    public function mobile(): Field
+    {
+        return new Field('mobile');
+    }
+
+    /** Placa de veículo, antiga ou Mercosul. "abc-1d23" → "ABC1D23". */
+    public function plate(): Field
+    {
+        return new Field('plate');
+    }
+
+    /** Sigla de estado. "sp" → "SP". */
+    public function uf(): Field
+    {
+        return new Field('uf');
+    }
+
+    /** Horário HH:MM. "9:05" → "09:05". */
+    public function time(): Field
+    {
+        return new Field('time');
+    }
+
+    /** Slug de URL: "meu-produto-2". */
+    public function slug(): Field
+    {
+        return new Field('slug');
+    }
+
+    /** Cor hexadecimal: "#ff8800" ou "#f80". */
+    public function hexColor(): Field
+    {
+        return new Field('hexColor');
+    }
+
+    // ------------------------------------------------------------------ datas, listas e objetos
+
     /**
      * Data no formato informado. Vira um DateTimeImmutable.
      *

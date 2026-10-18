@@ -265,10 +265,34 @@ final class Field
     }
 
     /**
+     * Formatos prontos: tipo => [método de Formats, descrição usada na mensagem de erro].
+     */
+    private const FORMATS = [
+        'cep' => ['cep', 'um CEP válido (ex.: 12345-678)'],
+        'cpf' => ['cpf', 'um CPF válido'],
+        'cnpj' => ['cnpj', 'um CNPJ válido'],
+        'cpfOrCnpj' => ['cpfOrCnpj', 'um CPF ou CNPJ válido'],
+        'phone' => ['phone', 'um telefone válido com DDD (ex.: (11) 98765-4321)'],
+        'mobile' => ['mobile', 'um celular válido com DDD (ex.: (11) 98765-4321)'],
+        'plate' => ['plate', 'uma placa válida (ex.: ABC1D23)'],
+        'uf' => ['uf', 'uma sigla de estado válida (ex.: SP)'],
+        'time' => ['time', 'um horário válido (ex.: 18:30)'],
+        'slug' => ['slug', 'um slug válido (letras minúsculas, números e hífens)'],
+        'hexColor' => ['hexColor', 'uma cor hexadecimal válida (ex.: #ff8800)'],
+    ];
+
+    /**
      * @return array{mixed, string|null}
      */
     private function convert(mixed $value, string $subject): array
     {
+        if (isset(self::FORMATS[$this->type])) {
+            [$method, $description] = self::FORMATS[$this->type];
+            $normalized = is_string($value) || is_int($value) ? Formats::$method((string) $value) : null;
+
+            return $normalized !== null ? [$normalized, null] : [null, "{$subject} precisa ser {$description}."];
+        }
+
         return match ($this->type) {
             'text' => is_string($value) || is_int($value) || is_float($value)
                 ? [(string) $value, null]

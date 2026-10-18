@@ -73,7 +73,7 @@ $app->run();
 | CLI | `init`, `key:generate`, `auth:install`, `auth:clean` |
 | Erros | JSON padronizado, detalhes só em dev |
 | Depuração | Função global `haki()` (dump legível em HTML e terminal) |
-| Validação | `FormRequest` com `$rule->...`, `$request->validate()`, comando `make:request` |
+| Validação | `FormRequest` com `$rule->...`, formatos prontos (CEP, CPF, CNPJ, telefone, placa, UF...), `$request->validate()`, comando `make:request` |
 | Qualidade | Testes PHPUnit das partes principais |
 
 ### 3.2 Fora do escopo da v1.0
