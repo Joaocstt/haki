@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+use Haki\Haki;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$app = new Haki(dirname(__DIR__));
+
+// Ligações do container (interface => implementação), por exemplo:
+// $app->container()->bind(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);
+
+// Middlewares globais, por exemplo:
+// $app->middleware(Cors::class);
+
+// Rotas
+(require __DIR__ . '/../routes/api.php')($app);
+
+return $app;

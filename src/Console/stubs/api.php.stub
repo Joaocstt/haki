@@ -1,0 +1,10 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Controllers\HomeController;
+use Haki\Haki;
+
+return function (Haki $app): void {
+    $app->get('/', [HomeController::class, 'index']);
+};

@@ -18,7 +18,9 @@ use ReflectionParameter;
  * Interfaces precisam de um bind:
  *
  *     $app->container()->bind(UsuarioRepository::class, PdoUsuarioRepository::class);
- *     $app->container()->singleton(PDO::class, fn () => new PDO('sqlite:banco.sqlite'));
+ *     $app->container()->singleton(PDO::class, function () {
+ *         return new PDO('sqlite:banco.sqlite');
+ *     });
  */
 final class Container implements ContainerInterface
 {

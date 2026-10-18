@@ -870,8 +870,20 @@ td {
   }
 
   .search-trigger {
+    min-width: 0;
     height: 40px;
     font-size: 15px;
+    overflow: hidden;
+  }
+
+  .search-trigger span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-actions {
+    gap: 0;
   }
 
   .menu-button {

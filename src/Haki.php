@@ -31,12 +31,14 @@ use Throwable;
  * Ponto de entrada da aplicação.
  *
  *     $app = new Haki(__DIR__);
- *     $app->get('/ola', fn () => ['mensagem' => 'Olá!']);
+ *     $app->get('/ola', function () {
+ *         return ['mensagem' => 'Olá!'];
+ *     });
  *     $app->run();
  */
 final class Haki
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     private readonly string $basePath;
 

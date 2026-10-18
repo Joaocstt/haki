@@ -31,7 +31,7 @@
   </button>
 
   <div class="header-actions">
-    <span class="version">Versão 1.0</span>
+    <span class="version">Versão 1.1</span>
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Tema">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
     </button>
@@ -119,7 +119,9 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $app = new Haki\Haki(dirname(__DIR__));
 
-$app-&gt;get('/ola/{nome}', fn (string $nome) =&gt; ['mensagem' =&gt; "Olá, $nome"]);
+$app-&gt;get('/ola/{nome}', function (string $nome) {
+    return ['mensagem' =&gt; "Olá, $nome"];
+});
 
 $app-&gt;run();</code></pre>
       </div>
@@ -146,6 +148,7 @@ $app-&gt;run();</code></pre>
           <tbody>
             <tr><td>PHP 8.2 ou superior</td><td>Obrigatório</td></tr>
             <tr><td>Composer</td><td>Instalar o pacote e carregar as classes</td></tr>
+            <tr><td>Extensão <code>zip</code></td><td>Usada pelo Composer para baixar e extrair o pacote</td></tr>
             <tr><td>Extensões <code>json</code>, <code>mbstring</code>, <code>openssl</code></td><td>Obrigatórias (já vêm em quase toda instalação)</td></tr>
             <tr><td>Extensão <code>pdo_sqlite</code></td><td>Só se você usar a autenticação JWT</td></tr>
           </tbody>
@@ -162,6 +165,41 @@ $app-&gt;run();</code></pre>
     <article class="doc-page" id="instalacao">
       <h1>Instalação</h1>
 
+      <h2 id="instalacao-extensoes">Antes de instalar: as extensões do PHP</h2>
+      <p>Veja quais extensões estão ativas no seu PHP:</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">php -m</code></pre>
+      </div>
+
+      <p>Confira se estas duas aparecem na lista:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Extensão</th><th>Por que precisa</th></tr></thead>
+          <tbody>
+            <tr><td><code>zip</code></td><td>O Composer baixa os pacotes compactados em .zip. Sem ela, o Haki não é instalado.</td></tr>
+            <tr><td><code>pdo_sqlite</code></td><td>Guarda os tokens da autenticação JWT. Só é necessária se você usar login.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Se alguma estiver faltando, abra o seu <code>php.ini</code> (o comando <code>php --ini</code> mostra onde ele está), procure as linhas abaixo e apague o <code>;</code> do começo de cada uma:</p>
+
+      <div class="code">
+        <div class="code-title">php.ini, antes</div>
+        <pre><code data-lang="env">;extension=zip
+;extension=pdo_sqlite</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">php.ini, depois</div>
+        <pre><code data-lang="env">extension=zip
+extension=pdo_sqlite</code></pre>
+      </div>
+
+      <p>Salve o arquivo, feche e abra o terminal de novo, e rode <code>php -m</code> mais uma vez para confirmar.</p>
+
       <h2 id="instalacao-composer">Instalando com o Composer</h2>
       <p>Crie uma pasta para o seu projeto e, dentro dela, rode:</p>
 
@@ -169,43 +207,31 @@ $app-&gt;run();</code></pre>
         <pre><code data-lang="bash">composer require shankscode/haki</code></pre>
       </div>
 
-      <p>O Composer baixa apenas o necessário para rodar: o código do framework (<code>src/</code>) e o comando <code>vendor/bin/haki</code>. As pastas e arquivos da sua aplicação, você mesmo cria. A próxima página mostra exatamente quais.</p>
+      <p>O Composer cria a pasta <code>vendor/</code> com o framework dentro (<code>vendor/shankscode/haki</code>) e o comando <code>vendor/bin/haki</code>. Para criar as pastas e os arquivos da sua aplicação, rode <code>php vendor/bin/haki init</code> (veja o passo a passo abaixo).</p>
 
-      <h2 id="instalacao-extensoes">Verificando as extensões</h2>
-      <p>Para ver se as extensões necessárias estão ativas:</p>
-
-      <div class="code">
-        <pre><code data-lang="bash">php -m</code></pre>
+      <div class="callout warn">
+        <span class="callout-label">Erro comum</span>
+        <p>Se aparecer a mensagem abaixo e a pasta <code>vendor/</code> não for criada, a extensão <code>zip</code> está desativada. Ative-a como mostrado acima e rode o <code>composer require</code> de novo.</p>
       </div>
 
-      <p>Se <code>pdo_sqlite</code> não aparecer na lista e você for usar autenticação, abra o seu <code>php.ini</code> (o comando <code>php --ini</code> mostra onde ele está) e remova o <code>;</code> do início da linha:</p>
-
       <div class="code">
-        <div class="code-title">php.ini</div>
-        <pre><code data-lang="env">extension=pdo_sqlite</code></pre>
+        <pre><code data-lang="text">Failed to download shankscode/haki from dist: The zip extension and unzip/7z commands are both missing, skipping.</code></pre>
       </div>
 
       <h2 id="instalacao-primeira-api">Sua primeira API em 5 minutos</h2>
       <ol class="steps">
         <li>
-          <strong>Crie a pasta pública e o arquivo de entrada</strong>
-          <p>Todo pedido HTTP passa por um único arquivo: <code>public/index.php</code>.</p>
+          <strong>Instale o Haki em uma pasta vazia</strong>
           <div class="code">
-            <div class="code-title">public/index.php</div>
-            <pre><code data-lang="php">&lt;?php
-
-declare(strict_types=1);
-
-require __DIR__ . '/../vendor/autoload.php';
-
-use Haki\Haki;
-
-$app = new Haki(dirname(__DIR__));
-
-$app-&gt;get('/', fn () =&gt; ['status' =&gt; 'online']);
-
-$app-&gt;run();</code></pre>
+            <pre><code data-lang="bash">composer require shankscode/haki</code></pre>
           </div>
+        </li>
+        <li>
+          <strong>Crie a estrutura padrão do projeto</strong>
+          <div class="code">
+            <pre><code data-lang="bash">php vendor/bin/haki init</code></pre>
+          </div>
+          <p>O comando cria as pastas <code>app/</code>, <code>bootstrap/</code>, <code>routes/</code>, <code>public/</code> e <code>storage/</code>, os arquivos <code>.env</code> e <code>.gitignore</code>, e já deixa <strong>uma rota e um controller</strong> de exemplo funcionando. Ele também configura o autoload no seu <code>composer.json</code>.</p>
         </li>
         <li>
           <strong>Suba o servidor embutido do PHP</strong>
@@ -218,13 +244,21 @@ $app-&gt;run();</code></pre>
           <div class="code">
             <pre><code data-lang="bash">curl http://localhost:8000/</code></pre>
           </div>
-          <p>Você deve ver <code>{"status":"online"}</code>. Pronto, sua API está no ar.</p>
+          <div class="code">
+            <pre><code data-lang="json">{ "mensagem": "Bem-vindo ao Haki!", "caminho": "/" }</code></pre>
+          </div>
+          <p>Pronto, sua API está no ar. A próxima página explica cada arquivo criado.</p>
         </li>
       </ol>
 
       <div class="callout">
         <span class="callout-label">Nota</span>
         <p>O <code>-t public</code> diz ao PHP que só a pasta <code>public/</code> fica acessível pela web. Assim, o <code>.env</code>, o código e o banco de tokens nunca podem ser baixados por alguém de fora.</p>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-label">Dica</span>
+        <p>O <code>init</code> nunca apaga nada: se um arquivo já existir, ele é mantido. Para recriar os arquivos padrão, use <code>php vendor/bin/haki init --force</code>.</p>
       </div>
 
       <h2 id="instalacao-servidor">Servidores web</h2>
@@ -302,39 +336,49 @@ RewriteRule ^ index.php [L]</code></pre>
         <p>Controller não acessa banco. Service não conhece HTTP. Repository não tem regra de negócio. Se um arquivo começar a fazer duas dessas coisas, ele está na pasta errada.</p>
       </div>
 
-      <h2 id="estrutura-passo-a-passo">Criando a estrutura passo a passo</h2>
-      <ol class="steps">
-        <li>
-          <strong>Crie as pastas</strong>
-          <div class="code">
-            <pre><code data-lang="bash">mkdir -p app/Controllers app/Services app/Repositories app/Contracts app/Models app/Middleware
-mkdir -p bootstrap routes public storage</code></pre>
-          </div>
-        </li>
-        <li>
-          <strong>Ensine o Composer a carregar a pasta <code>app/</code></strong>
-          <p>Adicione o bloco <code>autoload</code> no seu <code>composer.json</code>. Assim, a classe <code>App\Controllers\UsuarioController</code> é encontrada em <code>app/Controllers/UsuarioController.php</code>.</p>
-          <div class="code">
-            <div class="code-title">composer.json</div>
-            <pre><code data-lang="json">{
-    "require": {
-        "shankscode/haki": "^1.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "App\\": "app/"
-        }
-    }
-}</code></pre>
-          </div>
-          <p>Depois de editar, rode <code>composer dump-autoload</code>.</p>
-        </li>
-        <li>
-          <strong>Crie o bootstrap</strong>
-          <p>É aqui que a aplicação é montada. Ele é separado do <code>index.php</code> para que os testes possam carregar a aplicação sem subir um servidor.</p>
-          <div class="code">
-            <div class="code-title">bootstrap/app.php</div>
-            <pre><code data-lang="php">&lt;?php
+      <h2 id="estrutura-passo-a-passo">Criando a estrutura com haki init</h2>
+      <p>Você não precisa criar as pastas à mão. Depois do <code>composer require</code>, rode:</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki init</code></pre>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="text">Criando a estrutura do projeto Haki...
+
+✔ criado   app/Controllers/HomeController.php
+✔ criado   bootstrap/app.php
+✔ criado   routes/api.php
+✔ criado   public/index.php
+✔ criado   .env
+✔ criado   .env.example
+✔ criado   .gitignore
+✔ alterado composer.json (autoload App\ → app/)
+
+✔ Autoload atualizado.</code></pre>
+      </div>
+
+      <p>As pastas vazias (<code>Services</code>, <code>Repositories</code>, <code>Contracts</code>, <code>Models</code>, <code>Middleware</code>, <code>storage</code>) ganham um arquivo <code>.gitkeep</code> para o Git guardá-las. Veja abaixo o que vem em cada arquivo.</p>
+
+      <h3 id="estrutura-index">public/index.php</h3>
+      <p>A única porta de entrada. Ele só carrega a aplicação e a executa:</p>
+      <div class="code">
+        <div class="code-title">public/index.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+// Única porta de entrada da API. Rode com: php -S localhost:8000 -t public
+$app = require __DIR__ . '/../bootstrap/app.php';
+
+$app-&gt;run();</code></pre>
+      </div>
+
+      <h3 id="estrutura-bootstrap">bootstrap/app.php</h3>
+      <p>É aqui que a aplicação é montada: ligações do container, middlewares globais e rotas. Ele é separado do <code>index.php</code> para que os testes possam carregar a aplicação sem subir um servidor.</p>
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">&lt;?php
 
 declare(strict_types=1);
 
@@ -344,55 +388,84 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $app = new Haki(dirname(__DIR__));
 
-// 1. Qual implementação usar para cada interface (veja "Container")
-// $app-&gt;container()-&gt;singleton(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);
+// Ligações do container (interface =&gt; implementação), por exemplo:
+// $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);
 
-// 2. Middlewares globais
+// Middlewares globais, por exemplo:
 // $app-&gt;middleware(Cors::class);
 
-// 3. Rotas
+// Rotas
 (require __DIR__ . '/../routes/api.php')($app);
 
 return $app;</code></pre>
-          </div>
-        </li>
-        <li>
-          <strong>Crie o arquivo de rotas</strong>
-          <div class="code">
-            <div class="code-title">routes/api.php</div>
-            <pre><code data-lang="php">&lt;?php
+      </div>
+
+      <h3 id="estrutura-rotas">routes/api.php</h3>
+      <p>Todas as rotas ficam aqui. O projeto começa com uma só, que aponta para o controller de exemplo:</p>
+      <div class="code">
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">&lt;?php
 
 declare(strict_types=1);
 
+use App\Controllers\HomeController;
 use Haki\Haki;
 
 return function (Haki $app): void {
-    $app-&gt;get('/', fn () =&gt; ['status' =&gt; 'online']);
+    $app-&gt;get('/', [HomeController::class, 'index']);
 };</code></pre>
-          </div>
-        </li>
-        <li>
-          <strong>Deixe o <code>index.php</code> só com duas linhas</strong>
-          <div class="code">
-            <div class="code-title">public/index.php</div>
-            <pre><code data-lang="php">&lt;?php
+      </div>
 
-$app = require __DIR__ . '/../bootstrap/app.php';
+      <h3 id="estrutura-controller">app/Controllers/HomeController.php</h3>
+      <div class="code">
+        <div class="code-title">app/Controllers/HomeController.php</div>
+        <pre><code data-lang="php">&lt;?php
 
-$app-&gt;run();</code></pre>
-          </div>
-        </li>
-        <li>
-          <strong>Proteja o que não deve ir para o Git</strong>
-          <div class="code">
-            <div class="code-title">.gitignore</div>
-            <pre><code data-lang="env">/vendor/
-.env
-storage/*.sqlite*
-storage/keys/</code></pre>
-          </div>
-        </li>
-      </ol>
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use Haki\Http\Request;
+use Haki\Http\Response;
+
+final class HomeController
+{
+    public function index(Request $request, Response $response): Response
+    {
+        return $response-&gt;json([
+            'mensagem' =&gt; 'Bem-vindo ao Haki!',
+            'caminho' =&gt; $request-&gt;path(),
+        ]);
+    }
+}</code></pre>
+      </div>
+
+      <h3 id="estrutura-composer">composer.json</h3>
+      <p>O <code>init</code> adiciona o bloco <code>autoload</code>. É ele que faz a classe <code>App\Controllers\HomeController</code> ser encontrada em <code>app/Controllers/HomeController.php</code>:</p>
+      <div class="code">
+        <div class="code-title">composer.json</div>
+        <pre><code data-lang="json">{
+    "require": {
+        "shankscode/haki": "^1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    }
+}</code></pre>
+      </div>
+      <p>Se o <code>init</code> avisar que não conseguiu atualizar o autoload, rode <code>composer dump-autoload</code>. Faça o mesmo sempre que editar o <code>composer.json</code> à mão.</p>
+
+      <h3 id="estrutura-nova-rota">Adicionando sua próxima rota</h3>
+      <p>Crie o controller em <code>app/Controllers</code> e registre a rota em <code>routes/api.php</code>:</p>
+      <div class="code">
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">return function (Haki $app): void {
+    $app-&gt;get('/', [HomeController::class, 'index']);
+    $app-&gt;get('/produtos', [ProdutoController::class, 'index']);
+};</code></pre>
+      </div>
 
       <h2 id="estrutura-nomes">Convenções de nomes</h2>
       <div class="table-wrap">
@@ -494,7 +567,9 @@ $app-&gt;delete('/produtos/{id}', [ProdutoController::class, 'destroy']); // rem
       <h3 id="rotas-closures">Closures ou controllers?</h3>
       <p>Para algo muito curto, uma função anônima resolve:</p>
       <div class="code">
-        <pre><code data-lang="php">$app-&gt;get('/status', fn () =&gt; ['ok' =&gt; true]);</code></pre>
+        <pre><code data-lang="php">$app-&gt;get('/status', function () {
+    return ['ok' =&gt; true];
+});</code></pre>
       </div>
       <p>Para todo o resto, use controllers. Eles deixam o arquivo de rotas legível e o código reutilizável. Use o formato <code>[Classe::class, 'metodo']</code>.</p>
 
@@ -737,8 +812,15 @@ if (!is_string($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
       </div>
 
       <div class="code">
-        <pre><code data-lang="php">$app-&gt;get('/produto', fn () =&gt; ['nome' =&gt; 'Gomu Gomu', 'preco' =&gt; 9.9]); // JSON
-$app-&gt;delete('/produto/{id}', fn (int $id) =&gt; null);                     // 204</code></pre>
+        <pre><code data-lang="php">// JSON
+$app-&gt;get('/produto', function () {
+    return ['nome' =&gt; 'Gomu Gomu', 'preco' =&gt; 9.9];
+});
+
+// 204 sem conteúdo
+$app-&gt;delete('/produto/{id}', function (int $id) {
+    return null;
+});</code></pre>
       </div>
 
       <h2 id="respostas-json">Controlando status e cabeçalhos</h2>
@@ -849,7 +931,7 @@ $app-&gt;group('/api', function (Haki $app) {
 // Em uma rota
 $app-&gt;post('/upload', [UploadController::class, 'store'])-&gt;middleware(LimitarTamanho::class);</code></pre>
       </div>
-      <p>Você pode passar o nome da classe (o container cria e injeta as dependências), uma instância (<code>new Cors('https://meusite.com')</code>) ou uma closure <code>fn (Request $r, callable $next) =&gt; ...</code>.</p>
+      <p>Você pode passar o nome da classe (o container cria e injeta as dependências), uma instância (<code>new Cors('https://meusite.com')</code>) ou uma função anônima <code>function (Request $request, callable $next) { ... }</code>.</p>
 
       <h2 id="middleware-ordem">Ordem de execução</h2>
       <p>A ordem é sempre a mesma:</p>
@@ -1539,12 +1621,14 @@ Dica: Registre uma implementação: $app-&gt;container()-&gt;bind(UsuarioReposit
       <div class="code">
         <pre><code data-lang="php">use Haki\Support\Env;
 
-$app-&gt;container()-&gt;singleton(PDO::class, fn () =&gt; new PDO(
-    'mysql:host=' . Env::get('DB_HOST') . ';dbname=' . Env::get('DB_NAME'),
-    Env::get('DB_USER'),
-    Env::get('DB_PASS'),
-    [PDO::ATTR_ERRMODE =&gt; PDO::ERRMODE_EXCEPTION],
-));</code></pre>
+$app-&gt;container()-&gt;singleton(PDO::class, function () {
+    return new PDO(
+        'mysql:host=' . Env::get('DB_HOST') . ';dbname=' . Env::get('DB_NAME'),
+        Env::get('DB_USER'),
+        Env::get('DB_PASS'),
+        [PDO::ATTR_ERRMODE =&gt; PDO::ERRMODE_EXCEPTION],
+    );
+});</code></pre>
       </div>
       <p>A partir daí, qualquer repository que peça <code>PDO $pdo</code> no construtor recebe essa mesma conexão.</p>
     </article>
@@ -1636,6 +1720,7 @@ $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, ApiUsuarioRepos
         <table>
           <thead><tr><th>Comando</th><th>Faz</th></tr></thead>
           <tbody>
+            <tr><td><code>init</code></td><td>Cria a estrutura padrão do projeto com uma rota e um controller de exemplo (<code>--force</code> recria os arquivos)</td></tr>
             <tr><td><code>key:generate</code></td><td>Cria um <code>JWT_SECRET</code> aleatório no <code>.env</code> (cria o arquivo se não existir)</td></tr>
             <tr><td><code>key:generate --force</code></td><td>Troca o segredo existente (desconecta todos os usuários)</td></tr>
             <tr><td><code>key:generate --rsa</code></td><td>Cria o par de chaves RS256 em <code>storage/keys/</code></td></tr>
@@ -2070,7 +2155,7 @@ curl localhost:8000/admin/painel -H "Authorization: Bearer SEU_TOKEN"</code></pr
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
 
-      <p class="footer-note">Haki 1.0 · Licença MIT · shankscode/haki</p>
+      <p class="footer-note">Haki 1.1 · Licença MIT · shankscode/haki</p>
     </article>
 
   </main>

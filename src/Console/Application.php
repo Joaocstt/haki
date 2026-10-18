@@ -27,6 +27,7 @@ final class Application
     {
         Env::load($basePath . DIRECTORY_SEPARATOR . '.env');
 
+        $this->add('init', fn () => new InitCommand($this->basePath));
         $this->add('key:generate', fn () => new KeyGenerateCommand($this->basePath));
         $this->add('auth:install', fn () => new AuthInstallCommand($this->sqlite()));
         $this->add('auth:clean', fn () => new AuthCleanCommand($this->sqlite()));

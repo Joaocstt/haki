@@ -9,9 +9,12 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $app = new Haki\Haki(dirname(__DIR__));
 
-$app->get('/ola/{nome}', fn (string $nome) => ['mensagem' => "Olá, $nome"]);
-$app->get('/perfil', fn (Haki\Http\Request $r) => $r->user())->auth();
-$app->get('/admin', fn () => ['ok' => true])->role('admin');
+$app->get('/ola/{nome}', function (string $nome) {
+    return ['mensagem' => "Olá, $nome"];
+});
+
+$app->get('/perfil', [PerfilController::class, 'show'])->auth();
+$app->get('/admin', [AdminController::class, 'index'])->role('admin');
 
 $app->run();
 ```
@@ -20,26 +23,44 @@ $app->run();
 
 - PHP 8.2+
 - Extensões `json`, `mbstring` e `openssl`
+- Extensão `zip`, usada pelo Composer para baixar o pacote (sem ela aparece o erro "The zip extension and unzip/7z commands are both missing")
 - Extensão `pdo_sqlite`, apenas se você usar a autenticação JWT
 
 ## Instalação
 
 ```bash
 composer require shankscode/haki
+php vendor/bin/haki init
 ```
 
-O pacote traz apenas o framework (`src/`) e o comando `vendor/bin/haki`. As pastas da sua aplicação (`app/`, `routes/`, `public/`...) você cria seguindo a estrutura recomendada na documentação.
+O `init` cria a estrutura padrão do projeto, com uma rota e um controller de exemplo:
 
-## Primeiros passos
+```
+app/Controllers/HomeController.php
+app/{Services,Repositories,Contracts,Models,Middleware}/
+bootstrap/app.php
+routes/api.php
+public/index.php
+storage/
+.env  .env.example  .gitignore
+```
+
+## Rodando
 
 ```bash
-php vendor/bin/haki key:generate   # cria JWT_SECRET no .env
 php -S localhost:8000 -t public
 ```
 
-## Documentação
+Acesse `http://localhost:8000`.
 
-A documentação completa, com a estrutura de pastas recomendada, exemplos de cada recurso e uma API completa, está no site do Haki.
+## Comandos
+
+| Comando | Faz |
+| --- | --- |
+| `php vendor/bin/haki init` | Cria a estrutura padrão do projeto |
+| `php vendor/bin/haki key:generate` | Cria `JWT_SECRET` no `.env` (`--rsa` para chaves RS256) |
+| `php vendor/bin/haki auth:install` | Cria o banco SQLite de tokens |
+| `php vendor/bin/haki auth:clean` | Remove tokens vencidos |
 
 ## Desenvolvimento do pacote
 

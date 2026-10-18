@@ -70,7 +70,7 @@ $app->run();
 | Auth | `login()`, `refresh()`, `logout()`, `logoutAll()`, `->auth()`, `->role()`, `Request::user()` |
 | Tokens | Refresh token com rotação e detecção de reuso, revogação por `jti` e por usuário |
 | Storage | `SqliteTokenStore` (padrão, automático), `ArrayTokenStore` (testes), interface `TokenStore` |
-| CLI | `key:generate`, `auth:install`, `auth:clean` |
+| CLI | `init`, `key:generate`, `auth:install`, `auth:clean` |
 | Erros | JSON padronizado, detalhes só em dev |
 | Depuração | Função global `haki()` (dump legível em HTML e terminal) |
 | Qualidade | Testes PHPUnit das partes principais |
@@ -84,7 +84,7 @@ $app->run();
 - Rate limiting integrado.
 - Geração de documentação OpenAPI.
 - Facades e helpers globais (exceto `haki()`).
-- Esqueleto `composer create-project`: o pacote traz só o framework; a estrutura da aplicação é criada pelo usuário seguindo a documentação.
+- Esqueleto `composer create-project`: o pacote traz só o framework; a estrutura padrão da aplicação é gerada pelo comando `haki init` (uma rota e um controller de exemplo).
 
 ## 4. Requisitos funcionais
 
