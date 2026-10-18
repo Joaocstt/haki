@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Encontra o autoload tanto no projeto do usuário (vendor/bin/haki) quanto no repositório do Haki.
+$autoloads = [
+    __DIR__ . '/../../../autoload.php',
+    __DIR__ . '/../vendor/autoload.php',
+];
+
+foreach ($autoloads as $autoload) {
+    if (is_file($autoload)) {
+        require $autoload;
+        break;
+    }
+}
+
+if (!class_exists(Haki\Console\Application::class)) {
+    fwrite(STDERR, "Autoload do Composer não encontrado. Rode: composer install\n");
+    exit(1);
+}
+
+exit((new Haki\Console\Application((string) getcwd()))->run(array_slice($argv, 1)));

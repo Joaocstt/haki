@@ -1,0 +1,14 @@
+# Arquivos que NÃO vão para quem instala via "composer require shankscode/haki"
+# (nem para o .zip baixado do GitHub). O pacote leva só: src/, bin/, composer.json, LICENSE e README.md.
+/tests              export-ignore
+/docs-site          export-ignore
+/PRD.md             export-ignore
+/phpunit.xml        export-ignore
+/composer.lock      export-ignore
+/.gitattributes     export-ignore
+/.gitignore         export-ignore
+/.phpunit.cache     export-ignore
+/.claude            export-ignore
+
+* text=auto eol=lf
+*.pem binary

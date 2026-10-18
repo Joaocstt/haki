@@ -1,0 +1,2099 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Haki</title>
+  <meta name="description" content="Documentação do Haki, miniframework PHP para APIs REST com rotas, injeção de dependências, middleware e autenticação JWT.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    try {
+      var t = localStorage.getItem('haki-theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="brand" href="#introducao" aria-label="Haki, início">
+    <span class="brand-mark">haki</span>
+    <span class="brand-tag">PHP</span>
+  </a>
+
+  <button class="search-trigger" id="search-open" type="button" aria-label="Buscar na documentação">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <span>Buscar</span>
+    <kbd data-shortcut>Ctrl K</kbd>
+  </button>
+
+  <div class="header-actions">
+    <span class="version">Versão 1.0</span>
+    <button class="icon-button" id="theme-toggle" type="button" aria-label="Tema">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+    </button>
+    <button class="icon-button menu-button" id="menu-toggle" type="button" aria-label="Abrir menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <nav class="sidebar" aria-label="Documentação">
+    <div class="nav-group">
+      <p class="nav-group-title">Prólogo</p>
+      <ul class="nav-list">
+        <li><a href="#introducao">Introdução</a></li>
+      </ul>
+    </div>
+    <div class="nav-group">
+      <p class="nav-group-title">Primeiros passos</p>
+      <ul class="nav-list">
+        <li><a href="#instalacao">Instalação</a></li>
+        <li><a href="#estrutura">Estrutura de pastas</a></li>
+        <li><a href="#configuracao">Configuração</a></li>
+      </ul>
+    </div>
+    <div class="nav-group">
+      <p class="nav-group-title">O básico</p>
+      <ul class="nav-list">
+        <li><a href="#rotas">Rotas</a></li>
+        <li><a href="#controllers">Controllers</a></li>
+        <li><a href="#requisicoes">Requisições</a></li>
+        <li><a href="#respostas">Respostas</a></li>
+        <li><a href="#middleware">Middleware</a></li>
+        <li><a href="#erros">Tratamento de erros</a></li>
+        <li><a href="#depuracao">Depuração com haki()</a></li>
+      </ul>
+    </div>
+    <div class="nav-group">
+      <p class="nav-group-title">Autenticação</p>
+      <ul class="nav-list">
+        <li><a href="#autenticacao">Como funciona</a></li>
+        <li><a href="#login">Login e tokens</a></li>
+        <li><a href="#protegendo-rotas">Protegendo rotas</a></li>
+        <li><a href="#usuario">Usuário autenticado</a></li>
+        <li><a href="#refresh-logout">Refresh e logout</a></li>
+        <li><a href="#rs256">Chaves RS256</a></li>
+        <li><a href="#armazenamento">Armazenamento de tokens</a></li>
+      </ul>
+    </div>
+    <div class="nav-group">
+      <p class="nav-group-title">Arquitetura</p>
+      <ul class="nav-list">
+        <li><a href="#container">Container de dependências</a></li>
+        <li><a href="#solid">SOLID na prática</a></li>
+      </ul>
+    </div>
+    <div class="nav-group">
+      <p class="nav-group-title">Indo além</p>
+      <ul class="nav-list">
+        <li><a href="#cli">Linha de comando</a></li>
+        <li><a href="#testes">Testes</a></li>
+        <li><a href="#producao">Produção e segurança</a></li>
+        <li><a href="#exemplo">Exemplo completo</a></li>
+        <li><a href="#roadmap">Limitações e roadmap</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="content" id="conteudo">
+
+    <!-- ================================================================== INTRODUÇÃO -->
+    <article class="doc-page" id="introducao">
+      <h1>Introdução</h1>
+
+      <h2 id="introducao-o-que-e">Conheça o Haki</h2>
+      <p class="lead">O Haki é um miniframework PHP para criar APIs REST. Ele cuida de rotas, requisições, respostas JSON, injeção de dependências, middleware e autenticação JWT. Você só escreve as regras da sua aplicação.</p>
+      <p>A ideia é ser simples o bastante para quem está começando e organizado o bastante para crescer. Uma API funcional cabe em cinco linhas:</p>
+
+      <div class="code">
+        <div class="code-title">public/index.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$app = new Haki\Haki(dirname(__DIR__));
+
+$app-&gt;get('/ola/{nome}', fn (string $nome) =&gt; ['mensagem' =&gt; "Olá, $nome"]);
+
+$app-&gt;run();</code></pre>
+      </div>
+
+      <p>Acessando <code>/ola/Shanks</code>, a resposta é:</p>
+
+      <div class="code">
+        <pre><code data-lang="json">{ "mensagem": "Olá, Shanks" }</code></pre>
+      </div>
+
+      <h2 id="introducao-por-que">Por que usar o Haki?</h2>
+      <ul>
+        <li><strong>Pouca coisa para aprender.</strong> São poucas classes, e os nomes dizem o que fazem: <code>Request</code>, <code>Response</code>, <code>Auth</code>.</li>
+        <li><strong>Sem configuração para começar.</strong> Tudo tem um padrão que funciona. Configurar é opcional.</li>
+        <li><strong>Erros que ensinam.</strong> Em desenvolvimento, cada erro vem com uma dica em português explicando como resolver.</li>
+        <li><strong>Autenticação pronta.</strong> JWT com refresh token, logout e perfis de acesso, sem bibliotecas externas.</li>
+        <li><strong>Nenhuma dependência.</strong> O pacote usa apenas extensões nativas do PHP.</li>
+      </ul>
+
+      <h2 id="introducao-requisitos">Requisitos</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Requisito</th><th>Para quê</th></tr></thead>
+          <tbody>
+            <tr><td>PHP 8.2 ou superior</td><td>Obrigatório</td></tr>
+            <tr><td>Composer</td><td>Instalar o pacote e carregar as classes</td></tr>
+            <tr><td>Extensões <code>json</code>, <code>mbstring</code>, <code>openssl</code></td><td>Obrigatórias (já vêm em quase toda instalação)</td></tr>
+            <tr><td>Extensão <code>pdo_sqlite</code></td><td>Só se você usar a autenticação JWT</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-label">Dica</span>
+        <p>Se você nunca usou o Haki, siga as páginas na ordem do menu. Cada uma parte do que foi feito na anterior, e no final você terá uma API completa com login.</p>
+      </div>
+    </article>
+
+    <!-- ================================================================== INSTALAÇÃO -->
+    <article class="doc-page" id="instalacao">
+      <h1>Instalação</h1>
+
+      <h2 id="instalacao-composer">Instalando com o Composer</h2>
+      <p>Crie uma pasta para o seu projeto e, dentro dela, rode:</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">composer require shankscode/haki</code></pre>
+      </div>
+
+      <p>O Composer baixa apenas o necessário para rodar: o código do framework (<code>src/</code>) e o comando <code>vendor/bin/haki</code>. As pastas e arquivos da sua aplicação, você mesmo cria. A próxima página mostra exatamente quais.</p>
+
+      <h2 id="instalacao-extensoes">Verificando as extensões</h2>
+      <p>Para ver se as extensões necessárias estão ativas:</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">php -m</code></pre>
+      </div>
+
+      <p>Se <code>pdo_sqlite</code> não aparecer na lista e você for usar autenticação, abra o seu <code>php.ini</code> (o comando <code>php --ini</code> mostra onde ele está) e remova o <code>;</code> do início da linha:</p>
+
+      <div class="code">
+        <div class="code-title">php.ini</div>
+        <pre><code data-lang="env">extension=pdo_sqlite</code></pre>
+      </div>
+
+      <h2 id="instalacao-primeira-api">Sua primeira API em 5 minutos</h2>
+      <ol class="steps">
+        <li>
+          <strong>Crie a pasta pública e o arquivo de entrada</strong>
+          <p>Todo pedido HTTP passa por um único arquivo: <code>public/index.php</code>.</p>
+          <div class="code">
+            <div class="code-title">public/index.php</div>
+            <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use Haki\Haki;
+
+$app = new Haki(dirname(__DIR__));
+
+$app-&gt;get('/', fn () =&gt; ['status' =&gt; 'online']);
+
+$app-&gt;run();</code></pre>
+          </div>
+        </li>
+        <li>
+          <strong>Suba o servidor embutido do PHP</strong>
+          <div class="code">
+            <pre><code data-lang="bash">php -S localhost:8000 -t public</code></pre>
+          </div>
+        </li>
+        <li>
+          <strong>Acesse no navegador ou no terminal</strong>
+          <div class="code">
+            <pre><code data-lang="bash">curl http://localhost:8000/</code></pre>
+          </div>
+          <p>Você deve ver <code>{"status":"online"}</code>. Pronto, sua API está no ar.</p>
+        </li>
+      </ol>
+
+      <div class="callout">
+        <span class="callout-label">Nota</span>
+        <p>O <code>-t public</code> diz ao PHP que só a pasta <code>public/</code> fica acessível pela web. Assim, o <code>.env</code>, o código e o banco de tokens nunca podem ser baixados por alguém de fora.</p>
+      </div>
+
+      <h2 id="instalacao-servidor">Servidores web</h2>
+      <p>Em produção, aponte a raiz do site para a pasta <code>public/</code> e redirecione todas as requisições para o <code>index.php</code>.</p>
+
+      <h3 id="instalacao-nginx">Nginx</h3>
+      <div class="code">
+        <pre><code data-lang="bash">server {
+    root /var/www/minha-api/public;
+
+    location / {
+        try_files $uri /index.php$is_args$args;
+    }
+
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    }
+}</code></pre>
+      </div>
+
+      <h3 id="instalacao-apache">Apache</h3>
+      <div class="code">
+        <div class="code-title">public/.htaccess</div>
+        <pre><code data-lang="bash">RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]</code></pre>
+      </div>
+      <p>As duas linhas do meio repassam o cabeçalho <code>Authorization</code>, que alguns Apaches descartam e que é necessário para o JWT.</p>
+    </article>
+
+    <!-- ================================================================== ESTRUTURA -->
+    <article class="doc-page" id="estrutura">
+      <h1>Estrutura de pastas</h1>
+
+      <h2 id="estrutura-recomendada">A estrutura recomendada</h2>
+      <p class="lead">O Haki não obriga nenhuma estrutura, mas seguir esta deixa o projeto fácil de entender, de testar e de crescer. Cada pasta tem uma responsabilidade só.</p>
+
+<div class="tree"><span class="dir">minha-api/</span>
+├── <span class="dir">app/</span>
+│   ├── <span class="dir">Controllers/</span>      <span class="note">recebem a requisição e devolvem a resposta</span>
+│   ├── <span class="dir">Services/</span>         <span class="note">regras de negócio (login, cálculo, envio...)</span>
+│   ├── <span class="dir">Repositories/</span>     <span class="note">acesso a dados (banco, API externa, arquivo)</span>
+│   ├── <span class="dir">Contracts/</span>        <span class="note">interfaces que os serviços usam</span>
+│   ├── <span class="dir">Models/</span>           <span class="note">objetos que representam os dados</span>
+│   └── <span class="dir">Middleware/</span>       <span class="note">código que roda antes/depois dos controllers</span>
+├── <span class="dir">bootstrap/</span>
+│   └── app.php           <span class="note">monta a aplicação: container, middlewares e rotas</span>
+├── <span class="dir">routes/</span>
+│   └── api.php           <span class="note">todas as rotas em um só lugar</span>
+├── <span class="dir">public/</span>
+│   └── index.php         <span class="note">única porta de entrada (raiz do servidor web)</span>
+├── <span class="dir">storage/</span>              <span class="note">banco de tokens e chaves (criado automaticamente)</span>
+├── <span class="dir">vendor/</span>               <span class="note">criado pelo Composer, não mexa</span>
+├── .env                  <span class="note">segredos e configurações (não versionar)</span>
+├── .gitignore
+└── composer.json</div>
+
+      <h2 id="estrutura-fluxo">Como uma requisição percorre as pastas</h2>
+      <p>Entender esse caminho ajuda a saber onde colocar cada pedaço de código:</p>
+      <ol>
+        <li><code>public/index.php</code> recebe a requisição e carrega <code>bootstrap/app.php</code>.</li>
+        <li>O Haki procura a rota em <code>routes/api.php</code>.</li>
+        <li>Os <strong>middlewares</strong> rodam (CORS, autenticação, perfil...).</li>
+        <li>O <strong>controller</strong> lê os dados da requisição e chama um <strong>service</strong>.</li>
+        <li>O service aplica a regra de negócio e usa um <strong>repository</strong> para buscar ou salvar dados.</li>
+        <li>O controller devolve o resultado, e o Haki transforma em JSON.</li>
+      </ol>
+
+      <div class="callout tip">
+        <span class="callout-label">Regra prática</span>
+        <p>Controller não acessa banco. Service não conhece HTTP. Repository não tem regra de negócio. Se um arquivo começar a fazer duas dessas coisas, ele está na pasta errada.</p>
+      </div>
+
+      <h2 id="estrutura-passo-a-passo">Criando a estrutura passo a passo</h2>
+      <ol class="steps">
+        <li>
+          <strong>Crie as pastas</strong>
+          <div class="code">
+            <pre><code data-lang="bash">mkdir -p app/Controllers app/Services app/Repositories app/Contracts app/Models app/Middleware
+mkdir -p bootstrap routes public storage</code></pre>
+          </div>
+        </li>
+        <li>
+          <strong>Ensine o Composer a carregar a pasta <code>app/</code></strong>
+          <p>Adicione o bloco <code>autoload</code> no seu <code>composer.json</code>. Assim, a classe <code>App\Controllers\UsuarioController</code> é encontrada em <code>app/Controllers/UsuarioController.php</code>.</p>
+          <div class="code">
+            <div class="code-title">composer.json</div>
+            <pre><code data-lang="json">{
+    "require": {
+        "shankscode/haki": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    }
+}</code></pre>
+          </div>
+          <p>Depois de editar, rode <code>composer dump-autoload</code>.</p>
+        </li>
+        <li>
+          <strong>Crie o bootstrap</strong>
+          <p>É aqui que a aplicação é montada. Ele é separado do <code>index.php</code> para que os testes possam carregar a aplicação sem subir um servidor.</p>
+          <div class="code">
+            <div class="code-title">bootstrap/app.php</div>
+            <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+use Haki\Haki;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$app = new Haki(dirname(__DIR__));
+
+// 1. Qual implementação usar para cada interface (veja "Container")
+// $app-&gt;container()-&gt;singleton(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);
+
+// 2. Middlewares globais
+// $app-&gt;middleware(Cors::class);
+
+// 3. Rotas
+(require __DIR__ . '/../routes/api.php')($app);
+
+return $app;</code></pre>
+          </div>
+        </li>
+        <li>
+          <strong>Crie o arquivo de rotas</strong>
+          <div class="code">
+            <div class="code-title">routes/api.php</div>
+            <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+use Haki\Haki;
+
+return function (Haki $app): void {
+    $app-&gt;get('/', fn () =&gt; ['status' =&gt; 'online']);
+};</code></pre>
+          </div>
+        </li>
+        <li>
+          <strong>Deixe o <code>index.php</code> só com duas linhas</strong>
+          <div class="code">
+            <div class="code-title">public/index.php</div>
+            <pre><code data-lang="php">&lt;?php
+
+$app = require __DIR__ . '/../bootstrap/app.php';
+
+$app-&gt;run();</code></pre>
+          </div>
+        </li>
+        <li>
+          <strong>Proteja o que não deve ir para o Git</strong>
+          <div class="code">
+            <div class="code-title">.gitignore</div>
+            <pre><code data-lang="env">/vendor/
+.env
+storage/*.sqlite*
+storage/keys/</code></pre>
+          </div>
+        </li>
+      </ol>
+
+      <h2 id="estrutura-nomes">Convenções de nomes</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>O quê</th><th>Exemplo</th><th>Onde</th></tr></thead>
+          <tbody>
+            <tr><td>Controller</td><td><code>ProdutoController</code></td><td><code>app/Controllers/ProdutoController.php</code></td></tr>
+            <tr><td>Service</td><td><code>CriarPedidoService</code></td><td><code>app/Services/CriarPedidoService.php</code></td></tr>
+            <tr><td>Interface</td><td><code>ProdutoRepositoryInterface</code></td><td><code>app/Contracts/ProdutoRepositoryInterface.php</code></td></tr>
+            <tr><td>Repository</td><td><code>PdoProdutoRepository</code></td><td><code>app/Repositories/PdoProdutoRepository.php</code></td></tr>
+            <tr><td>Model</td><td><code>Produto</code></td><td><code>app/Models/Produto.php</code></td></tr>
+            <tr><td>Middleware</td><td><code>Cors</code>, <code>RegistrarAcesso</code></td><td><code>app/Middleware/Cors.php</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Um arquivo por classe, com o mesmo nome da classe. É isso que permite ao Composer encontrá-la sozinho.</p>
+    </article>
+
+    <!-- ================================================================== CONFIGURAÇÃO -->
+    <article class="doc-page" id="configuracao">
+      <h1>Configuração</h1>
+
+      <h2 id="configuracao-env">O arquivo .env</h2>
+      <p>Configurações que mudam entre o seu computador e o servidor (e principalmente os segredos) ficam em um arquivo <code>.env</code> na raiz do projeto. O Haki lê esse arquivo sozinho quando você cria o <code>new Haki(dirname(__DIR__))</code>.</p>
+
+      <div class="code">
+        <div class="code-title">.env</div>
+        <pre><code data-lang="env">APP_ENV=development
+
+# Gere com: php vendor/bin/haki key:generate
+JWT_SECRET=
+JWT_TTL=900
+JWT_REFRESH_TTL=604800</code></pre>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Atenção</span>
+        <p>Nunca envie o <code>.env</code> para o Git. Crie um <code>.env.example</code> com as mesmas chaves, mas sem os valores secretos, para mostrar ao time o que precisa ser preenchido.</p>
+      </div>
+
+      <h2 id="configuracao-ambiente">Desenvolvimento ou produção</h2>
+      <p>O valor de <code>APP_ENV</code> muda como os erros aparecem:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>APP_ENV</th><th>Comportamento</th></tr></thead>
+          <tbody>
+            <tr><td><code>development</code>, <code>dev</code> ou <code>local</code></td><td>Os erros mostram dica, arquivo, linha e trace.</td></tr>
+            <tr><td>qualquer outro valor, ou ausente</td><td>Modo produção: o cliente vê só uma mensagem genérica.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>O padrão é <strong>produção</strong>. Se você esquecer de configurar, nenhum detalhe interno vaza.</p>
+
+      <h2 id="configuracao-variaveis">Todas as variáveis</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variável</th><th>Padrão</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td><code>APP_ENV</code></td><td><code>production</code></td><td>Modo da aplicação</td></tr>
+            <tr><td><code>JWT_SECRET</code></td><td>nenhum</td><td>Segredo do HS256, com no mínimo 32 caracteres</td></tr>
+            <tr><td><code>JWT_ALGORITHM</code></td><td><code>HS256</code></td><td><code>HS256</code> ou <code>RS256</code></td></tr>
+            <tr><td><code>JWT_PRIVATE_KEY</code></td><td>nenhum</td><td>Caminho da chave privada (RS256)</td></tr>
+            <tr><td><code>JWT_PUBLIC_KEY</code></td><td>nenhum</td><td>Caminho da chave pública (RS256)</td></tr>
+            <tr><td><code>JWT_TTL</code></td><td><code>900</code></td><td>Validade do access token em segundos (15 min)</td></tr>
+            <tr><td><code>JWT_REFRESH_TTL</code></td><td><code>604800</code></td><td>Validade do refresh token em segundos (7 dias)</td></tr>
+            <tr><td><code>JWT_ISSUER</code></td><td>nenhum</td><td>Nome do emissor (claim <code>iss</code>), opcional</td></tr>
+            <tr><td><code>JWT_DATABASE</code></td><td><code>storage/haki.sqlite</code></td><td>Onde fica o banco de tokens</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="configuracao-leitura">Lendo variáveis no seu código</h2>
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Support\Env;
+
+$host = Env::get('DB_HOST', 'localhost'); // segundo argumento = valor padrão
+$debug = Env::get('APP_DEBUG');           // "true"/"false" viram booleanos</code></pre>
+      </div>
+      <p>Variáveis que já existem no ambiente (definidas no servidor, no Docker ou pelo <code>vlucas/phpdotenv</code>) nunca são sobrescritas pelo <code>.env</code>.</p>
+    </article>
+
+    <!-- ================================================================== ROTAS -->
+    <article class="doc-page" id="rotas">
+      <h1>Rotas</h1>
+
+      <h2 id="rotas-basicas">Rotas básicas</h2>
+      <p>Uma rota liga um <strong>método HTTP</strong> e um <strong>caminho</strong> a um código que responde. O Haki aceita os cinco métodos usados em APIs REST:</p>
+
+      <div class="code">
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">$app-&gt;get('/produtos', [ProdutoController::class, 'index']);         // listar
+$app-&gt;post('/produtos', [ProdutoController::class, 'store']);        // criar
+$app-&gt;get('/produtos/{id}', [ProdutoController::class, 'show']);     // ver um
+$app-&gt;put('/produtos/{id}', [ProdutoController::class, 'update']);   // substituir
+$app-&gt;patch('/produtos/{id}', [ProdutoController::class, 'patch']);  // alterar parte
+$app-&gt;delete('/produtos/{id}', [ProdutoController::class, 'destroy']); // remover</code></pre>
+      </div>
+
+      <h3 id="rotas-closures">Closures ou controllers?</h3>
+      <p>Para algo muito curto, uma função anônima resolve:</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;get('/status', fn () =&gt; ['ok' =&gt; true]);</code></pre>
+      </div>
+      <p>Para todo o resto, use controllers. Eles deixam o arquivo de rotas legível e o código reutilizável. Use o formato <code>[Classe::class, 'metodo']</code>.</p>
+
+      <h2 id="rotas-parametros">Parâmetros na URL</h2>
+      <p>Trechos entre chaves viram parâmetros. O valor chega no método pelo <strong>mesmo nome</strong>:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;get('/usuarios/{id}/pedidos/{pedido}', function (int $id, int $pedido) {
+    return ['usuario' =&gt; $id, 'pedido' =&gt; $pedido];
+});</code></pre>
+      </div>
+
+      <p>Se você tipar o parâmetro como <code>int</code>, o Haki converte o valor. Se alguém acessar <code>/usuarios/abc/pedidos/1</code>, a resposta é <strong>404</strong> automaticamente, e o seu código nem chega a rodar.</p>
+
+      <div class="callout warn">
+        <span class="callout-label">Atenção</span>
+        <p>Parâmetros vêm da URL, ou seja, do usuário. Valide sempre se o recurso existe e se a pessoa pode acessá-lo.</p>
+      </div>
+
+      <h2 id="rotas-grupos">Grupos de rotas</h2>
+      <p>Grupos aplicam um prefixo e regras em comum a várias rotas de uma vez:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;group('/admin', function (Haki $app) {
+    $app-&gt;get('/usuarios', [AdminController::class, 'usuarios']);   // /admin/usuarios
+    $app-&gt;get('/relatorios', [AdminController::class, 'relatorios']); // /admin/relatorios
+})-&gt;role('admin');</code></pre>
+      </div>
+
+      <p>Grupos podem ser aninhados, e um grupo aceita <code>-&gt;auth()</code>, <code>-&gt;role()</code> e <code>-&gt;middleware()</code>, exatamente como uma rota.</p>
+
+      <h2 id="rotas-erros">Rotas inexistentes e métodos errados</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Situação</th><th>Resposta</th></tr></thead>
+          <tbody>
+            <tr><td>O caminho não existe</td><td><code>404</code>. Em desenvolvimento, a dica sugere rotas parecidas.</td></tr>
+            <tr><td>O caminho existe, mas com outro método</td><td><code>405</code>, com o cabeçalho <code>Allow</code> listando os métodos aceitos.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="json">{
+  "erro": "Rota não encontrada",
+  "status": 404,
+  "detalhes": {
+    "dica": "A rota GET /usuarios/10 não existe. Rotas parecidas: GET /usuario/{id}. Você quis dizer alguma delas?"
+  }
+}</code></pre>
+      </div>
+
+      <h2 id="rotas-detalhes">Detalhes que o Haki resolve</h2>
+      <ul>
+        <li><code>/produtos/</code> e <code>/produtos</code> são a mesma rota.</li>
+        <li>A query string (<code>?pagina=2</code>) não interfere na rota.</li>
+        <li>Rotas fixas têm prioridade: <code>/usuarios/novo</code> vence <code>/usuarios/{id}</code>.</li>
+        <li>Registrar a mesma rota duas vezes gera um erro na hora, em vez de um bug silencioso.</li>
+      </ul>
+    </article>
+
+    <!-- ================================================================== CONTROLLERS -->
+    <article class="doc-page" id="controllers">
+      <h1>Controllers</h1>
+
+      <h2 id="controllers-criando">Criando um controller</h2>
+      <p>Um controller é uma classe comum dentro de <code>app/Controllers</code>. Cada método público pode responder a uma rota.</p>
+
+      <div class="code">
+        <div class="code-title">app/Controllers/ProdutoController.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use Haki\Http\Request;
+
+final class ProdutoController
+{
+    public function index(Request $request): array
+    {
+        $pagina = (int) $request-&gt;query('pagina', 1);
+
+        return ['pagina' =&gt; $pagina, 'produtos' =&gt; []];
+    }
+
+    public function show(int $id): array
+    {
+        return ['produto' =&gt; ['id' =&gt; $id]];
+    }
+}</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">use App\Controllers\ProdutoController;
+
+$app-&gt;get('/produtos', [ProdutoController::class, 'index']);
+$app-&gt;get('/produtos/{id}', [ProdutoController::class, 'show']);</code></pre>
+      </div>
+
+      <h2 id="controllers-injecao">Injeção automática</h2>
+      <p>Você não precisa criar nenhum objeto com <code>new</code>. Basta declarar o que o método precisa, e o Haki entrega. A ordem dos parâmetros não importa.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Se o parâmetro for...</th><th>O Haki entrega</th></tr></thead>
+          <tbody>
+            <tr><td><code>Request $request</code></td><td>A requisição atual</td></tr>
+            <tr><td><code>Response $response</code></td><td>Uma resposta nova, para você montar</td></tr>
+            <tr><td><code>Auth $auth</code></td><td>O serviço de autenticação</td></tr>
+            <tr><td>Qualquer outra classe</td><td>Uma instância criada pelo <a href="#container">container</a></td></tr>
+            <tr><td><code>$id</code> (sem classe)</td><td>O parâmetro <code>{id}</code> da URL</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="php">public function update(int $id, Request $request, Response $response): Response
+{
+    $dados = $request-&gt;only(['nome', 'preco']);
+
+    // ...
+
+    return $response-&gt;json(['id' =&gt; $id, 'atualizado' =&gt; $dados]);
+}</code></pre>
+      </div>
+
+      <h2 id="controllers-construtor">Dependências pelo construtor</h2>
+      <p>Services e repositories devem chegar pelo <strong>construtor</strong>. Assim, o controller fica pequeno e você troca a implementação sem mexer nele:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">final class ProdutoController
+{
+    public function __construct(private readonly ProdutoRepositoryInterface $produtos)
+    {
+    }
+
+    public function index(): array
+    {
+        return ['produtos' =&gt; $this-&gt;produtos-&gt;todos()];
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="controllers-erro-injecao">Quando algo não pode ser injetado</h2>
+      <p>Se você pedir algo que o Haki não sabe criar (por exemplo, um <code>string $nome</code> sem rota <code>{nome}</code>), a resposta em desenvolvimento explica o problema:</p>
+
+      <div class="code">
+        <pre><code data-lang="json">{
+  "erro": "Erro interno do servidor",
+  "status": 500,
+  "detalhes": {
+    "dica": "Use um tipo injetável (Request, Response, Auth ou uma classe), um parâmetro de rota {nome} ou dê um valor padrão ao parâmetro.",
+    "mensagem": "Não sei como injetar $nome em App\\Controllers\\ProdutoController::show."
+  }
+}</code></pre>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-label">Dica</span>
+        <p>Um controller com mais de cinco ou seis métodos, ou com métodos longos, normalmente está fazendo trabalho de service. Mova a regra de negócio para <code>app/Services</code>.</p>
+      </div>
+    </article>
+
+    <!-- ================================================================== REQUISIÇÕES -->
+    <article class="doc-page" id="requisicoes">
+      <h1>Requisições</h1>
+
+      <h2 id="requisicoes-lendo">Lendo dados da requisição</h2>
+      <p>Peça um <code>Request</code> no método e use os atalhos abaixo. O corpo JSON é decodificado automaticamente.</p>
+
+      <div class="code">
+        <pre><code data-lang="php">public function store(Request $request): array
+{
+    $nome = $request-&gt;input('nome');                  // campo do corpo
+    $cidade = $request-&gt;input('endereco.cidade');     // campo aninhado
+    $pagina = $request-&gt;query('pagina', 1);           // ?pagina=2
+    $token = $request-&gt;bearerToken();                 // Authorization: Bearer ...
+
+    return ['recebido' =&gt; $request-&gt;all()];
+}</code></pre>
+      </div>
+
+      <h2 id="requisicoes-metodos">Todos os métodos</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Retorna</th></tr></thead>
+          <tbody>
+            <tr><td><code>input('campo', $padrao)</code></td><td>Um campo do corpo (JSON ou formulário). Aceita <code>'a.b.c'</code>.</td></tr>
+            <tr><td><code>all()</code></td><td>O corpo inteiro como array</td></tr>
+            <tr><td><code>only(['a', 'b'])</code></td><td>Só os campos informados</td></tr>
+            <tr><td><code>has('campo')</code></td><td><code>true</code> se o campo foi enviado</td></tr>
+            <tr><td><code>query('nome', $padrao)</code></td><td>Valor da query string; sem argumentos, todos</td></tr>
+            <tr><td><code>param('id')</code></td><td>Parâmetro da rota, como texto</td></tr>
+            <tr><td><code>header('Accept')</code></td><td>Um cabeçalho (sem diferenciar maiúsculas)</td></tr>
+            <tr><td><code>bearerToken()</code></td><td>O token do cabeçalho <code>Authorization</code></td></tr>
+            <tr><td><code>method()</code> / <code>path()</code></td><td><code>'POST'</code> / <code>'/produtos/10'</code></td></tr>
+            <tr><td><code>ip()</code></td><td>IP de quem fez a requisição</td></tr>
+            <tr><td><code>user()</code></td><td>O <a href="#usuario">usuário autenticado</a> ou <code>null</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="requisicoes-json-invalido">JSON inválido</h2>
+      <p>Se o cliente enviar <code>Content-Type: application/json</code> com um corpo quebrado, o Haki responde <strong>400</strong> com <code>"JSON inválido no corpo da requisição"</code>. Você não precisa tratar isso.</p>
+
+      <h2 id="requisicoes-validacao">Validando o que chega</h2>
+      <p>Tudo que vem da requisição deve ser tratado como não confiável. Valide no service e responda com <code>HttpException</code> quando algo estiver errado:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Exceptions\HttpException;
+
+$email = $request-&gt;input('email');
+
+if (!is_string($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    throw new HttpException(422, 'Informe um e-mail válido');
+}</code></pre>
+      </div>
+    </article>
+
+    <!-- ================================================================== RESPOSTAS -->
+    <article class="doc-page" id="respostas">
+      <h1>Respostas</h1>
+
+      <h2 id="respostas-automaticas">Respostas automáticas</h2>
+      <p>Na maioria dos casos, basta <strong>retornar</strong> um valor. O Haki decide o formato:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Você retorna</th><th>O cliente recebe</th></tr></thead>
+          <tbody>
+            <tr><td>Um array ou objeto</td><td>JSON com status 200</td></tr>
+            <tr><td>Uma <code>string</code></td><td>Texto puro com status 200</td></tr>
+            <tr><td><code>null</code></td><td>Status 204, sem corpo</td></tr>
+            <tr><td>Uma <code>Response</code></td><td>Exatamente o que você montou</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;get('/produto', fn () =&gt; ['nome' =&gt; 'Gomu Gomu', 'preco' =&gt; 9.9]); // JSON
+$app-&gt;delete('/produto/{id}', fn (int $id) =&gt; null);                     // 204</code></pre>
+      </div>
+
+      <h2 id="respostas-json">Controlando status e cabeçalhos</h2>
+      <p>Quando precisar de outro status (como 201 ao criar algo) ou de cabeçalhos, peça um <code>Response</code>:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">public function store(Request $request, Response $response): Response
+{
+    $produto = $this-&gt;criarProduto-&gt;executar($request-&gt;all());
+
+    return $response
+        -&gt;header('Location', '/produtos/' . $produto-&gt;id)
+        -&gt;json(['produto' =&gt; $produto], 201);
+}</code></pre>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>json($dados, $status = 200)</code></td><td>Corpo JSON com <code>Content-Type: application/json</code></td></tr>
+            <tr><td><code>responseJson($dados, $status)</code></td><td>O mesmo que <code>json()</code></td></tr>
+            <tr><td><code>text($texto, $status = 200)</code></td><td>Texto puro</td></tr>
+            <tr><td><code>status(204)</code></td><td>Muda só o status</td></tr>
+            <tr><td><code>header('Nome', 'valor')</code></td><td>Adiciona um cabeçalho</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="respostas-contrato">Quando a resposta é enviada?</h2>
+      <p>Os métodos de <code>Response</code> só <strong>montam</strong> a resposta e devolvem o próprio objeto (por isso dá para encadear). Quem envia para o cliente é o <code>$app-&gt;run()</code>, uma única vez, depois que todos os middlewares terminam. Por isso, sempre <strong>retorne</strong> a resposta:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">return $response-&gt;json($dados);   // certo
+$response-&gt;json($dados);          // errado: a resposta montada é descartada</code></pre>
+      </div>
+
+      <h2 id="respostas-objetos">Escondendo campos de objetos</h2>
+      <p>Objetos viram JSON pelas propriedades públicas. Para controlar o que sai (e nunca vazar uma senha), implemente <code>JsonSerializable</code>:</p>
+
+      <div class="code">
+        <div class="code-title">app/Models/Usuario.php</div>
+        <pre><code data-lang="php">final class Usuario implements JsonSerializable
+{
+    public function __construct(
+        public readonly int $id,
+        public readonly string $nome,
+        private readonly string $senhaHash,
+    ) {
+    }
+
+    public function jsonSerialize(): array
+    {
+        return ['id' =&gt; $this-&gt;id, 'nome' =&gt; $this-&gt;nome];
+    }
+}</code></pre>
+      </div>
+    </article>
+
+    <!-- ================================================================== MIDDLEWARE -->
+    <article class="doc-page" id="middleware">
+      <h1>Middleware</h1>
+
+      <h2 id="middleware-o-que-e">O que é um middleware</h2>
+      <p>Um middleware é um código que roda <strong>antes</strong> e/ou <strong>depois</strong> do controller. Ele é o lugar certo para o que se repete em muitas rotas: CORS, logs, limitação de acesso, cabeçalhos.</p>
+      <p>Pense em camadas de uma cebola: a requisição atravessa cada middleware até chegar no controller, e a resposta volta pelo mesmo caminho.</p>
+
+      <h2 id="middleware-criando">Criando um middleware</h2>
+      <p>Crie uma classe em <code>app/Middleware</code> que implemente <code>MiddlewareInterface</code>:</p>
+
+      <div class="code">
+        <div class="code-title">app/Middleware/MedirTempo.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Middleware;
+
+use Haki\Http\Request;
+use Haki\Http\Response;
+use Haki\Middleware\MiddlewareInterface;
+
+final class MedirTempo implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        $inicio = microtime(true);              // antes do controller
+
+        $response = $next($request);            // segue para o próximo
+
+        $ms = round((microtime(true) - $inicio) * 1000, 2);
+
+        return $response-&gt;header('X-Tempo-Ms', (string) $ms); // depois
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="middleware-registrando">Onde aplicar</h2>
+      <div class="code">
+        <pre><code data-lang="php">// Global: todas as requisições (em bootstrap/app.php)
+$app-&gt;middleware(MedirTempo::class);
+
+// Em um grupo
+$app-&gt;group('/api', function (Haki $app) {
+    // ...
+})-&gt;middleware(RegistrarAcesso::class);
+
+// Em uma rota
+$app-&gt;post('/upload', [UploadController::class, 'store'])-&gt;middleware(LimitarTamanho::class);</code></pre>
+      </div>
+      <p>Você pode passar o nome da classe (o container cria e injeta as dependências), uma instância (<code>new Cors('https://meusite.com')</code>) ou uma closure <code>fn (Request $r, callable $next) =&gt; ...</code>.</p>
+
+      <h2 id="middleware-ordem">Ordem de execução</h2>
+      <p>A ordem é sempre a mesma:</p>
+      <ol>
+        <li>Middlewares globais, na ordem em que foram registrados</li>
+        <li>Middlewares do grupo</li>
+        <li>Autenticação (<code>-&gt;auth()</code>)</li>
+        <li>Perfil (<code>-&gt;role()</code>)</li>
+        <li>Middlewares da rota</li>
+        <li>Controller</li>
+      </ol>
+      <p>Ou seja, quando um middleware de rota roda, <code>$request-&gt;user()</code> já está preenchido.</p>
+
+      <h2 id="middleware-interromper">Interrompendo a requisição</h2>
+      <p>Para barrar uma requisição, retorne uma resposta sem chamar <code>$next</code>:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">final class ModoManutencao implements MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response
+    {
+        if (file_exists(__DIR__ . '/../../storage/manutencao')) {
+            return (new Response())-&gt;json(['erro' =&gt; 'Voltamos em instantes'], 503);
+        }
+
+        return $next($request);
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="middleware-cors">Exemplo: CORS</h2>
+      <p>Para um front-end em outro domínio chamar a sua API pelo navegador:</p>
+
+      <div class="code">
+        <div class="code-title">app/Middleware/Cors.php</div>
+        <pre><code data-lang="php">final class Cors implements MiddlewareInterface
+{
+    public function __construct(private readonly string $origem = 'http://localhost:5173')
+    {
+    }
+
+    public function handle(Request $request, callable $next): Response
+    {
+        // O navegador envia OPTIONS antes da requisição real ("preflight").
+        $response = $request-&gt;method() === 'OPTIONS' ? new Response('', 204) : $next($request);
+
+        return $response
+            -&gt;header('Access-Control-Allow-Origin', $this-&gt;origem)
+            -&gt;header('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+            -&gt;header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    }
+}</code></pre>
+      </div>
+      <p>Registre como global. Middlewares globais também rodam em respostas de erro (404, 401...), então o navegador sempre recebe os cabeçalhos.</p>
+    </article>
+
+    <!-- ================================================================== ERROS -->
+    <article class="doc-page" id="erros">
+      <h1>Tratamento de erros</h1>
+
+      <h2 id="erros-formato">Formato padrão</h2>
+      <p>Todo erro vira um JSON com o mesmo formato, então o front-end sempre sabe onde procurar a mensagem:</p>
+
+      <div class="code">
+        <pre><code data-lang="json">{ "erro": "Usuário não encontrado", "status": 404 }</code></pre>
+      </div>
+
+      <h2 id="erros-lancando">Respondendo com um erro</h2>
+      <p>Em qualquer lugar (controller, service, middleware), lance uma <code>HttpException</code>:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Exceptions\HttpException;
+
+$usuario = $this-&gt;usuarios-&gt;buscarPorId($id)
+    ?? throw new HttpException(404, 'Usuário não encontrado');
+
+if ($this-&gt;usuarios-&gt;emailExiste($email)) {
+    throw new HttpException(409, 'Este e-mail já está cadastrado');
+}</code></pre>
+      </div>
+
+      <h2 id="erros-codigos">Códigos usados</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Quando</th></tr></thead>
+          <tbody>
+            <tr><td><code>200</code></td><td>Deu certo</td></tr>
+            <tr><td><code>201</code></td><td>Recurso criado</td></tr>
+            <tr><td><code>204</code></td><td>Deu certo, sem conteúdo (ex.: exclusão)</td></tr>
+            <tr><td><code>400</code></td><td>Requisição inválida (ex.: JSON quebrado)</td></tr>
+            <tr><td><code>401</code></td><td>Não autenticado: sem token, ou token inválido/expirado</td></tr>
+            <tr><td><code>403</code></td><td>Autenticado, mas sem permissão</td></tr>
+            <tr><td><code>404</code></td><td>Rota ou recurso não encontrado</td></tr>
+            <tr><td><code>405</code></td><td>Método HTTP não permitido nesse caminho</td></tr>
+            <tr><td><code>422</code></td><td>Dados com formato válido, mas conteúdo inválido</td></tr>
+            <tr><td><code>500</code></td><td>Erro inesperado no servidor</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="erros-dev-prod">Desenvolvimento x produção</h2>
+      <p>Em <strong>desenvolvimento</strong>, erros de cliente (4xx) trazem uma <code>dica</code>. Erros de servidor (500) trazem também a exceção, o arquivo, a linha e o trace:</p>
+
+      <div class="code">
+        <pre><code data-lang="json">{
+  "erro": "Token não informado",
+  "status": 401,
+  "detalhes": {
+    "dica": "Envie o cabeçalho \"Authorization: Bearer &lt;token&gt;\"."
+  }
+}</code></pre>
+      </div>
+
+      <p>Em <strong>produção</strong>, nenhum detalhe interno é enviado. Uma exceção inesperada vira apenas:</p>
+
+      <div class="code">
+        <pre><code data-lang="json">{ "erro": "Erro interno do servidor", "status": 500 }</code></pre>
+      </div>
+      <p>O erro completo vai para o log do PHP (<code>error_log</code>), onde só você tem acesso.</p>
+    </article>
+
+    <!-- ================================================================== DEPURAÇÃO -->
+    <article class="doc-page" id="depuracao">
+      <h1>Depuração com haki()</h1>
+
+      <h2 id="depuracao-funcao">A função haki()</h2>
+      <p>Para inspecionar qualquer valor enquanto desenvolve, use a função global <code>haki()</code>. Ela é parecida com o <code>var_dump</code>, mas foi feita para ser lida:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">haki($usuario);
+haki($request-&gt;all(), $produtos);   // vários valores de uma vez</code></pre>
+      </div>
+
+      <ul>
+        <li>Cada tipo tem uma cor e um rótulo: <code>string</code>, <code>int</code>, <code>float</code>, <code>bool</code>, <code>null</code>, <code>array</code>, <code>object</code>, <code>enum</code>, <code>closure</code>.</li>
+        <li>Arrays indicam se são <strong>lista</strong> ou <strong>associativo</strong> e quantos itens têm.</li>
+        <li>Objetos mostram a classe, o id e a visibilidade de cada propriedade: <code>+</code> pública, <code>#</code> protegida, <code>-</code> privada.</li>
+        <li>Referências circulares são detectadas, em vez de travar a página.</li>
+        <li>Sempre mostra o arquivo e a linha de onde foi chamada.</li>
+      </ul>
+
+      <h2 id="depuracao-terminal">No terminal</h2>
+      <p>Rodando um script pelo terminal, a saída é uma árvore colorida:</p>
+
+      <div class="code">
+        <pre><code data-lang="text"> haki  app/Services/LoginService.php:21
+object App\Models\Usuario #12
+├─ +id: int 1
+├─ +nome: string(15) "Monkey D. Luffy"
+├─ +perfil: string(5) "admin"
+└─ -senhaHash: string(60) "$2y$10$..."</code></pre>
+      </div>
+
+      <h2 id="depuracao-navegador">No navegador</h2>
+      <p>No navegador, aparece um bloco com os níveis recolhíveis. Os botões <strong>expandir</strong> e <strong>recolher</strong> abrem e fecham tudo, e <strong>Ctrl + clique</strong> em um item abre ou fecha todos os itens dentro dele.</p>
+
+      <h2 id="depuracao-retorno">Usando no meio do código</h2>
+      <p><code>haki()</code> devolve o próprio valor, então dá para usar no meio de uma expressão sem mudar o código:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">$total = haki($this-&gt;calcularTotal($pedido));</code></pre>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Atenção</span>
+        <p>Remova as chamadas de <code>haki()</code> antes de publicar. Em uma API, a saída da função aparece antes do JSON e quebra a resposta para o cliente.</p>
+      </div>
+    </article>
+
+    <!-- ================================================================== AUTENTICAÇÃO -->
+    <article class="doc-page" id="autenticacao">
+      <h1>Como funciona a autenticação</h1>
+
+      <h2 id="autenticacao-visao">Visão geral</h2>
+      <p class="lead">O Haki usa JSON Web Tokens (JWT). Depois do login, o cliente recebe um token e o envia em cada requisição protegida. O servidor confere a assinatura do token e sabe quem é o usuário sem guardar sessão.</p>
+
+      <h2 id="autenticacao-fluxo">O fluxo completo</h2>
+      <ol>
+        <li>O cliente envia e-mail e senha para <code>POST /login</code>.</li>
+        <li><strong>A sua aplicação</strong> confere as credenciais (o Haki não sabe nada sobre senhas).</li>
+        <li>Se estiverem corretas, você chama <code>$auth-&gt;login($usuario-&gt;id)</code>.</li>
+        <li>O Haki devolve um <strong>access token</strong> (curto, 15 min) e um <strong>refresh token</strong> (longo, 7 dias).</li>
+        <li>O cliente envia <code>Authorization: Bearer &lt;access_token&gt;</code> nas rotas protegidas.</li>
+        <li>Quando o access token expira, o cliente troca o refresh token por um par novo em <code>POST /refresh</code>.</li>
+        <li>No logout, os tokens daquela sessão são revogados.</li>
+      </ol>
+
+      <h2 id="autenticacao-configurando">Configurando</h2>
+      <p>Gere um segredo forte. O comando grava o <code>JWT_SECRET</code> no seu <code>.env</code>:</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki key:generate</code></pre>
+      </div>
+
+      <p>Pronto, nada mais é obrigatório. Para mudar os padrões, use <code>$app-&gt;auth()</code> no bootstrap:</p>
+
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">$app-&gt;auth([
+    'secret'     =&gt; getenv('JWT_SECRET'),
+    'expires_in' =&gt; 900,      // access token: 15 minutos
+    'refresh_in' =&gt; 604800,   // refresh token: 7 dias
+    'issuer'     =&gt; 'minha-api',
+]);</code></pre>
+      </div>
+
+      <h2 id="autenticacao-token">O que vai dentro do token</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Claim</th><th>Significado</th></tr></thead>
+          <tbody>
+            <tr><td><code>sub</code></td><td>ID do usuário</td></tr>
+            <tr><td><code>role</code></td><td>Perfil, se você informar no login</td></tr>
+            <tr><td><code>iat</code> / <code>exp</code></td><td>Quando foi emitido / quando expira</td></tr>
+            <tr><td><code>jti</code></td><td>ID único do token (usado no logout)</td></tr>
+            <tr><td><code>fid</code></td><td>ID da sessão de login (usado no logout e no refresh)</td></tr>
+            <tr><td><code>iss</code></td><td>Emissor, se configurado</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Atenção</span>
+        <p>O conteúdo de um JWT pode ser lido por qualquer pessoa (ele é só assinado, não criptografado). Nunca coloque senhas, documentos ou dados sensíveis nos claims.</p>
+      </div>
+
+      <h2 id="autenticacao-seguranca">O que o Haki garante</h2>
+      <ul>
+        <li>O algoritmo é sempre o configurado: tokens com <code>"alg": "none"</code> ou com outro algoritmo são recusados.</li>
+        <li>A assinatura é comparada em tempo constante, o que protege contra ataques de tempo.</li>
+        <li>Tokens expirados, adulterados, malformados ou sem os claims obrigatórios recebem 401.</li>
+        <li>Não existe segredo padrão: sem <code>JWT_SECRET</code>, a autenticação não inicia.</li>
+        <li>O cliente sempre recebe uma mensagem genérica. O motivo real aparece só na dica, em desenvolvimento.</li>
+      </ul>
+    </article>
+
+    <!-- ================================================================== LOGIN -->
+    <article class="doc-page" id="login">
+      <h1>Login e tokens</h1>
+
+      <h2 id="login-service">1. A regra de login fica em um service</h2>
+      <p>Conferir senha é regra de negócio, então fica em <code>app/Services</code>. O service usa um repository para encontrar o usuário:</p>
+
+      <div class="code">
+        <div class="code-title">app/Services/LoginService.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Contracts\UsuarioRepositoryInterface;
+use App\Models\Usuario;
+use Haki\Exceptions\HttpException;
+
+final class LoginService
+{
+    public function __construct(private readonly UsuarioRepositoryInterface $usuarios)
+    {
+    }
+
+    public function autenticar(mixed $email, mixed $senha): Usuario
+    {
+        if (!is_string($email) || !is_string($senha) || $email === '' || $senha === '') {
+            throw new HttpException(400, 'Informe email e senha');
+        }
+
+        $usuario = $this-&gt;usuarios-&gt;buscarPorEmail($email);
+
+        // Mesma mensagem nos dois casos: não revela quais e-mails existem.
+        if ($usuario === null || !password_verify($senha, $usuario-&gt;senhaHash)) {
+            throw new HttpException(401, 'E-mail ou senha incorretos');
+        }
+
+        return $usuario;
+    }
+}</code></pre>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Nota</span>
+        <p>Guarde senhas sempre com <code>password_hash()</code> e confira com <code>password_verify()</code>. Nunca salve a senha em texto.</p>
+      </div>
+
+      <h2 id="login-controller">2. O controller só conecta as peças</h2>
+      <div class="code">
+        <div class="code-title">app/Controllers/AuthController.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Services\LoginService;
+use Haki\Auth\Auth;
+use Haki\Http\Request;
+
+final class AuthController
+{
+    public function __construct(private readonly LoginService $login)
+    {
+    }
+
+    public function login(Request $request, Auth $auth): array
+    {
+        $usuario = $this-&gt;login-&gt;autenticar($request-&gt;input('email'), $request-&gt;input('senha'));
+
+        return $auth-&gt;login($usuario-&gt;id, ['role' =&gt; $usuario-&gt;perfil]);
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="login-rota">3. A rota</h2>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;post('/login', [AuthController::class, 'login']);</code></pre>
+      </div>
+
+      <h2 id="login-resposta">O que o cliente recebe</h2>
+      <div class="code">
+        <pre><code data-lang="json">{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "9f2c4e1a7b...",
+  "token_type": "Bearer",
+  "expires_in": 900
+}</code></pre>
+      </div>
+
+      <h3 id="login-claims">Dados extras no token</h3>
+      <p>O segundo argumento de <code>login()</code> adiciona claims ao token. Use para dados pequenos que você consulta sempre, como o perfil:</p>
+      <div class="code">
+        <pre><code data-lang="php">$auth-&gt;login($usuario-&gt;id, ['role' =&gt; 'admin', 'nome' =&gt; $usuario-&gt;nome]);</code></pre>
+      </div>
+      <p>Os nomes <code>sub</code>, <code>iat</code>, <code>exp</code>, <code>jti</code>, <code>fid</code> e <code>iss</code> são reservados e não podem ser usados.</p>
+
+      <h2 id="login-cliente">Usando o token no cliente</h2>
+      <div class="code">
+        <pre><code data-lang="bash">curl http://localhost:8000/eu -H "Authorization: Bearer eyJhbGciOi..."</code></pre>
+      </div>
+    </article>
+
+    <!-- ================================================================== PROTEGENDO ROTAS -->
+    <article class="doc-page" id="protegendo-rotas">
+      <h1>Protegendo rotas</h1>
+
+      <h2 id="protegendo-auth">Exigindo login</h2>
+      <p>Adicione <code>-&gt;auth()</code> à rota. Sem um token válido, o controller nem é executado:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;get('/perfil', [PerfilController::class, 'show'])-&gt;auth();</code></pre>
+      </div>
+
+      <h2 id="protegendo-role">Exigindo um perfil</h2>
+      <p><code>-&gt;role()</code> exige um perfil específico. Ele já inclui o <code>-&gt;auth()</code>.</p>
+
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;get('/admin/painel', [AdminController::class, 'painel'])-&gt;role('admin');
+
+// Aceita qualquer um dos perfis listados
+$app-&gt;get('/relatorios', [RelatorioController::class, 'index'])-&gt;role('admin', 'gerente');</code></pre>
+      </div>
+
+      <h2 id="protegendo-grupos">Protegendo várias rotas de uma vez</h2>
+      <div class="code">
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">// Públicas
+$app-&gt;post('/login', [AuthController::class, 'login']);
+$app-&gt;post('/refresh', [AuthController::class, 'refresh']);
+
+// Qualquer usuário logado
+$app-&gt;group('/', function (Haki $app) {
+    $app-&gt;get('/eu', [AuthController::class, 'eu']);
+    $app-&gt;post('/logout', [AuthController::class, 'logout']);
+    $app-&gt;get('/pedidos', [PedidoController::class, 'index']);
+})-&gt;auth();
+
+// Só administradores
+$app-&gt;group('/admin', function (Haki $app) {
+    $app-&gt;get('/usuarios', [AdminController::class, 'usuarios']);
+})-&gt;role('admin');</code></pre>
+      </div>
+
+      <h3 id="protegendo-aninhados">Perfis em grupos aninhados</h3>
+      <p>Cada <code>-&gt;role()</code> é um requisito a mais. Uma rota com <code>-&gt;role('gerente')</code> dentro de um grupo com <code>-&gt;role('admin')</code> exige os <strong>dois</strong>. Para aceitar um ou outro, liste-os na mesma chamada: <code>-&gt;role('admin', 'gerente')</code>.</p>
+
+      <h2 id="protegendo-401-403">401 ou 403?</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Situação</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Sem token</td><td><code>401</code> "Token não informado"</td></tr>
+            <tr><td>Token inválido, expirado ou revogado</td><td><code>401</code> "Token inválido ou expirado"</td></tr>
+            <tr><td>Token válido, perfil errado</td><td><code>403</code> "Acesso negado"</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Resumindo: <strong>401</strong> quer dizer "não sei quem você é", e <strong>403</strong> quer dizer "sei quem você é, mas você não pode fazer isso". Respostas 401 trazem o cabeçalho <code>WWW-Authenticate: Bearer</code>.</p>
+    </article>
+
+    <!-- ================================================================== USUÁRIO -->
+    <article class="doc-page" id="usuario">
+      <h1>Usuário autenticado</h1>
+
+      <h2 id="usuario-acessando">Acessando o usuário</h2>
+      <p>Em rotas com <code>-&gt;auth()</code>, <code>$request-&gt;user()</code> devolve quem fez a requisição:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">public function eu(Request $request): array
+{
+    return ['usuario' =&gt; $request-&gt;user()];
+}</code></pre>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="json">{ "usuario": { "id": "1", "role": "admin" } }</code></pre>
+      </div>
+
+      <h2 id="usuario-propriedades">O que a identidade oferece</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Uso</th><th>Retorna</th></tr></thead>
+          <tbody>
+            <tr><td><code>$user-&gt;id</code></td><td>O ID do usuário (texto)</td></tr>
+            <tr><td><code>$user-&gt;role</code></td><td>O perfil, ou <code>null</code></td></tr>
+            <tr><td><code>$user-&gt;get('nome')</code></td><td>Um claim extra que você colocou no login</td></tr>
+            <tr><td><code>$user-&gt;hasRole('admin', 'gerente')</code></td><td><code>true</code> se tiver um dos perfis</td></tr>
+            <tr><td><code>$user-&gt;claims</code></td><td>Todos os claims do token</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="usuario-nulo">Quando user() é null</h2>
+      <p>Em rotas públicas, <code>user()</code> é sempre <code>null</code>, mesmo que o cliente envie um token. A identidade só é preenchida depois que o token é <strong>validado</strong> pelo <code>-&gt;auth()</code>. Assim, ninguém consegue se passar por outro usuário mandando dados forjados.</p>
+
+      <h2 id="usuario-banco">A identidade vem do token, não do banco</h2>
+      <p>O Haki não consulta o seu banco de dados. A identidade traz o que estava no token no momento do login. Isso significa que, se um usuário for <strong>bloqueado</strong> ou mudar de <strong>perfil</strong>, o token antigo continua com os dados antigos até expirar.</p>
+      <p>Para mudanças que precisam valer imediatamente, revogue os tokens com <code>$auth-&gt;logoutAll($id)</code>. Se você precisa checar o banco a cada requisição, crie um middleware próprio depois do <code>-&gt;auth()</code>:</p>
+
+      <div class="code">
+        <div class="code-title">app/Middleware/UsuarioAtivo.php</div>
+        <pre><code data-lang="php">final class UsuarioAtivo implements MiddlewareInterface
+{
+    public function __construct(private readonly UsuarioRepositoryInterface $usuarios)
+    {
+    }
+
+    public function handle(Request $request, callable $next): Response
+    {
+        $usuario = $this-&gt;usuarios-&gt;buscarPorId((int) $request-&gt;user()?-&gt;id);
+
+        if ($usuario === null || $usuario-&gt;bloqueado) {
+            throw new HttpException(403, 'Conta bloqueada');
+        }
+
+        return $next($request);
+    }
+}</code></pre>
+      </div>
+    </article>
+
+    <!-- ================================================================== REFRESH / LOGOUT -->
+    <article class="doc-page" id="refresh-logout">
+      <h1>Refresh e logout</h1>
+
+      <h2 id="refresh-por-que">Por que dois tokens?</h2>
+      <p>O access token dura pouco (15 minutos). Se for roubado, serve por pouco tempo. O refresh token dura mais, mas só serve para pedir um novo par de tokens e nunca é aceito como access token.</p>
+
+      <h2 id="refresh-renovando">Renovando os tokens</h2>
+      <div class="code">
+        <pre><code data-lang="php">public function refresh(Request $request, Auth $auth): array
+{
+    return $auth-&gt;refresh($request-&gt;input('refresh_token'));
+}</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;post('/refresh', [AuthController::class, 'refresh']); // rota pública</code></pre>
+      </div>
+
+      <h3 id="refresh-rotacao">Rotação</h3>
+      <p>Cada refresh token só pode ser usado <strong>uma vez</strong>. Ao usá-lo, o cliente recebe um par novo e o antigo deixa de valer. O cliente deve sempre guardar o refresh token mais recente.</p>
+
+      <h3 id="refresh-reuso">Detecção de roubo</h3>
+      <p>Se um refresh token já usado aparecer de novo, quer dizer que existem duas cópias dele, e uma pode ter sido roubada. Nesse caso, o Haki revoga <strong>todas as sessões</strong> daquele usuário, e ele precisa fazer login de novo.</p>
+
+      <h2 id="refresh-logout">Logout</h2>
+      <p><code>logout()</code> encerra a sessão atual: o access token e o refresh token daquele login deixam de valer.</p>
+
+      <div class="code">
+        <pre><code data-lang="php">public function logout(Request $request, Auth $auth): null
+{
+    $auth-&gt;logout($request);
+
+    return null; // 204
+}</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;post('/logout', [AuthController::class, 'logout'])-&gt;auth(); // precisa de -&gt;auth()</code></pre>
+      </div>
+
+      <h2 id="refresh-logout-all">Sair de todos os dispositivos</h2>
+      <p><code>logoutAll()</code> revoga todos os tokens já emitidos para o usuário, em todos os dispositivos. Use quando a pessoa trocar a senha, mudar de perfil ou for bloqueada:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">$auth-&gt;logoutAll($usuario-&gt;id);</code></pre>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Nota</span>
+        <p>Tokens emitidos no mesmo segundo do <code>logoutAll()</code> também são revogados. Em uso normal você não percebe isso, mas em testes automatizados pode ser preciso avançar o relógio.</p>
+      </div>
+    </article>
+
+    <!-- ================================================================== RS256 -->
+    <article class="doc-page" id="rs256">
+      <h1>Chaves RS256</h1>
+
+      <h2 id="rs256-quando">Quando usar</h2>
+      <p>O padrão, <strong>HS256</strong>, usa um único segredo para assinar e validar. É o ideal quando só a sua API lida com os tokens.</p>
+      <p>O <strong>RS256</strong> usa um par de chaves: a <strong>privada</strong> assina e a <strong>pública</strong> valida. Use quando outros serviços precisam validar os tokens da sua API sem poder emiti-los. Você entrega a eles apenas a chave pública.</p>
+
+      <h2 id="rs256-gerando">Gerando as chaves</h2>
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki key:generate --rsa</code></pre>
+      </div>
+      <p>O comando cria <code>storage/keys/private.pem</code> e <code>storage/keys/public.pem</code> (RSA de 2048 bits). Depois, configure o <code>.env</code>:</p>
+
+      <div class="code">
+        <div class="code-title">.env</div>
+        <pre><code data-lang="env">JWT_ALGORITHM=RS256
+JWT_PRIVATE_KEY=storage/keys/private.pem
+JWT_PUBLIC_KEY=storage/keys/public.pem</code></pre>
+      </div>
+
+      <h2 id="rs256-codigo">Configurando pelo código</h2>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;auth([
+    'algorithm'   =&gt; 'RS256',
+    'private_key' =&gt; 'storage/keys/private.pem', // caminho ou conteúdo PEM
+    'public_key'  =&gt; 'storage/keys/public.pem',
+]);</code></pre>
+      </div>
+
+      <h3 id="rs256-so-validar">Um serviço que só valida</h3>
+      <p>Informe apenas a chave pública. Esse serviço consegue proteger rotas com <code>-&gt;auth()</code>, mas não consegue emitir tokens.</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;auth(['algorithm' =&gt; 'RS256', 'public_key' =&gt; 'chaves/public.pem']);</code></pre>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Atenção</span>
+        <p>A chave privada é tão sensível quanto uma senha. Nunca a envie para o Git e nunca a compartilhe com outros serviços.</p>
+      </div>
+    </article>
+
+    <!-- ================================================================== ARMAZENAMENTO -->
+    <article class="doc-page" id="armazenamento">
+      <h1>Armazenamento de tokens</h1>
+
+      <h2 id="armazenamento-sqlite">SQLite automático</h2>
+      <p>Para o refresh token e o logout funcionarem, o Haki precisa guardar algumas informações. Por padrão, ele usa um arquivo SQLite que é <strong>criado sozinho</strong> na primeira requisição que usa autenticação:</p>
+
+<div class="tree"><span class="dir">storage/</span>
+└── haki.sqlite      <span class="note">criado automaticamente</span></div>
+
+      <p>Você não precisa criar tabela nem rodar migração. Se preferir criar o banco de forma explícita (no deploy, por exemplo):</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki auth:install</code></pre>
+      </div>
+
+      <h2 id="armazenamento-o-que">O que fica guardado</h2>
+      <ul>
+        <li>O <strong>hash</strong> de cada refresh token (nunca o token em si).</li>
+        <li>Os access tokens revogados por logout, até a data em que expirariam.</li>
+        <li>A data do último <code>logoutAll()</code> de cada usuário.</li>
+      </ul>
+      <p>Registros vencidos são removidos sozinhos de tempos em tempos. Para limpar manualmente, ou via cron:</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki auth:clean</code></pre>
+      </div>
+
+      <h2 id="armazenamento-local">Mudando o local do arquivo</h2>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;auth([
+    'secret'   =&gt; getenv('JWT_SECRET'),
+    'database' =&gt; 'storage/tokens/auth.sqlite',
+]);</code></pre>
+      </div>
+
+      <h2 id="armazenamento-proprio">Usando outro banco</h2>
+      <p>O SQLite atende muito bem uma API rodando em <strong>um servidor</strong>. Se você tiver vários servidores atrás de um balanceador, cada um teria o seu próprio arquivo. Nesse caso, guarde os tokens em um lugar compartilhado (Redis, MySQL...) implementando a interface <code>TokenStore</code>:</p>
+
+      <div class="code">
+        <div class="code-title">app/Repositories/RedisTokenStore.php</div>
+        <pre><code data-lang="php">use Haki\Auth\Storage\RefreshTokenRecord;
+use Haki\Auth\Storage\TokenStore;
+
+final class RedisTokenStore implements TokenStore
+{
+    public function __construct(private readonly \Redis $redis)
+    {
+    }
+
+    public function revokeAccessToken(string $jti, int $expiresAt): void
+    {
+        $this-&gt;redis-&gt;set("revogado:$jti", '1', ['EXAT' =&gt; $expiresAt]);
+    }
+
+    public function isAccessTokenRevoked(string $jti): bool
+    {
+        return (bool) $this-&gt;redis-&gt;exists("revogado:$jti");
+    }
+
+    // ... revokeUser, userRevokedBefore, saveRefreshToken, findRefreshToken,
+    //     consumeRefreshToken, revokeFamily, purgeExpired
+}</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">$app-&gt;auth([
+    'secret'  =&gt; getenv('JWT_SECRET'),
+    'storage' =&gt; new RedisTokenStore($redis),
+]);</code></pre>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Nota</span>
+        <p><code>consumeRefreshToken()</code> precisa ser <strong>atômico</strong>: se duas requisições usarem o mesmo refresh token ao mesmo tempo, só uma pode ter sucesso. No Redis, use <code>SET ... NX</code> ou um script Lua. No SQL, use <code>UPDATE ... WHERE used_at IS NULL</code> e confira o número de linhas afetadas.</p>
+      </div>
+    </article>
+
+    <!-- ================================================================== CONTAINER -->
+    <article class="doc-page" id="container">
+      <h1>Container de dependências</h1>
+
+      <h2 id="container-autowiring">Criação automática</h2>
+      <p>O container é quem cria os objetos da sua aplicação. Ele lê o construtor de cada classe e cria as dependências sozinho, em cadeia:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">final class PedidoController
+{
+    public function __construct(private readonly CriarPedidoService $criarPedido) {}
+}
+
+final class CriarPedidoService
+{
+    public function __construct(private readonly CalculadoraDeFrete $frete) {}
+}
+
+// Ao chamar a rota, o Haki cria: CalculadoraDeFrete → CriarPedidoService → PedidoController</code></pre>
+      </div>
+      <p>Para classes concretas, você não precisa configurar nada.</p>
+
+      <h2 id="container-interfaces">Interfaces precisam de um bind</h2>
+      <p>Quando uma classe depende de uma <strong>interface</strong>, o container precisa saber qual implementação usar. Registre isso no bootstrap:</p>
+
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">use App\Contracts\UsuarioRepositoryInterface;
+use App\Repositories\PdoUsuarioRepository;
+
+$app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);</code></pre>
+      </div>
+
+      <p>Se você esquecer, o erro explica o que fazer:</p>
+      <div class="code">
+        <pre><code data-lang="text">Não foi possível criar App\Contracts\UsuarioRepositoryInterface: a classe é uma interface.
+Dica: Registre uma implementação: $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, SuaClasse::class);</code></pre>
+      </div>
+
+      <h2 id="container-metodos">bind, singleton e instance</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Quando usar</th></tr></thead>
+          <tbody>
+            <tr><td><code>bind(Interface::class, Classe::class)</code></td><td>Cria um objeto novo a cada uso</td></tr>
+            <tr><td><code>singleton(Classe::class, ...)</code></td><td>Cria uma vez e reaproveita (conexão com banco, cliente HTTP)</td></tr>
+            <tr><td><code>instance(Classe::class, $objeto)</code></td><td>Registra um objeto já pronto</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="container-closure">Criando com uma função</h3>
+      <p>Quando o construtor precisa de valores (texto, número, configuração), use uma closure:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Support\Env;
+
+$app-&gt;container()-&gt;singleton(PDO::class, fn () =&gt; new PDO(
+    'mysql:host=' . Env::get('DB_HOST') . ';dbname=' . Env::get('DB_NAME'),
+    Env::get('DB_USER'),
+    Env::get('DB_PASS'),
+    [PDO::ATTR_ERRMODE =&gt; PDO::ERRMODE_EXCEPTION],
+));</code></pre>
+      </div>
+      <p>A partir daí, qualquer repository que peça <code>PDO $pdo</code> no construtor recebe essa mesma conexão.</p>
+    </article>
+
+    <!-- ================================================================== SOLID -->
+    <article class="doc-page" id="solid">
+      <h1>SOLID na prática</h1>
+
+      <h2 id="solid-intro">Por que se importar</h2>
+      <p>SOLID são cinco princípios que deixam o código fácil de mudar sem quebrar o que já funciona. A estrutura de pastas recomendada já empurra você na direção certa. Veja como cada princípio aparece em um projeto Haki.</p>
+
+      <h2 id="solid-s">S: responsabilidade única</h2>
+      <p><em>Cada classe tem um único motivo para mudar.</em></p>
+      <p>O controller lida com HTTP, o service com a regra de negócio e o repository com os dados. Se a regra de desconto mudar, você só mexe no service.</p>
+
+      <div class="code">
+        <pre><code data-lang="php">// Ruim: o controller faz tudo
+public function store(Request $request): array
+{
+    $pdo = new PDO('mysql:...');
+    $total = $request-&gt;input('valor') * 0.9; // regra de desconto escondida aqui
+    $pdo-&gt;prepare('INSERT INTO pedidos ...')-&gt;execute([...]);
+    return ['ok' =&gt; true];
+}
+
+// Bom: cada um no seu lugar
+public function store(Request $request, Response $response): Response
+{
+    $pedido = $this-&gt;criarPedido-&gt;executar($request-&gt;only(['produto_id', 'quantidade']));
+
+    return $response-&gt;json(['pedido' =&gt; $pedido], 201);
+}</code></pre>
+      </div>
+
+      <h2 id="solid-o">O: aberto para extensão</h2>
+      <p><em>Adicione comportamento criando classes novas, sem editar as que já funcionam.</em></p>
+      <p>No Haki, isso aparece nos middlewares: para adicionar log, CORS ou limite de acesso, você cria um middleware novo e registra. Nenhum controller muda.</p>
+
+      <h2 id="solid-l">L: substituição</h2>
+      <p><em>Qualquer implementação de uma interface deve funcionar no lugar da outra.</em></p>
+      <p>Um <code>ArrayUsuarioRepository</code> (para testes) e um <code>PdoUsuarioRepository</code> (produção) seguem o mesmo contrato. O service não percebe a troca.</p>
+
+      <h2 id="solid-i">I: interfaces enxutas</h2>
+      <p><em>Prefira interfaces pequenas e específicas.</em></p>
+      <div class="code">
+        <pre><code data-lang="php">interface UsuarioRepositoryInterface
+{
+    public function buscarPorId(int $id): ?Usuario;
+    public function buscarPorEmail(string $email): ?Usuario;
+}</code></pre>
+      </div>
+      <p>Se só o painel de relatórios precisa de estatísticas, crie uma <code>RelatorioRepositoryInterface</code> separada em vez de inchar essa.</p>
+
+      <h2 id="solid-d">D: dependa de abstrações</h2>
+      <p><em>Classes de alto nível dependem de interfaces, não de implementações concretas.</em></p>
+      <p>O service pede <code>UsuarioRepositoryInterface</code>, e o bootstrap decide qual classe entregar. Para trocar de MySQL para uma API externa, você muda uma linha:</p>
+
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">$app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);
+// amanhã:
+$app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, ApiUsuarioRepository::class);</code></pre>
+      </div>
+
+      <h2 id="solid-receita">Receita para um recurso novo</h2>
+      <p>Para adicionar, por exemplo, <strong>produtos</strong> à API:</p>
+      <ol class="steps">
+        <li><strong>Model</strong><p><code>app/Models/Produto.php</code>: os dados e o <code>jsonSerialize()</code>.</p></li>
+        <li><strong>Contrato</strong><p><code>app/Contracts/ProdutoRepositoryInterface.php</code>: os métodos de acesso a dados.</p></li>
+        <li><strong>Repository</strong><p><code>app/Repositories/PdoProdutoRepository.php</code>: implementa a interface com SQL.</p></li>
+        <li><strong>Service</strong> (se houver regra)<p><code>app/Services/CriarProdutoService.php</code>: valida e aplica a regra de negócio.</p></li>
+        <li><strong>Controller</strong><p><code>app/Controllers/ProdutoController.php</code>: lê a requisição, chama o service e retorna.</p></li>
+        <li><strong>Bind e rotas</strong><p>Um <code>bind()</code> no bootstrap e as rotas em <code>routes/api.php</code>.</p></li>
+      </ol>
+    </article>
+
+    <!-- ================================================================== CLI -->
+    <article class="doc-page" id="cli">
+      <h1>Linha de comando</h1>
+
+      <h2 id="cli-comandos">Comandos disponíveis</h2>
+      <p>O Haki instala o comando <code>vendor/bin/haki</code>. Rode-o a partir da raiz do projeto:</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki</code></pre>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Comando</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>key:generate</code></td><td>Cria um <code>JWT_SECRET</code> aleatório no <code>.env</code> (cria o arquivo se não existir)</td></tr>
+            <tr><td><code>key:generate --force</code></td><td>Troca o segredo existente (desconecta todos os usuários)</td></tr>
+            <tr><td><code>key:generate --rsa</code></td><td>Cria o par de chaves RS256 em <code>storage/keys/</code></td></tr>
+            <tr><td><code>auth:install</code></td><td>Cria o banco SQLite de tokens</td></tr>
+            <tr><td><code>auth:clean</code></td><td>Apaga tokens e revogações vencidos</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="cli-cron">Limpeza agendada</h2>
+      <p>A limpeza já acontece sozinha de vez em quando, mas em APIs com muito tráfego vale agendar:</p>
+
+      <div class="code">
+        <div class="code-title">crontab</div>
+        <pre><code data-lang="bash">0 3 * * * cd /var/www/minha-api &amp;&amp; php vendor/bin/haki auth:clean</code></pre>
+      </div>
+    </article>
+
+    <!-- ================================================================== TESTES -->
+    <article class="doc-page" id="testes">
+      <h1>Testes</h1>
+
+      <h2 id="testes-handle">Testando sem servidor</h2>
+      <p><code>$app-&gt;handle()</code> processa uma requisição e devolve a resposta sem enviá-la. Com isso, dá para testar a API inteira com PHPUnit, sem subir servidor:</p>
+
+      <div class="code">
+        <pre><code data-lang="bash">composer require --dev phpunit/phpunit</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">tests/ProdutoTest.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+use Haki\Http\Request;
+use PHPUnit\Framework\TestCase;
+
+final class ProdutoTest extends TestCase
+{
+    public function testListaProdutos(): void
+    {
+        $app = require __DIR__ . '/../bootstrap/app.php';
+
+        $response = $app-&gt;handle(Request::create('GET', '/produtos'));
+
+        $this-&gt;assertSame(200, $response-&gt;getStatus());
+        $this-&gt;assertArrayHasKey('produtos', $response-&gt;getJson());
+    }
+
+    public function testCriaProduto(): void
+    {
+        $app = require __DIR__ . '/../bootstrap/app.php';
+
+        $response = $app-&gt;handle(Request::create('POST', '/produtos', ['nome' =&gt; 'Gomu']));
+
+        $this-&gt;assertSame(201, $response-&gt;getStatus());
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="testes-auth">Testando rotas protegidas</h2>
+      <p>Use o <code>ArrayTokenStore</code> (em memória) para que os testes não criem arquivos, e gere o token direto pelo <code>Auth</code>:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Auth\Auth;
+use Haki\Auth\Storage\ArrayTokenStore;
+
+$app = require __DIR__ . '/../bootstrap/app.php';
+$app-&gt;auth(['secret' =&gt; str_repeat('t', 32), 'storage' =&gt; new ArrayTokenStore()]);
+
+$token = $app-&gt;container()-&gt;get(Auth::class)-&gt;login(1, ['role' =&gt; 'admin'])['access_token'];
+
+$response = $app-&gt;handle(Request::create('GET', '/admin/painel', [], [
+    'Authorization' =&gt; "Bearer $token",
+]));</code></pre>
+      </div>
+
+      <h2 id="testes-falsos">Trocando dependências</h2>
+      <p>Graças às interfaces, você pode trocar um repository real por um falso só no teste:</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;container()-&gt;instance(UsuarioRepositoryInterface::class, new ArrayUsuarioRepository());</code></pre>
+      </div>
+    </article>
+
+    <!-- ================================================================== PRODUÇÃO -->
+    <article class="doc-page" id="producao">
+      <h1>Produção e segurança</h1>
+
+      <h2 id="producao-checklist">Lista de verificação</h2>
+      <ul>
+        <li><code>APP_ENV=production</code>, ou simplesmente ausente.</li>
+        <li>A raiz do servidor web aponta para <code>public/</code>, nunca para a raiz do projeto.</li>
+        <li><strong>HTTPS</strong> obrigatório. Sem ele, qualquer pessoa na rede consegue ler os tokens.</li>
+        <li><code>JWT_SECRET</code> gerado pelo <code>key:generate</code>, diferente em cada ambiente.</li>
+        <li><code>.env</code>, <code>storage/*.sqlite*</code> e <code>storage/keys/</code> fora do Git.</li>
+        <li>A pasta <code>storage/</code> com permissão de escrita para o usuário do PHP.</li>
+        <li>Extensão <code>pdo_sqlite</code> ativa (ou outro <code>TokenStore</code> configurado).</li>
+        <li>Nenhuma chamada a <code>haki()</code> esquecida no código.</li>
+        <li><code>composer install --no-dev --optimize-autoloader</code> no deploy.</li>
+      </ul>
+
+      <h2 id="producao-tokens-cliente">Onde o cliente guarda os tokens</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Cliente</th><th>Recomendação</th></tr></thead>
+          <tbody>
+            <tr><td>App mobile</td><td>Armazenamento seguro do sistema (Keychain no iOS, Keystore no Android)</td></tr>
+            <tr><td>Front-end web (SPA)</td><td>Access token em memória. Evite <code>localStorage</code> para o refresh token, porque um ataque XSS consegue lê-lo.</td></tr>
+            <tr><td>Outro servidor</td><td>Variável de ambiente ou cofre de segredos</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="producao-segredo">Trocando o segredo</h2>
+      <p>Trocar o <code>JWT_SECRET</code> (ou as chaves RSA) invalida todos os tokens existentes, e todos os usuários precisam fazer login de novo. Faça isso se suspeitar de vazamento.</p>
+
+      <h2 id="producao-login">Proteja o login</h2>
+      <p>O Haki não limita tentativas de login. Para evitar ataques de força bruta, crie um middleware que conte as tentativas por IP (<code>$request-&gt;ip()</code>) e responda <code>429</code> ao passar do limite, ou configure isso no seu servidor web ou proxy.</p>
+    </article>
+
+    <!-- ================================================================== EXEMPLO COMPLETO -->
+    <article class="doc-page" id="exemplo">
+      <h1>Exemplo completo</h1>
+
+      <h2 id="exemplo-estrutura">O que vamos construir</h2>
+      <p>Uma API com login, listagem de usuários protegida e um painel exclusivo para administradores. São todos os arquivos, na estrutura recomendada:</p>
+
+<div class="tree"><span class="dir">minha-api/</span>
+├── <span class="dir">app/</span>
+│   ├── <span class="dir">Contracts/</span>UsuarioRepositoryInterface.php
+│   ├── <span class="dir">Controllers/</span>AuthController.php
+│   ├── <span class="dir">Controllers/</span>UsuarioController.php
+│   ├── <span class="dir">Controllers/</span>AdminController.php
+│   ├── <span class="dir">Models/</span>Usuario.php
+│   ├── <span class="dir">Repositories/</span>ArrayUsuarioRepository.php
+│   └── <span class="dir">Services/</span>LoginService.php
+├── <span class="dir">bootstrap/</span>app.php
+├── <span class="dir">routes/</span>api.php
+├── <span class="dir">public/</span>index.php
+├── .env
+└── composer.json</div>
+
+      <h2 id="exemplo-model">Model</h2>
+      <div class="code">
+        <div class="code-title">app/Models/Usuario.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use JsonSerializable;
+
+final class Usuario implements JsonSerializable
+{
+    public function __construct(
+        public readonly int $id,
+        public readonly string $nome,
+        public readonly string $email,
+        public readonly string $perfil,
+        public readonly string $senhaHash,
+    ) {
+    }
+
+    public function jsonSerialize(): array
+    {
+        return ['id' =&gt; $this-&gt;id, 'nome' =&gt; $this-&gt;nome, 'email' =&gt; $this-&gt;email, 'perfil' =&gt; $this-&gt;perfil];
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="exemplo-repository">Contrato e repository</h2>
+      <div class="code">
+        <div class="code-title">app/Contracts/UsuarioRepositoryInterface.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Contracts;
+
+use App\Models\Usuario;
+
+interface UsuarioRepositoryInterface
+{
+    /** @return list&lt;Usuario&gt; */
+    public function todos(): array;
+
+    public function buscarPorId(int $id): ?Usuario;
+
+    public function buscarPorEmail(string $email): ?Usuario;
+}</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">app/Repositories/ArrayUsuarioRepository.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Repositories;
+
+use App\Contracts\UsuarioRepositoryInterface;
+use App\Models\Usuario;
+
+// Em memória, para começar sem banco. Depois, crie um PdoUsuarioRepository.
+final class ArrayUsuarioRepository implements UsuarioRepositoryInterface
+{
+    /** @var array&lt;int, Usuario&gt; */
+    private array $usuarios;
+
+    public function __construct()
+    {
+        $hash = password_hash('segredo123', PASSWORD_DEFAULT);
+
+        $this-&gt;usuarios = [
+            1 =&gt; new Usuario(1, 'Monkey D. Luffy', 'luffy@exemplo.com', 'admin', $hash),
+            2 =&gt; new Usuario(2, 'Roronoa Zoro', 'zoro@exemplo.com', 'membro', $hash),
+        ];
+    }
+
+    public function todos(): array
+    {
+        return array_values($this-&gt;usuarios);
+    }
+
+    public function buscarPorId(int $id): ?Usuario
+    {
+        return $this-&gt;usuarios[$id] ?? null;
+    }
+
+    public function buscarPorEmail(string $email): ?Usuario
+    {
+        foreach ($this-&gt;usuarios as $usuario) {
+            if (strcasecmp($usuario-&gt;email, $email) === 0) {
+                return $usuario;
+            }
+        }
+
+        return null;
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="exemplo-service">Service</h2>
+      <p>O mesmo <code>LoginService</code> da página <a href="#login">Login e tokens</a>.</p>
+
+      <h2 id="exemplo-controllers">Controllers</h2>
+      <div class="code">
+        <div class="code-title">app/Controllers/AuthController.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Services\LoginService;
+use Haki\Auth\Auth;
+use Haki\Http\Request;
+
+final class AuthController
+{
+    public function __construct(private readonly LoginService $login)
+    {
+    }
+
+    public function login(Request $request, Auth $auth): array
+    {
+        $usuario = $this-&gt;login-&gt;autenticar($request-&gt;input('email'), $request-&gt;input('senha'));
+
+        return $auth-&gt;login($usuario-&gt;id, ['role' =&gt; $usuario-&gt;perfil]);
+    }
+
+    public function refresh(Request $request, Auth $auth): array
+    {
+        return $auth-&gt;refresh($request-&gt;input('refresh_token'));
+    }
+
+    public function logout(Request $request, Auth $auth): null
+    {
+        $auth-&gt;logout($request);
+
+        return null;
+    }
+
+    public function eu(Request $request): array
+    {
+        return ['usuario' =&gt; $request-&gt;user()];
+    }
+}</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">app/Controllers/UsuarioController.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Contracts\UsuarioRepositoryInterface;
+use Haki\Exceptions\HttpException;
+
+final class UsuarioController
+{
+    public function __construct(private readonly UsuarioRepositoryInterface $usuarios)
+    {
+    }
+
+    public function index(): array
+    {
+        return ['usuarios' =&gt; $this-&gt;usuarios-&gt;todos()];
+    }
+
+    public function show(int $id): array
+    {
+        $usuario = $this-&gt;usuarios-&gt;buscarPorId($id)
+            ?? throw new HttpException(404, 'Usuário não encontrado');
+
+        return ['usuario' =&gt; $usuario];
+    }
+}</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">app/Controllers/AdminController.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use Haki\Http\Request;
+
+final class AdminController
+{
+    public function painel(Request $request): array
+    {
+        return ['mensagem' =&gt; 'Bem-vindo ao painel', 'usuario' =&gt; $request-&gt;user()];
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="exemplo-rotas">Rotas e bootstrap</h2>
+      <div class="code">
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+use App\Controllers\AdminController;
+use App\Controllers\AuthController;
+use App\Controllers\UsuarioController;
+use Haki\Haki;
+
+return function (Haki $app): void {
+    $app-&gt;post('/login', [AuthController::class, 'login']);
+    $app-&gt;post('/refresh', [AuthController::class, 'refresh']);
+
+    $app-&gt;group('/', function (Haki $app) {
+        $app-&gt;get('/eu', [AuthController::class, 'eu']);
+        $app-&gt;post('/logout', [AuthController::class, 'logout']);
+        $app-&gt;get('/usuarios', [UsuarioController::class, 'index']);
+        $app-&gt;get('/usuarios/{id}', [UsuarioController::class, 'show']);
+    })-&gt;auth();
+
+    $app-&gt;group('/admin', function (Haki $app) {
+        $app-&gt;get('/painel', [AdminController::class, 'painel']);
+    })-&gt;role('admin');
+};</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+use App\Contracts\UsuarioRepositoryInterface;
+use App\Repositories\ArrayUsuarioRepository;
+use Haki\Haki;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$app = new Haki(dirname(__DIR__));
+
+$app-&gt;container()-&gt;singleton(UsuarioRepositoryInterface::class, ArrayUsuarioRepository::class);
+
+(require __DIR__ . '/../routes/api.php')($app);
+
+return $app;</code></pre>
+      </div>
+
+      <h2 id="exemplo-rodando">Rodando</h2>
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki key:generate
+php -S localhost:8000 -t public</code></pre>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="bash"># 1. Login
+curl -X POST localhost:8000/login -H "Content-Type: application/json" \
+     -d '{"email":"luffy@exemplo.com","senha":"segredo123"}'
+
+# 2. Rota protegida (use o access_token recebido)
+curl localhost:8000/usuarios -H "Authorization: Bearer SEU_TOKEN"
+
+# 3. Painel de admin
+curl localhost:8000/admin/painel -H "Authorization: Bearer SEU_TOKEN"</code></pre>
+      </div>
+
+      <p>Faça login com <code>zoro@exemplo.com</code> e tente acessar <code>/admin/painel</code>: a resposta será <strong>403</strong>, porque o Zoro tem o perfil <code>membro</code>.</p>
+    </article>
+
+    <!-- ================================================================== ROADMAP -->
+    <article class="doc-page" id="roadmap">
+      <h1>Limitações e roadmap</h1>
+
+      <h2 id="roadmap-limitacoes">Limitações conhecidas</h2>
+      <ul>
+        <li>O armazenamento SQLite padrão atende <strong>um servidor</strong>. Com vários servidores, use um <a href="#armazenamento-proprio">TokenStore compartilhado</a>.</li>
+        <li>Mudanças de perfil ou bloqueios só valem depois de <code>logoutAll()</code> ou da expiração do access token.</li>
+        <li>Só existe uma chave ativa por vez: trocar o segredo desconecta todos.</li>
+        <li>Validação de entrada, ORM e limitação de tentativas não estão incluídos.</li>
+      </ul>
+
+      <h2 id="roadmap-proximos">Próximos passos</h2>
+      <ul>
+        <li>Validação declarativa: <code>$request-&gt;validate(['email' =&gt; 'required|email'])</code></li>
+        <li>Query builder leve sobre PDO</li>
+        <li>Várias chaves ativas (rotação sem derrubar sessões) e ES256</li>
+        <li>Middleware de CORS e de limitação de tentativas prontos</li>
+        <li>Esqueleto de projeto: <code>composer create-project shankscode/haki-app</code></li>
+        <li>Comandos <code>make:controller</code> e <code>serve</code></li>
+      </ul>
+
+      <p class="footer-note">Haki 1.0 · Licença MIT · shankscode/haki</p>
+    </article>
+
+  </main>
+
+  <aside class="toc" aria-label="Nesta página">
+    <p class="toc-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+      Nesta página
+    </p>
+    <ul id="toc-list"></ul>
+  </aside>
+
+</div>
+
+<dialog class="search-dialog" id="search-dialog" aria-label="Buscar">
+  <div class="search-field">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="search-input" type="search" placeholder="Buscar na documentação" autocomplete="off" spellcheck="false">
+    <kbd>Esc</kbd>
+  </div>
+  <ul class="search-results" id="search-results"></ul>
+</dialog>
+
+<script src="script.js"></script>
+</body>
+</html>

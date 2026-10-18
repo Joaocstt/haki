@@ -1,0 +1,8 @@
+/vendor/
+.env
+.phpunit.cache/
+*.sqlite
+*.sqlite-*
+/tests/Fixtures/app/storage/*
+!/tests/Fixtures/app/storage/.gitignore
+/composer.lock
