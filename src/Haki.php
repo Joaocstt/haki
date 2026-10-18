@@ -15,6 +15,7 @@ use Haki\Auth\Storage\TokenStore;
 use Haki\Container\Container;
 use Haki\Container\Invoker;
 use Haki\Errors\ErrorHandler;
+use Haki\Exceptions\HakiException;
 use Haki\Http\Request;
 use Haki\Http\Response;
 use Haki\Http\ResponseConverter;
@@ -38,7 +39,7 @@ use Throwable;
  */
 final class Haki
 {
-    public const VERSION = '1.1.1';
+    public const VERSION = '1.2.0';
 
     private readonly string $basePath;
 
@@ -135,6 +136,37 @@ final class Haki
     public function middleware(MiddlewareInterface|Closure|string ...$middleware): self
     {
         array_push($this->middleware, ...$middleware);
+
+        return $this;
+    }
+
+    /**
+     * Carrega um arquivo de rotas. Dentro dele, a variável $app é esta aplicação:
+     *
+     *     // routes/api.php
+     *     /** @var Haki\Haki $app *\/
+     *     $app->get('/', [HomeController::class, 'index']);
+     *
+     * Arquivos no formato antigo, que retornam function (Haki $app) { ... }, também funcionam.
+     */
+    public function routes(string $file): self
+    {
+        $path = preg_match('#^([A-Za-z]:[\\\\/]|/|\\\\)#', $file) === 1 ? $file : $this->basePath($file);
+
+        if (!is_file($path)) {
+            throw new HakiException(
+                "Arquivo de rotas não encontrado: {$path}.",
+                'Confira o caminho passado para $app->routes(). O padrão é routes/api.php.',
+            );
+        }
+
+        $result = (static function (self $app, string $__file): mixed {
+            return require $__file;
+        })($this, $path);
+
+        if ($result instanceof Closure) {
+            $result($this);
+        }
 
         return $this;
     }

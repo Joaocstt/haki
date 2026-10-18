@@ -15,6 +15,6 @@ $app = new Haki(dirname(__DIR__));
 // $app->middleware(Cors::class);
 
 // Rotas
-(require __DIR__ . '/../routes/api.php')($app);
+$app->routes(__DIR__ . '/../routes/api.php');
 
 return $app;

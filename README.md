@@ -45,6 +45,20 @@ storage/
 .env  .env.example  .gitignore
 ```
 
+As rotas ficam soltas em `routes/api.php`. O `$app` vem do `bootstrap/app.php`, que carrega o arquivo com `$app->routes(...)`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use App\Controllers\HomeController;
+
+/** @var Haki\Haki $app */
+
+$app->get('/', [HomeController::class, 'index']);
+```
+
 ## Rodando
 
 ```bash

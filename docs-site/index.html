@@ -31,7 +31,7 @@
   </button>
 
   <div class="header-actions">
-    <span class="version">Versão 1.1</span>
+    <span class="version">Versão 1.2</span>
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Tema">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
     </button>
@@ -395,13 +395,13 @@ $app = new Haki(dirname(__DIR__));
 // $app-&gt;middleware(Cors::class);
 
 // Rotas
-(require __DIR__ . '/../routes/api.php')($app);
+$app-&gt;routes(__DIR__ . '/../routes/api.php');
 
 return $app;</code></pre>
       </div>
 
       <h3 id="estrutura-rotas">routes/api.php</h3>
-      <p>Todas as rotas ficam aqui. O projeto começa com uma só, que aponta para o controller de exemplo:</p>
+      <p>Todas as rotas ficam aqui. O projeto começa com uma só, que aponta para o controller de exemplo. As rotas ficam soltas no arquivo, sem função em volta:</p>
       <div class="code">
         <div class="code-title">routes/api.php</div>
         <pre><code data-lang="php">&lt;?php
@@ -409,11 +409,22 @@ return $app;</code></pre>
 declare(strict_types=1);
 
 use App\Controllers\HomeController;
-use Haki\Haki;
 
-return function (Haki $app): void {
-    $app-&gt;get('/', [HomeController::class, 'index']);
-};</code></pre>
+/** @var Haki\Haki $app */
+
+$app-&gt;get('/', [HomeController::class, 'index']);</code></pre>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">De onde vem o $app?</span>
+        <p>O <code>$app</code> é criado em <code>bootstrap/app.php</code> com <code>new Haki(...)</code>. A linha <code>$app-&gt;routes(...)</code> carrega este arquivo e entrega a ele essa mesma variável. A linha <code>/** @var Haki\Haki $app */</code> não executa nada: só avisa o editor qual é o tipo, para ele completar os métodos.</p>
+      </div>
+
+      <p>Para separar as rotas em mais de um arquivo, carregue cada um no bootstrap:</p>
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">$app-&gt;routes(__DIR__ . '/../routes/api.php');
+$app-&gt;routes(__DIR__ . '/../routes/admin.php');</code></pre>
       </div>
 
       <h3 id="estrutura-controller">app/Controllers/HomeController.php</h3>
@@ -446,7 +457,7 @@ final class HomeController
         <div class="code-title">composer.json</div>
         <pre><code data-lang="json">{
     "require": {
-        "shankscode/haki": "^1.1"
+        "shankscode/haki": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -461,10 +472,8 @@ final class HomeController
       <p>Crie o controller em <code>app/Controllers</code> e registre a rota em <code>routes/api.php</code>:</p>
       <div class="code">
         <div class="code-title">routes/api.php</div>
-        <pre><code data-lang="php">return function (Haki $app): void {
-    $app-&gt;get('/', [HomeController::class, 'index']);
-    $app-&gt;get('/produtos', [ProdutoController::class, 'index']);
-};</code></pre>
+        <pre><code data-lang="php">$app-&gt;get('/', [HomeController::class, 'index']);
+$app-&gt;get('/produtos', [ProdutoController::class, 'index']);</code></pre>
       </div>
 
       <h2 id="estrutura-nomes">Convenções de nomes</h2>
@@ -2074,21 +2083,21 @@ use App\Controllers\AuthController;
 use App\Controllers\UsuarioController;
 use Haki\Haki;
 
-return function (Haki $app): void {
-    $app-&gt;post('/login', [AuthController::class, 'login']);
-    $app-&gt;post('/refresh', [AuthController::class, 'refresh']);
+/** @var Haki $app */
 
-    $app-&gt;group('/', function (Haki $app) {
-        $app-&gt;get('/eu', [AuthController::class, 'eu']);
-        $app-&gt;post('/logout', [AuthController::class, 'logout']);
-        $app-&gt;get('/usuarios', [UsuarioController::class, 'index']);
-        $app-&gt;get('/usuarios/{id}', [UsuarioController::class, 'show']);
-    })-&gt;auth();
+$app-&gt;post('/login', [AuthController::class, 'login']);
+$app-&gt;post('/refresh', [AuthController::class, 'refresh']);
 
-    $app-&gt;group('/admin', function (Haki $app) {
-        $app-&gt;get('/painel', [AdminController::class, 'painel']);
-    })-&gt;role('admin');
-};</code></pre>
+$app-&gt;group('/', function (Haki $app) {
+    $app-&gt;get('/eu', [AuthController::class, 'eu']);
+    $app-&gt;post('/logout', [AuthController::class, 'logout']);
+    $app-&gt;get('/usuarios', [UsuarioController::class, 'index']);
+    $app-&gt;get('/usuarios/{id}', [UsuarioController::class, 'show']);
+})-&gt;auth();
+
+$app-&gt;group('/admin', function (Haki $app) {
+    $app-&gt;get('/painel', [AdminController::class, 'painel']);
+})-&gt;role('admin');</code></pre>
       </div>
 
       <div class="code">
@@ -2107,7 +2116,7 @@ $app = new Haki(dirname(__DIR__));
 
 $app-&gt;container()-&gt;singleton(UsuarioRepositoryInterface::class, ArrayUsuarioRepository::class);
 
-(require __DIR__ . '/../routes/api.php')($app);
+$app-&gt;routes(__DIR__ . '/../routes/api.php');
 
 return $app;</code></pre>
       </div>
@@ -2155,7 +2164,7 @@ curl localhost:8000/admin/painel -H "Authorization: Bearer SEU_TOKEN"</code></pr
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
 
-      <p class="footer-note">Haki 1.1 · Licença MIT · shankscode/haki</p>
+      <p class="footer-note">Haki 1.2 · Licença MIT · shankscode/haki</p>
     </article>
 
   </main>

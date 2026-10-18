@@ -83,6 +83,7 @@ final class InitCommandTest extends TestCase
         self::assertSame(1, substr_count($routes, '$app->get('));
         self::assertStringContainsString('[HomeController::class, \'index\']', $routes);
         self::assertStringNotContainsString('fn (', $routes);
+        self::assertStringNotContainsString('return function', $routes);
         self::assertCount(1, glob($this->dir . '/app/Controllers/*.php'));
     }
 
@@ -105,7 +106,7 @@ final class InitCommandTest extends TestCase
         require_once $this->dir . '/app/Controllers/HomeController.php';
 
         $app = new Haki($this->dir);
-        (require $this->dir . '/routes/api.php')($app);
+        $app->routes($this->dir . '/routes/api.php');
 
         $response = $app->handle(Request::create('GET', '/'));
 

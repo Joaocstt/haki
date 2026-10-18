@@ -19,6 +19,6 @@ $app->container()->singleton(UsuarioRepositoryInterface::class, ArrayUsuarioRepo
 $app->middleware(Cors::class);
 
 // 3. Rotas.
-(require __DIR__ . '/../routes/api.php')($app);
+$app->routes(__DIR__ . '/../routes/api.php');
 
 return $app;
