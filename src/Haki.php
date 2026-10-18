@@ -39,7 +39,7 @@ use Throwable;
  */
 final class Haki
 {
-    public const VERSION = '1.4.0';
+    public const VERSION = '1.4.1';
 
     private readonly string $basePath;
 

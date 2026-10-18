@@ -118,14 +118,29 @@ final class AuthFlowTest extends TestCase
         $notebook = $this->auth->login(1);
         $outroUsuario = $this->auth->login(2);
 
+        $this->now += 60;
         $this->auth->logoutAll(1);
 
         self::assertSame(401, $this->get('/perfil', $celular['access_token'])->getStatus());
         self::assertSame(401, $this->get('/perfil', $notebook['access_token'])->getStatus());
         self::assertSame(200, $this->get('/perfil', $outroUsuario['access_token'])->getStatus());
 
-        $this->now++;
-        self::assertSame(200, $this->get('/perfil', $this->auth->login(1)['access_token'])->getStatus(), 'Novo login depois funciona');
+        $this->expectException(AuthenticationException::class);
+        $this->auth->refresh($celular['refresh_token']);
+    }
+
+    public function testLoginRightAfterLogoutAllWorks(): void
+    {
+        // Ex.: trocar a senha revoga tudo e já devolve tokens novos, no mesmo segundo.
+        $antigo = $this->auth->login(1);
+        $this->now += 60;
+
+        $this->auth->logoutAll(1);
+        $novo = $this->auth->login(1);
+
+        self::assertSame(401, $this->get('/perfil', $antigo['access_token'])->getStatus());
+        self::assertSame(200, $this->get('/perfil', $novo['access_token'])->getStatus());
+        self::assertNotEmpty($this->auth->refresh($novo['refresh_token'])['access_token']);
     }
 
     public function testRefreshRotatesTokensAndKeepsClaims(): void

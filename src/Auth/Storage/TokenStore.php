@@ -16,7 +16,7 @@ interface TokenStore
 
     public function isAccessTokenRevoked(string $jti): bool;
 
-    /** Invalida todos os tokens do usuário emitidos até $before (inclusive). */
+    /** Invalida todos os tokens do usuário emitidos antes de $before (timestamp). */
     public function revokeUser(string $userId, int $before): void;
 
     public function userRevokedBefore(string $userId): ?int;

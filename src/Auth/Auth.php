@@ -94,7 +94,7 @@ final class Auth
 
         $revokedBefore = $this->store->userRevokedBefore($record->userId);
 
-        if ($revokedBefore !== null && $record->createdAt <= $revokedBefore) {
+        if ($revokedBefore !== null && $record->createdAt < $revokedBefore) {
             throw new AuthenticationException('Refresh token revogado (logoutAll).', 'Refresh token inválido ou expirado');
         }
 
@@ -121,7 +121,7 @@ final class Auth
 
         $revokedBefore = $this->store->userRevokedBefore((string) $claims['sub']);
 
-        if ($revokedBefore !== null && $claims['iat'] <= $revokedBefore) {
+        if ($revokedBefore !== null && $claims['iat'] < $revokedBefore) {
             throw new AuthenticationException('Token revogado (logoutAll).');
         }
 
@@ -155,6 +155,7 @@ final class Auth
 
     /**
      * Revoga todos os tokens já emitidos para o usuário (todas as sessões).
+     * Um login feito logo em seguida (ex.: depois de trocar a senha) funciona normalmente.
      */
     public function logoutAll(string|int $userId): void
     {
@@ -202,7 +203,8 @@ final class Auth
     private function revokeSession(RefreshTokenRecord $record, int $now): never
     {
         $this->store->revokeFamily($record->familyId, $now);
-        $this->store->revokeUser($record->userId, $now);
+        // +1: revoga também o que foi emitido neste mesmo segundo (inclusive pelo atacante).
+        $this->store->revokeUser($record->userId, $now + 1);
 
         throw new AuthenticationException(
             'Refresh token reutilizado: possível roubo de token. Todas as sessões do usuário foram revogadas.',
