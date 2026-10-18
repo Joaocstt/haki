@@ -96,6 +96,7 @@
         <li><a href="#testes">Testes</a></li>
         <li><a href="#producao">Produção e segurança</a></li>
         <li><a href="#exemplo">Exemplo completo</a></li>
+        <li><a href="#referencia">Referência da API</a></li>
         <li><a href="#roadmap">Limitações e roadmap</a></li>
       </ul>
     </div>
@@ -528,6 +529,19 @@ JWT_REFRESH_TTL=604800</code></pre>
       </div>
       <p>O padrão é <strong>produção</strong>. Se você esquecer de configurar, nenhum detalhe interno vaza.</p>
 
+      <h3 id="configuracao-construtor">Os argumentos de new Haki()</h3>
+      <div class="code">
+        <pre><code data-lang="php">$app = new Haki(dirname(__DIR__));               // raiz do projeto; o modo vem do APP_ENV
+$app = new Haki(dirname(__DIR__), debug: true);  // força o modo de desenvolvimento
+$app = new Haki(dirname(__DIR__), debug: false); // força o modo de produção</code></pre>
+      </div>
+      <p>O primeiro argumento é a <strong>pasta raiz do projeto</strong>, onde o Haki procura o <code>.env</code> e a pasta <code>storage/</code>. Em <code>bootstrap/app.php</code>, <code>__DIR__</code> é a pasta <code>bootstrap/</code>, e <code>dirname(__DIR__)</code> sobe um nível até a raiz.</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;basePath();              // 'C:\projetos\minha-api'
+$app-&gt;basePath('storage/x');   // 'C:\projetos\minha-api\storage\x'
+$app-&gt;isDebug();               // true em desenvolvimento</code></pre>
+      </div>
+
       <h2 id="configuracao-variaveis">Todas as variáveis</h2>
       <div class="table-wrap">
         <table>
@@ -582,6 +596,34 @@ $app-&gt;delete('/produtos/{id}', [ProdutoController::class, 'destroy']); // rem
       </div>
       <p>Para todo o resto, use controllers. Eles deixam o arquivo de rotas legível e o código reutilizável. Use o formato <code>[Classe::class, 'metodo']</code>.</p>
 
+      <h3 id="rotas-handlers">Todos os formatos de handler</h3>
+      <p>O segundo argumento da rota (o <em>handler</em>) pode ser:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Formato</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td>Controller e método</td><td><code>[ProdutoController::class, 'index']</code></td></tr>
+            <tr><td>Função anônima</td><td><code>function (Request $request) { ... }</code></td></tr>
+            <tr><td>Classe invocável (um método <code>__invoke</code>)</td><td><code>MostrarStatus::class</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A classe invocável é útil para controllers de uma ação só:</p>
+      <div class="code">
+        <div class="code-title">app/Controllers/MostrarStatus.php</div>
+        <pre><code data-lang="php">final class MostrarStatus
+{
+    public function __invoke(): array
+    {
+        return ['status' =&gt; 'online'];
+    }
+}
+
+// routes/api.php
+$app-&gt;get('/status', MostrarStatus::class);</code></pre>
+      </div>
+      <p>Em todos os formatos, os parâmetros são <a href="#controllers-injecao">injetados automaticamente</a>.</p>
+
       <h2 id="rotas-parametros">Parâmetros na URL</h2>
       <p>Trechos entre chaves viram parâmetros. O valor chega no método pelo <strong>mesmo nome</strong>:</p>
 
@@ -629,6 +671,42 @@ $app-&gt;delete('/produtos/{id}', [ProdutoController::class, 'destroy']); // rem
     "dica": "A rota GET /usuarios/10 não existe. Rotas parecidas: GET /usuario/{id}. Você quis dizer alguma delas?"
   }
 }</code></pre>
+      </div>
+
+      <h2 id="rotas-arquivos">Arquivos de rotas</h2>
+      <p>As rotas ficam em <code>routes/api.php</code>, carregado no bootstrap com <code>$app-&gt;routes()</code>. Dentro do arquivo, a variável <code>$app</code> é a sua aplicação:</p>
+      <div class="code">
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+use App\Controllers\HomeController;
+
+/** @var Haki\Haki $app */
+
+$app-&gt;get('/', [HomeController::class, 'index']);</code></pre>
+      </div>
+      <p>Para separar as rotas em vários arquivos, chame <code>routes()</code> mais de uma vez. O caminho pode ser absoluto ou relativo à raiz do projeto:</p>
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">$app-&gt;routes(__DIR__ . '/../routes/api.php');
+$app-&gt;routes('routes/admin.php');</code></pre>
+      </div>
+      <p>Arquivos no formato antigo, que retornam <code>function (Haki $app) { ... }</code>, também funcionam.</p>
+
+      <h2 id="rotas-listar">Listando as rotas registradas</h2>
+      <p>Para conferir o que foi registrado (útil para depurar):</p>
+      <div class="code">
+        <pre><code data-lang="php">foreach ($app-&gt;router()-&gt;routes() as $rota) {
+    echo $rota-&gt;getMethod() . ' ' . $rota-&gt;getPath() . ($rota-&gt;requiresAuth() ? ' (auth)' : '') . PHP_EOL;
+}</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="text">GET /
+POST /login
+GET /usuarios (auth)
+GET /usuarios/{id} (auth)</code></pre>
       </div>
 
       <h2 id="rotas-detalhes">Detalhes que o Haki resolve</h2>
@@ -749,19 +827,219 @@ $app-&gt;get('/produtos/{id}', [ProdutoController::class, 'show']);</code></pre>
     <article class="doc-page" id="requisicoes">
       <h1>Requisições</h1>
 
-      <h2 id="requisicoes-lendo">Lendo dados da requisição</h2>
-      <p>Peça um <code>Request</code> no método e use os atalhos abaixo. O corpo JSON é decodificado automaticamente.</p>
+      <h2 id="requisicoes-objeto">O objeto Request</h2>
+      <p class="lead">Tudo o que o cliente envia (URL, parâmetros, corpo, cabeçalhos e token) chega no objeto <code>Request</code>. Para usá-lo, basta pedir um parâmetro do tipo <code>Request</code> no método do controller ou na função da rota. O Haki entrega a requisição atual.</p>
 
       <div class="code">
-        <pre><code data-lang="php">public function store(Request $request): array
-{
-    $nome = $request-&gt;input('nome');                  // campo do corpo
-    $cidade = $request-&gt;input('endereco.cidade');     // campo aninhado
-    $pagina = $request-&gt;query('pagina', 1);           // ?pagina=2
-    $token = $request-&gt;bearerToken();                 // Authorization: Bearer ...
+        <div class="code-title">app/Controllers/ProdutoController.php</div>
+        <pre><code data-lang="php">use Haki\Http\Request;
 
-    return ['recebido' =&gt; $request-&gt;all()];
+final class ProdutoController
+{
+    public function index(Request $request): array
+    {
+        return ['busca' =&gt; $request-&gt;query('busca')];
+    }
 }</code></pre>
+      </div>
+
+      <p>Funciona da mesma forma em uma função anônima:</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;get('/produtos', function (Request $request) {
+    return ['busca' =&gt; $request-&gt;query('busca')];
+});</code></pre>
+      </div>
+
+      <h2 id="requisicoes-anatomia">As três origens de dados</h2>
+      <p>Os dados de uma requisição podem vir de três lugares diferentes, e cada um tem o seu método. Veja uma requisição completa:</p>
+
+      <div class="code">
+        <div class="code-title">requisição HTTP</div>
+        <pre><code data-lang="http">PUT /produtos/10?notificar=sim HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOi...
+
+{"nome": "Chapéu de palha", "preco": 49.9}</code></pre>
+      </div>
+
+      <p>Com a rota <code>$app-&gt;put('/produtos/{id}', ...)</code>, cada pedaço é lido assim:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Pedaço</th><th>Onde está</th><th>Método</th><th>Resultado</th></tr></thead>
+          <tbody>
+            <tr><td>Parâmetro de rota</td><td>Caminho: <code>/produtos/<strong>10</strong></code></td><td><code>param('id')</code></td><td><code>'10'</code></td></tr>
+            <tr><td>Query string</td><td>Depois do <code>?</code>: <code>notificar=sim</code></td><td><code>query('notificar')</code></td><td><code>'sim'</code></td></tr>
+            <tr><td>Corpo</td><td>JSON depois dos cabeçalhos</td><td><code>input('nome')</code></td><td><code>'Chapéu de palha'</code></td></tr>
+            <tr><td>Cabeçalho</td><td><code>Content-Type: ...</code></td><td><code>header('Content-Type')</code></td><td><code>'application/json'</code></td></tr>
+            <tr><td>Token</td><td><code>Authorization: Bearer ...</code></td><td><code>bearerToken()</code></td><td><code>'eyJhbGciOi...'</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-label">Quando usar cada um</span>
+        <p><strong>Parâmetro de rota</strong> identifica <em>qual</em> recurso: <code>/produtos/10</code>. <strong>Query string</strong> filtra, busca, ordena e pagina, normalmente em <code>GET</code>: <code>/produtos?busca=espada&amp;pagina=2</code>. <strong>Corpo</strong> traz os dados para criar ou alterar algo, em <code>POST</code>, <code>PUT</code> e <code>PATCH</code>.</p>
+      </div>
+
+      <h2 id="requisicoes-query">Query string: query()</h2>
+      <p>A query string é tudo o que vem depois do <code>?</code> na URL, no formato <code>chave=valor</code>, separado por <code>&amp;</code>.</p>
+
+      <div class="code">
+        <pre><code data-lang="text">http://localhost:8000/produtos?busca=espada&amp;pagina=2
+                               └──── query string ────┘</code></pre>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="php">$request-&gt;query();                 // todos: ['busca' =&gt; 'espada', 'pagina' =&gt; '2']
+$request-&gt;query('busca');          // um só: 'espada'
+$request-&gt;query('ordem');          // não veio na URL: null
+$request-&gt;query('pagina', 1);      // com valor padrão: '2' (ou 1, se não vier)</code></pre>
+      </div>
+
+      <h3 id="requisicoes-query-texto">Os valores chegam como texto</h3>
+      <p>Tudo o que vem da URL é texto. <code>pagina=2</code> chega como a string <code>'2'</code>, não como o número <code>2</code>. Converta antes de fazer contas ou comparações:</p>
+      <div class="code">
+        <pre><code data-lang="php">$pagina = (int) $request-&gt;query('pagina', 1);
+$porPagina = min((int) $request-&gt;query('limite', 20), 100); // nunca mais que 100
+$ativos = $request-&gt;query('ativos') === 'true';</code></pre>
+      </div>
+
+      <h3 id="requisicoes-query-arrays">Listas na query string</h3>
+      <p>Use colchetes no nome para enviar vários valores:</p>
+      <div class="code">
+        <pre><code data-lang="php">// GET /produtos?tags[]=php&amp;tags[]=api&amp;preco[min]=10&amp;preco[max]=50
+
+$request-&gt;query('tags');   // ['php', 'api']
+$request-&gt;query('preco');  // ['min' =&gt; '10', 'max' =&gt; '50']</code></pre>
+      </div>
+
+      <h3 id="requisicoes-query-exemplo">Exemplo: busca com paginação</h3>
+      <div class="code">
+        <pre><code data-lang="php">public function index(Request $request): array
+{
+    $busca = trim((string) $request-&gt;query('busca', ''));
+    $pagina = max(1, (int) $request-&gt;query('pagina', 1));
+
+    $produtos = $this-&gt;produtos-&gt;buscar($busca, $pagina);
+
+    return ['pagina' =&gt; $pagina, 'produtos' =&gt; $produtos];
+}</code></pre>
+      </div>
+
+      <h2 id="requisicoes-param">Parâmetros de rota: param()</h2>
+      <p>Parâmetros de rota são os trechos entre chaves no caminho. Há duas formas de ler o valor.</p>
+
+      <h3 id="requisicoes-param-argumento">Como argumento do método (recomendado)</h3>
+      <p>Declare um argumento com o <strong>mesmo nome</strong> do parâmetro. Se você tipar o argumento, o Haki converte o valor:</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;get('/produtos/{id}', [ProdutoController::class, 'show']);
+
+public function show(int $id): array   // '10' vira o número 10
+{
+    return ['id' =&gt; $id];
+}</code></pre>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tipo do argumento</th><th>Aceita</th><th>Se o valor for inválido</th></tr></thead>
+          <tbody>
+            <tr><td><code>int</code></td><td><code>10</code>, <code>-3</code></td><td>Responde 404</td></tr>
+            <tr><td><code>float</code></td><td><code>9.9</code>, <code>10</code></td><td>Responde 404</td></tr>
+            <tr><td><code>bool</code></td><td><code>true</code>, <code>false</code>, <code>1</code>, <code>0</code></td><td>Responde 404</td></tr>
+            <tr><td><code>string</code> ou sem tipo</td><td>Qualquer texto</td><td>(sempre aceita)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Com <code>int $id</code>, uma requisição para <code>/produtos/abc</code> recebe 404 antes mesmo de o seu código rodar.</p>
+
+      <h3 id="requisicoes-param-metodo">Pelo Request</h3>
+      <div class="code">
+        <pre><code data-lang="php">$request-&gt;param('id');          // '10' (sempre texto)
+$request-&gt;param('slug', 'home');  // com valor padrão
+$request-&gt;params();             // todos: ['id' =&gt; '10']</code></pre>
+      </div>
+
+      <h2 id="requisicoes-input">Corpo da requisição: input()</h2>
+      <p>O corpo é onde o cliente envia os dados em <code>POST</code>, <code>PUT</code> e <code>PATCH</code>. O Haki entende dois formatos automaticamente:</p>
+      <ul>
+        <li><strong>JSON</strong>, quando o cabeçalho é <code>Content-Type: application/json</code>. É o formato usado por APIs, apps e <code>fetch()</code>.</li>
+        <li><strong>Formulário</strong>, quando vem de um <code>&lt;form&gt;</code> HTML comum.</li>
+      </ul>
+
+      <div class="code">
+        <div class="code-title">corpo enviado</div>
+        <pre><code data-lang="json">{
+  "nome": "Nami",
+  "idade": 20,
+  "endereco": { "cidade": "Cocoyashi", "pais": "East Blue" },
+  "tags": ["navegadora", "cartógrafa"]
+}</code></pre>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="php">$request-&gt;input('nome');              // 'Nami'
+$request-&gt;input('idade');             // 20 (no JSON, números chegam como número)
+$request-&gt;input('endereco.cidade');   // 'Cocoyashi' (ponto acessa campos internos)
+$request-&gt;input('tags');              // ['navegadora', 'cartógrafa']
+$request-&gt;input('telefone');          // null (não foi enviado)
+$request-&gt;input('telefone', '-');     // '-' (valor padrão)
+
+$request-&gt;has('endereco.pais');       // true
+$request-&gt;all();                      // o corpo inteiro como array
+$request-&gt;only(['nome', 'idade']);    // ['nome' =&gt; 'Nami', 'idade' =&gt; 20]
+$request-&gt;body();                     // o corpo cru, como texto</code></pre>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Atenção</span>
+        <p>Use <code>only()</code> para pegar só os campos esperados. Passar <code>all()</code> direto para o banco permite que alguém envie campos extras, como <code>"perfil": "admin"</code>, e altere o que não devia.</p>
+      </div>
+
+      <h3 id="requisicoes-json-invalido">JSON inválido</h3>
+      <p>Se o cliente enviar <code>Content-Type: application/json</code> com um corpo quebrado, a primeira leitura (<code>input()</code>, <code>all()</code>, <code>has()</code> ou <code>only()</code>) responde <strong>400</strong> com <code>"JSON inválido no corpo da requisição"</code>. Você não precisa tratar isso.</p>
+
+      <h3 id="requisicoes-enviando">Enviando um corpo JSON (cliente)</h3>
+      <div class="code">
+        <pre><code data-lang="bash">curl -X POST http://localhost:8000/clientes \
+     -H "Content-Type: application/json" \
+     -d '{"nome": "Nami", "idade": 20}'</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">JavaScript</div>
+        <pre><code data-lang="text">await fetch('http://localhost:8000/clientes', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ nome: 'Nami', idade: 20 }),
+});</code></pre>
+      </div>
+
+      <h2 id="requisicoes-cabecalhos">Cabeçalhos e token</h2>
+      <div class="code">
+        <pre><code data-lang="php">$request-&gt;header('Accept');            // 'application/json'
+$request-&gt;header('accept');            // o mesmo: o nome não diferencia maiúsculas
+$request-&gt;header('X-Versao', '1');     // com valor padrão
+$request-&gt;headers();                   // todos, com nomes em minúsculas
+$request-&gt;isJson();                    // true se o Content-Type for JSON
+$request-&gt;bearerToken();               // token de "Authorization: Bearer ..." ou null</code></pre>
+      </div>
+      <p>Na maioria dos casos você não precisa de <code>bearerToken()</code>: o <code>-&gt;auth()</code> lê e valida o token sozinho. Ele é útil para casos especiais, como validar o token manualmente com <a href="#usuario-manual"><code>$auth-&gt;authenticate()</code></a>.</p>
+
+      <h2 id="requisicoes-informacoes">Informações da requisição</h2>
+      <div class="code">
+        <pre><code data-lang="php">// GET /produtos/10?ordem=preco
+
+$request-&gt;method();   // 'GET'
+$request-&gt;path();     // '/produtos/10' (sem query string e sem barra final)
+$request-&gt;uri();      // '/produtos/10?ordem=preco' (como chegou)
+$request-&gt;ip();       // '127.0.0.1'
+$request-&gt;user();     // usuário autenticado ou null (veja "Usuário autenticado")</code></pre>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Nota</span>
+        <p><code>ip()</code> devolve o IP de quem se conectou ao servidor. Atrás de um proxy ou balanceador, esse é o IP do proxy, e o IP real do cliente costuma vir no cabeçalho <code>X-Forwarded-For</code>, que só é confiável se o seu proxy o define.</p>
       </div>
 
       <h2 id="requisicoes-metodos">Todos os métodos</h2>
@@ -769,36 +1047,71 @@ $app-&gt;get('/produtos/{id}', [ProdutoController::class, 'show']);</code></pre>
         <table>
           <thead><tr><th>Método</th><th>Retorna</th></tr></thead>
           <tbody>
-            <tr><td><code>input('campo', $padrao)</code></td><td>Um campo do corpo (JSON ou formulário). Aceita <code>'a.b.c'</code>.</td></tr>
-            <tr><td><code>all()</code></td><td>O corpo inteiro como array</td></tr>
-            <tr><td><code>only(['a', 'b'])</code></td><td>Só os campos informados</td></tr>
-            <tr><td><code>has('campo')</code></td><td><code>true</code> se o campo foi enviado</td></tr>
-            <tr><td><code>query('nome', $padrao)</code></td><td>Valor da query string; sem argumentos, todos</td></tr>
-            <tr><td><code>param('id')</code></td><td>Parâmetro da rota, como texto</td></tr>
-            <tr><td><code>header('Accept')</code></td><td>Um cabeçalho (sem diferenciar maiúsculas)</td></tr>
-            <tr><td><code>bearerToken()</code></td><td>O token do cabeçalho <code>Authorization</code></td></tr>
-            <tr><td><code>method()</code> / <code>path()</code></td><td><code>'POST'</code> / <code>'/produtos/10'</code></td></tr>
-            <tr><td><code>ip()</code></td><td>IP de quem fez a requisição</td></tr>
-            <tr><td><code>user()</code></td><td>O <a href="#usuario">usuário autenticado</a> ou <code>null</code></td></tr>
+            <tr><td><code>query($nome = null, $padrao = null)</code></td><td>Valor da query string; sem argumentos, todos (array)</td></tr>
+            <tr><td><code>param($nome, $padrao = null)</code></td><td>Parâmetro da rota, sempre texto</td></tr>
+            <tr><td><code>params()</code></td><td>Todos os parâmetros da rota</td></tr>
+            <tr><td><code>input($nome, $padrao = null)</code></td><td>Campo do corpo (JSON ou formulário); aceita <code>'a.b.c'</code></td></tr>
+            <tr><td><code>has($nome)</code></td><td><code>true</code> se o campo existe no corpo (mesmo que seja <code>null</code>)</td></tr>
+            <tr><td><code>all()</code></td><td>Corpo inteiro como array</td></tr>
+            <tr><td><code>only([...])</code></td><td>Só os campos informados</td></tr>
+            <tr><td><code>body()</code></td><td>Corpo cru, como texto</td></tr>
+            <tr><td><code>header($nome, $padrao = null)</code></td><td>Um cabeçalho</td></tr>
+            <tr><td><code>headers()</code></td><td>Todos os cabeçalhos (nomes em minúsculas)</td></tr>
+            <tr><td><code>isJson()</code></td><td><code>true</code> se o corpo é JSON</td></tr>
+            <tr><td><code>bearerToken()</code></td><td>Token do cabeçalho <code>Authorization</code></td></tr>
+            <tr><td><code>method()</code></td><td>Método HTTP em maiúsculas</td></tr>
+            <tr><td><code>path()</code></td><td>Caminho, sem query string</td></tr>
+            <tr><td><code>uri()</code></td><td>Caminho com query string, como chegou</td></tr>
+            <tr><td><code>ip()</code></td><td>IP da conexão</td></tr>
+            <tr><td><code>user()</code></td><td><a href="#usuario">Usuário autenticado</a> ou <code>null</code></td></tr>
           </tbody>
         </table>
       </div>
 
-      <h2 id="requisicoes-json-invalido">JSON inválido</h2>
-      <p>Se o cliente enviar <code>Content-Type: application/json</code> com um corpo quebrado, o Haki responde <strong>400</strong> com <code>"JSON inválido no corpo da requisição"</code>. Você não precisa tratar isso.</p>
-
       <h2 id="requisicoes-validacao">Validando o que chega</h2>
-      <p>Tudo que vem da requisição deve ser tratado como não confiável. Valide no service e responda com <code>HttpException</code> quando algo estiver errado:</p>
+      <p>Tudo o que vem da requisição deve ser tratado como não confiável. O Haki não tem um validador embutido (está no <a href="#roadmap">roadmap</a>), então valide no service e responda com <code>HttpException</code>:</p>
 
       <div class="code">
+        <div class="code-title">app/Services/CriarClienteService.php</div>
         <pre><code data-lang="php">use Haki\Exceptions\HttpException;
 
-$email = $request-&gt;input('email');
+public function executar(array $dados): Cliente
+{
+    $nome = $dados['nome'] ?? null;
+    $email = $dados['email'] ?? null;
 
-if (!is_string($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    throw new HttpException(422, 'Informe um e-mail válido');
+    if (!is_string($nome) || mb_strlen(trim($nome)) &lt; 3) {
+        throw new HttpException(422, 'O nome precisa ter pelo menos 3 letras');
+    }
+
+    if (!is_string($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new HttpException(422, 'Informe um e-mail válido');
+    }
+
+    return $this-&gt;clientes-&gt;criar(trim($nome), strtolower($email));
 }</code></pre>
       </div>
+
+      <div class="code">
+        <div class="code-title">app/Controllers/ClienteController.php</div>
+        <pre><code data-lang="php">public function store(Request $request, Response $response): Response
+{
+    $cliente = $this-&gt;criarCliente-&gt;executar($request-&gt;only(['nome', 'email']));
+
+    return $response-&gt;json(['cliente' =&gt; $cliente], 201);
+}</code></pre>
+      </div>
+
+      <h2 id="requisicoes-testes">Criando requisições em testes</h2>
+      <p><code>Request::create()</code> monta uma requisição sem servidor, para usar com <code>$app-&gt;handle()</code>:</p>
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Http\Request;
+
+Request::create('GET', '/produtos?busca=espada');                      // com query string
+Request::create('POST', '/clientes', ['nome' =&gt; 'Nami']);              // corpo JSON
+Request::create('GET', '/eu', [], ['Authorization' =&gt; 'Bearer ...']);  // com cabeçalhos</code></pre>
+      </div>
+      <p>Em produção, o <code>$app-&gt;run()</code> monta a requisição real a partir das variáveis do PHP (<code>Request::capture()</code>). Você não precisa chamar isso.</p>
     </article>
 
     <!-- ================================================================== RESPOSTAS -->
@@ -855,6 +1168,32 @@ $app-&gt;delete('/produto/{id}', function (int $id) {
             <tr><td><code>text($texto, $status = 200)</code></td><td>Texto puro</td></tr>
             <tr><td><code>status(204)</code></td><td>Muda só o status</td></tr>
             <tr><td><code>header('Nome', 'valor')</code></td><td>Adiciona um cabeçalho</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="respostas-new">Criando uma resposta direto</h3>
+      <p>Fora de controllers (em um middleware, por exemplo), crie a resposta com <code>new</code>:</p>
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Http\Response;
+
+new Response();                                         // vazia, status 200
+new Response('', 204);                                  // corpo e status
+new Response('ok', 200, ['Cache-Control' =&gt; 'no-store']); // com cabeçalhos
+(new Response())-&gt;json(['erro' =&gt; 'Voltamos já'], 503);</code></pre>
+      </div>
+
+      <h3 id="respostas-lendo">Lendo uma resposta</h3>
+      <p>Em middlewares e testes, você pode inspecionar a resposta:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Retorna</th></tr></thead>
+          <tbody>
+            <tr><td><code>getStatus()</code></td><td>O código HTTP, ex.: <code>201</code></td></tr>
+            <tr><td><code>getBody()</code></td><td>O corpo como texto</td></tr>
+            <tr><td><code>getJson()</code></td><td>O corpo JSON decodificado como array</td></tr>
+            <tr><td><code>getHeader('Content-Type')</code></td><td>Um cabeçalho, ou <code>null</code></td></tr>
+            <tr><td><code>getHeaders()</code></td><td>Todos os cabeçalhos</td></tr>
           </tbody>
         </table>
       </div>
@@ -1022,6 +1361,44 @@ if ($this-&gt;usuarios-&gt;emailExiste($email)) {
 }</code></pre>
       </div>
 
+      <h3 id="erros-mensagem-padrao">Mensagem padrão e cabeçalhos</h3>
+      <p>A mensagem é opcional. Sem ela, o Haki usa uma mensagem padrão para o código:</p>
+      <div class="code">
+        <pre><code data-lang="php">throw new HttpException(404);   // { "erro": "Não encontrado", "status": 404 }
+throw new HttpException(429);   // { "erro": "Muitas requisições", "status": 429 }</code></pre>
+      </div>
+      <p>O terceiro argumento adiciona cabeçalhos à resposta de erro, e o quarto é uma dica que aparece só em desenvolvimento:</p>
+      <div class="code">
+        <pre><code data-lang="php">throw new HttpException(
+    429,
+    'Muitas tentativas. Tente de novo em 1 minuto',
+    ['Retry-After' =&gt; '60'],
+    'O IP ' . $request-&gt;ip() . ' passou do limite de 5 tentativas.',
+);</code></pre>
+      </div>
+
+      <h3 id="erros-classes">Exceções do Haki</h3>
+      <p>O próprio Haki lança estas exceções. Você também pode lançá-las ou capturá-las:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Classe</th><th>Status</th><th>Quando</th></tr></thead>
+          <tbody>
+            <tr><td><code>HttpException</code></td><td>o informado</td><td>Erro HTTP genérico, para você usar</td></tr>
+            <tr><td><code>AuthenticationException</code></td><td>401</td><td>Token ausente, inválido, expirado ou revogado</td></tr>
+            <tr><td><code>AuthorizationException</code></td><td>403</td><td>Usuário sem o perfil exigido</td></tr>
+            <tr><td><code>RouteNotFoundException</code></td><td>404</td><td>Nenhuma rota para o caminho</td></tr>
+            <tr><td><code>MethodNotAllowedException</code></td><td>405</td><td>O caminho existe, com outro método</td></tr>
+            <tr><td><code>ContainerException</code></td><td>500</td><td>Uma dependência não pôde ser criada ou injetada</td></tr>
+            <tr><td><code>ConfigurationException</code></td><td>500</td><td>Configuração inválida (segredo curto, chave RSA inválida, extensão faltando)</td></tr>
+            <tr><td><code>HakiException</code></td><td>500</td><td>Base de todas as anteriores; tem <code>getHint()</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Todas ficam no namespace <code>Haki\Exceptions</code>.</p>
+
+      <h3 id="erros-avisos">Avisos do PHP</h3>
+      <p>Durante o <code>$app-&gt;run()</code>, avisos do PHP (como acessar uma variável que não existe) viram exceções e resultam em erro 500. Assim, um aviso nunca é impresso no meio do JSON, e em desenvolvimento você vê exatamente onde ele aconteceu.</p>
+
       <h2 id="erros-codigos">Códigos usados</h2>
       <div class="table-wrap">
         <table>
@@ -1097,6 +1474,17 @@ object App\Models\Usuario #12
       <h2 id="depuracao-navegador">No navegador</h2>
       <p>No navegador, aparece um bloco com os níveis recolhíveis. Os botões <strong>expandir</strong> e <strong>recolher</strong> abrem e fecham tudo, e <strong>Ctrl + clique</strong> em um item abre ou fecha todos os itens dentro dele.</p>
 
+      <h2 id="depuracao-texto">Pegando a saída como texto</h2>
+      <p>Para gravar o dump em um log em vez de imprimir na tela, use a classe <code>Dumper</code>, que é o motor por trás do <code>haki()</code>:</p>
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Support\Dumper;
+
+$texto = Dumper::toText([$pedido]);   // árvore em texto puro
+$html = Dumper::toHtml([$pedido]);    // bloco HTML
+
+error_log($texto);</code></pre>
+      </div>
+
       <h2 id="depuracao-retorno">Usando no meio do código</h2>
       <p><code>haki()</code> devolve o próprio valor, então dá para usar no meio de uma expressão sem mudar o código:</p>
 
@@ -1146,6 +1534,25 @@ object App\Models\Usuario #12
     'issuer'     =&gt; 'minha-api',
 ]);</code></pre>
       </div>
+
+      <h3 id="autenticacao-opcoes">Todas as opções de $app-&gt;auth()</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Opção</th><th>Padrão</th><th>Descrição</th><th>Variável do .env</th></tr></thead>
+          <tbody>
+            <tr><td><code>algorithm</code></td><td><code>'HS256'</code></td><td><code>'HS256'</code> ou <code>'RS256'</code></td><td><code>JWT_ALGORITHM</code></td></tr>
+            <tr><td><code>secret</code></td><td>nenhum</td><td>Segredo do HS256 (mínimo 32 caracteres)</td><td><code>JWT_SECRET</code></td></tr>
+            <tr><td><code>private_key</code></td><td>nenhum</td><td>Chave privada RS256: caminho do <code>.pem</code> ou o conteúdo</td><td><code>JWT_PRIVATE_KEY</code></td></tr>
+            <tr><td><code>public_key</code></td><td>derivada da privada</td><td>Chave pública RS256</td><td><code>JWT_PUBLIC_KEY</code></td></tr>
+            <tr><td><code>expires_in</code></td><td><code>900</code></td><td>Validade do access token, em segundos</td><td><code>JWT_TTL</code></td></tr>
+            <tr><td><code>refresh_in</code></td><td><code>604800</code></td><td>Validade do refresh token, em segundos</td><td><code>JWT_REFRESH_TTL</code></td></tr>
+            <tr><td><code>issuer</code></td><td>nenhum</td><td>Emissor (claim <code>iss</code>), validado em cada token</td><td><code>JWT_ISSUER</code></td></tr>
+            <tr><td><code>database</code></td><td><code>'storage/haki.sqlite'</code></td><td>Arquivo SQLite dos tokens</td><td><code>JWT_DATABASE</code></td></tr>
+            <tr><td><code>storage</code></td><td>SQLite</td><td>Outro armazenamento (<a href="#armazenamento-proprio"><code>TokenStore</code></a>)</td><td>não tem</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Sem chamar <code>$app-&gt;auth()</code>, o Haki lê as variáveis do <code>.env</code> na primeira vez que a autenticação for usada. As opções são validadas assim que você chama <code>$app-&gt;auth()</code>: um segredo curto ou uma chave inválida geram erro na hora, nunca um padrão inseguro.</p>
 
       <h2 id="autenticacao-token">O que vai dentro do token</h2>
       <div class="table-wrap">
@@ -1371,6 +1778,28 @@ $app-&gt;group('/admin', function (Haki $app) {
         </table>
       </div>
 
+      <h2 id="usuario-manual">Validando um token manualmente</h2>
+      <p>Em casos especiais, como uma rota pública que mostra algo a mais para quem está logado, valide o token você mesmo com <code>$auth-&gt;authenticate()</code>. Ele faz as mesmas verificações do <code>-&gt;auth()</code> e lança <code>AuthenticationException</code> se o token for inválido:</p>
+      <div class="code">
+        <pre><code data-lang="php">use Haki\Auth\Auth;
+use Haki\Exceptions\AuthenticationException;
+
+$app-&gt;get('/vitrine', function (Request $request, Auth $auth) {
+    $usuario = null;
+    $token = $request-&gt;bearerToken();
+
+    if ($token !== null) {
+        try {
+            $usuario = $auth-&gt;authenticate($token);   // devolve uma Identity
+        } catch (AuthenticationException) {
+            // token inválido: segue como visitante
+        }
+    }
+
+    return ['destaques' =&gt; [], 'saudacao' =&gt; $usuario ? 'Olá de novo!' : 'Bem-vindo!'];
+});</code></pre>
+      </div>
+
       <h2 id="usuario-nulo">Quando user() é null</h2>
       <p>Em rotas públicas, <code>user()</code> é sempre <code>null</code>, mesmo que o cliente envie um token. A identidade só é preenchida depois que o token é <strong>validado</strong> pelo <code>-&gt;auth()</code>. Assim, ninguém consegue se passar por outro usuário mandando dados forjados.</p>
 
@@ -1424,7 +1853,7 @@ $app-&gt;group('/admin', function (Haki $app) {
       <h3 id="refresh-reuso">Detecção de roubo</h3>
       <p>Se um refresh token já usado aparecer de novo, quer dizer que existem duas cópias dele, e uma pode ter sido roubada. Nesse caso, o Haki revoga <strong>todas as sessões</strong> daquele usuário, e ele precisa fazer login de novo.</p>
 
-      <h2 id="refresh-logout">Logout</h2>
+      <h2 id="refresh-sair">Logout</h2>
       <p><code>logout()</code> encerra a sessão atual: o access token e o refresh token daquele login deixam de valer.</p>
 
       <div class="code">
@@ -1611,6 +2040,17 @@ $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, PdoUsuarioRepos
         <pre><code data-lang="text">Não foi possível criar App\Contracts\UsuarioRepositoryInterface: a classe é uma interface.
 Dica: Registre uma implementação: $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, SuaClasse::class);</code></pre>
       </div>
+
+      <h3 id="container-manual">Pegando objetos do container</h3>
+      <p>Normalmente o container trabalha sozinho, mas você pode pedir objetos a ele diretamente:</p>
+      <div class="code">
+        <pre><code data-lang="php">$container = $app-&gt;container();
+
+$service = $container-&gt;get(CriarPedidoService::class);    // cria (ou reaproveita, se singleton)
+$container-&gt;has(UsuarioRepositoryInterface::class);       // true se registrado ou se a classe existe
+$novo = $container-&gt;build(CalculadoraDeFrete::class);     // sempre cria um novo, ignorando registros</code></pre>
+      </div>
+      <p>O próprio Haki já registra a aplicação (<code>Haki</code>), o <code>Container</code>, o <code>Router</code>, o <code>Auth</code>, o <code>AuthConfig</code> e o <code>TokenStore</code>. Qualquer classe pode recebê-los pelo construtor.</p>
 
       <h2 id="container-metodos">bind, singleton e instance</h2>
       <div class="table-wrap">
@@ -2140,6 +2580,222 @@ curl localhost:8000/admin/painel -H "Authorization: Bearer SEU_TOKEN"</code></pr
       </div>
 
       <p>Faça login com <code>zoro@exemplo.com</code> e tente acessar <code>/admin/painel</code>: a resposta será <strong>403</strong>, porque o Zoro tem o perfil <code>membro</code>.</p>
+    </article>
+
+    <!-- ================================================================== REFERÊNCIA -->
+    <article class="doc-page" id="referencia">
+      <h1>Referência da API</h1>
+
+      <p class="lead">Esta página lista tudo o que o Haki oferece, classe por classe. Use-a para consultar rapidamente um método. As outras páginas explicam cada assunto com calma e com exemplos.</p>
+
+      <h2 id="ref-haki">Haki</h2>
+      <p><code>Haki\Haki</code>: a aplicação. É criada no <code>bootstrap/app.php</code>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>new Haki(?string $basePath = null, ?bool $debug = null)</code></td><td>Cria a aplicação e carrega o <code>.env</code> da raiz. Veja <a href="#configuracao-construtor">os argumentos</a>.</td></tr>
+            <tr><td><code>get / post / put / patch / delete($caminho, $handler)</code></td><td>Registra uma rota. Retorna <code>Route</code>.</td></tr>
+            <tr><td><code>group($prefixo, function (Haki $app) { ... })</code></td><td>Agrupa rotas com prefixo. Retorna <code>RouteGroup</code>.</td></tr>
+            <tr><td><code>routes($arquivo)</code></td><td>Carrega um <a href="#rotas-arquivos">arquivo de rotas</a>.</td></tr>
+            <tr><td><code>middleware(...$middlewares)</code></td><td>Adiciona <a href="#middleware-registrando">middlewares globais</a>.</td></tr>
+            <tr><td><code>auth(array $opcoes)</code></td><td>Configura a autenticação. Veja <a href="#autenticacao-opcoes">as opções</a>.</td></tr>
+            <tr><td><code>container()</code></td><td>Retorna o <a href="#container">container de dependências</a>.</td></tr>
+            <tr><td><code>router()</code></td><td>Retorna o roteador (para <a href="#rotas-listar">listar rotas</a>).</td></tr>
+            <tr><td><code>basePath($caminho = '')</code></td><td>Caminho absoluto a partir da raiz do projeto.</td></tr>
+            <tr><td><code>isDebug()</code></td><td><code>true</code> em modo de desenvolvimento.</td></tr>
+            <tr><td><code>run()</code></td><td>Processa a requisição atual e envia a resposta. Usado no <code>public/index.php</code>.</td></tr>
+            <tr><td><code>handle(Request $request)</code></td><td>Processa uma requisição e devolve a <code>Response</code> sem enviar. Usado em <a href="#testes">testes</a>.</td></tr>
+            <tr><td><code>Haki::VERSION</code></td><td>Versão instalada, ex.: <code>'1.2.0'</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="ref-route">Route e RouteGroup</h2>
+      <p>Retornados ao registrar uma rota ou um grupo. Os três métodos podem ser encadeados e funcionam igual nos dois.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>-&gt;auth()</code></td><td>Exige um token válido (401 se não houver).</td></tr>
+            <tr><td><code>-&gt;role('admin', 'gerente')</code></td><td>Exige um dos perfis (403 se não tiver). Já inclui <code>auth()</code>.</td></tr>
+            <tr><td><code>-&gt;middleware(...$middlewares)</code></td><td>Middlewares só para essa rota ou esse grupo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Para inspecionar uma rota (vinda de <code>$app-&gt;router()-&gt;routes()</code>): <code>getMethod()</code>, <code>getPath()</code>, <code>getHandler()</code>, <code>requiresAuth()</code>, <code>getRoles()</code> e <code>getMiddleware()</code>.</p>
+
+      <h2 id="ref-request">Request</h2>
+      <p><code>Haki\Http\Request</code>: a requisição. Todos os métodos estão na página <a href="#requisicoes-metodos">Requisições</a>. Resumo:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Grupo</th><th>Métodos</th></tr></thead>
+          <tbody>
+            <tr><td>Query string</td><td><code>query()</code></td></tr>
+            <tr><td>Rota</td><td><code>param()</code>, <code>params()</code></td></tr>
+            <tr><td>Corpo</td><td><code>input()</code>, <code>has()</code>, <code>all()</code>, <code>only()</code>, <code>body()</code>, <code>isJson()</code></td></tr>
+            <tr><td>Cabeçalhos</td><td><code>header()</code>, <code>headers()</code>, <code>bearerToken()</code></td></tr>
+            <tr><td>Informações</td><td><code>method()</code>, <code>path()</code>, <code>uri()</code>, <code>ip()</code>, <code>user()</code></td></tr>
+            <tr><td>Criar</td><td><code>Request::create()</code> (testes), <code>Request::capture()</code> (usado pelo <code>run()</code>)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="ref-response">Response</h2>
+      <p><code>Haki\Http\Response</code>: a resposta. Os métodos de montagem retornam o próprio objeto, para encadear.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>new Response($corpo = '', $status = 200, $cabecalhos = [])</code></td><td>Cria uma resposta.</td></tr>
+            <tr><td><code>json($dados, $status = 200)</code></td><td>Corpo JSON e <code>Content-Type: application/json</code>.</td></tr>
+            <tr><td><code>responseJson($dados, $status = 200)</code></td><td>O mesmo que <code>json()</code>.</td></tr>
+            <tr><td><code>text($texto, $status = 200)</code></td><td>Corpo em texto puro.</td></tr>
+            <tr><td><code>status($codigo)</code></td><td>Muda o código HTTP.</td></tr>
+            <tr><td><code>header($nome, $valor)</code></td><td>Define um cabeçalho.</td></tr>
+            <tr><td><code>getStatus()</code>, <code>getBody()</code>, <code>getJson()</code>, <code>getHeader($nome)</code>, <code>getHeaders()</code></td><td>Leem a resposta (middlewares e testes).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="ref-container">Container</h2>
+      <p><code>Haki\Container\Container</code>, acessado por <code>$app-&gt;container()</code>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>bind($id, $implementacao = null)</code></td><td>Diz como criar <code>$id</code>. Novo objeto a cada uso.</td></tr>
+            <tr><td><code>singleton($id, $implementacao = null)</code></td><td>Como <code>bind</code>, mas reaproveita o mesmo objeto.</td></tr>
+            <tr><td><code>instance($id, $objeto)</code></td><td>Registra um objeto já pronto.</td></tr>
+            <tr><td><code>get($id)</code></td><td>Devolve o objeto, criando-o se preciso.</td></tr>
+            <tr><td><code>has($id)</code></td><td><code>true</code> se registrado ou se a classe existe.</td></tr>
+            <tr><td><code>build($classe)</code></td><td>Sempre cria um objeto novo, resolvendo o construtor.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><code>$implementacao</code> pode ser o nome de uma classe ou uma função: <code>function (Container $c) { return new ...; }</code>.</p>
+
+      <h2 id="ref-middleware">MiddlewareInterface</h2>
+      <div class="code">
+        <pre><code data-lang="php">namespace Haki\Middleware;
+
+interface MiddlewareInterface
+{
+    public function handle(Request $request, callable $next): Response;
+}</code></pre>
+      </div>
+      <p>Um middleware pode ser uma classe que implementa essa interface, o nome dela (<code>Cors::class</code>) ou uma função anônima <code>function (Request $request, callable $next) { ... }</code>. Veja <a href="#middleware">Middleware</a>.</p>
+
+      <h2 id="ref-auth">Auth</h2>
+      <p><code>Haki\Auth\Auth</code>: peça um parâmetro <code>Auth $auth</code> no controller.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>login($idUsuario, array $claims = [])</code></td><td>Emite access e refresh token. Retorna <code>access_token</code>, <code>refresh_token</code>, <code>token_type</code> e <code>expires_in</code>.</td></tr>
+            <tr><td><code>refresh(?string $refreshToken)</code></td><td>Troca um refresh token por um par novo (com rotação).</td></tr>
+            <tr><td><code>logout(Request $request)</code></td><td>Revoga a sessão atual. Use em rota com <code>-&gt;auth()</code>.</td></tr>
+            <tr><td><code>logoutAll($idUsuario)</code></td><td>Revoga todas as sessões do usuário.</td></tr>
+            <tr><td><code>authenticate(string $token)</code></td><td>Valida um access token e retorna a <code>Identity</code>. Veja <a href="#usuario-manual">validação manual</a>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="ref-identity">Identity</h2>
+      <p><code>Haki\Auth\Identity</code>: o usuário autenticado, devolvido por <code>$request-&gt;user()</code>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Membro</th><th>Retorna</th></tr></thead>
+          <tbody>
+            <tr><td><code>-&gt;id</code></td><td>ID do usuário (texto).</td></tr>
+            <tr><td><code>-&gt;role</code></td><td>Perfil, ou <code>null</code>.</td></tr>
+            <tr><td><code>-&gt;claims</code></td><td>Todos os claims do token.</td></tr>
+            <tr><td><code>get($claim, $padrao = null)</code></td><td>Um claim específico.</td></tr>
+            <tr><td><code>hasRole(...$perfis)</code></td><td><code>true</code> se tiver um dos perfis.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Convertida em JSON, mostra <code>id</code>, <code>role</code> e os claims extras do login, sem os claims de controle (<code>iat</code>, <code>exp</code>, <code>jti</code>...).</p>
+
+      <h2 id="ref-tokenstore">TokenStore</h2>
+      <p><code>Haki\Auth\Storage\TokenStore</code>: onde os tokens ficam guardados. Implementações incluídas:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Classe</th><th>Uso</th></tr></thead>
+          <tbody>
+            <tr><td><code>SqliteTokenStore($caminho)</code></td><td>Padrão. Cria o arquivo e as tabelas sozinho. Tem <code>install()</code> e <code>path()</code>.</td></tr>
+            <tr><td><code>ArrayTokenStore()</code></td><td>Em memória, para testes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Métodos que uma implementação própria precisa ter:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Deve</th></tr></thead>
+          <tbody>
+            <tr><td><code>revokeAccessToken(string $jti, int $expiraEm)</code></td><td>Marcar o access token como revogado até expirar.</td></tr>
+            <tr><td><code>isAccessTokenRevoked(string $jti): bool</code></td><td>Dizer se ele foi revogado.</td></tr>
+            <tr><td><code>revokeUser(string $idUsuario, int $antesDe)</code></td><td>Revogar tudo o que foi emitido até <code>$antesDe</code> (nunca voltar no tempo).</td></tr>
+            <tr><td><code>userRevokedBefore(string $idUsuario): ?int</code></td><td>Devolver a data guardada acima.</td></tr>
+            <tr><td><code>saveRefreshToken(RefreshTokenRecord $registro)</code></td><td>Guardar um refresh token (só o hash).</td></tr>
+            <tr><td><code>findRefreshToken(string $hash): ?RefreshTokenRecord</code></td><td>Buscar pelo hash.</td></tr>
+            <tr><td><code>consumeRefreshToken(string $hash, int $agora): bool</code></td><td>Marcar como usado de forma <strong>atômica</strong>; <code>false</code> se já usado ou revogado.</td></tr>
+            <tr><td><code>revokeFamily(string $idFamilia, int $agora)</code></td><td>Revogar todos os refresh tokens daquele login.</td></tr>
+            <tr><td><code>purgeExpired(int $agora): int</code></td><td>Apagar vencidos e dizer quantos.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><code>RefreshTokenRecord</code> tem as propriedades <code>hash</code>, <code>userId</code>, <code>familyId</code>, <code>claims</code>, <code>createdAt</code>, <code>expiresAt</code>, <code>usedAt</code> e <code>revokedAt</code>.</p>
+
+      <h2 id="ref-excecoes">Exceções</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Classe</th><th>Construtor</th></tr></thead>
+          <tbody>
+            <tr><td><code>HttpException</code></td><td><code>new HttpException($status, $mensagem = '', $cabecalhos = [], $dica = null)</code></td></tr>
+            <tr><td><code>HakiException</code></td><td><code>new HakiException($mensagem, $dica = null)</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Métodos: <code>getStatus()</code> e <code>getHeaders()</code> (HttpException), <code>getHint()</code> (todas). A lista completa está em <a href="#erros-classes">Exceções do Haki</a>.</p>
+
+      <h2 id="ref-env">Env</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>Env::get($nome, $padrao = null)</code></td><td>Lê uma variável. <code>"true"</code>/<code>"false"</code> viram booleanos; vazio ou <code>"null"</code> devolve o padrão.</td></tr>
+            <tr><td><code>Env::load($arquivo)</code></td><td>Carrega um arquivo <code>.env</code>. O <code>new Haki()</code> já faz isso.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="ref-depuracao">Depuração</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Função</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>haki(...$valores)</code></td><td>Mostra os valores (HTML no navegador, árvore no terminal) e devolve o valor recebido.</td></tr>
+            <tr><td><code>Dumper::toText(array $valores)</code></td><td>Devolve o dump como texto.</td></tr>
+            <tr><td><code>Dumper::toHtml(array $valores)</code></td><td>Devolve o dump como HTML.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="ref-cli">Linha de comando</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Comando</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>php vendor/bin/haki</code></td><td>Lista os comandos.</td></tr>
+            <tr><td><code>php vendor/bin/haki init [--force]</code></td><td>Cria a estrutura padrão do projeto.</td></tr>
+            <tr><td><code>php vendor/bin/haki key:generate [--force]</code></td><td>Cria o <code>JWT_SECRET</code> no <code>.env</code>.</td></tr>
+            <tr><td><code>php vendor/bin/haki key:generate --rsa [--force]</code></td><td>Cria as chaves RS256 em <code>storage/keys/</code>.</td></tr>
+            <tr><td><code>php vendor/bin/haki auth:install</code></td><td>Cria o banco de tokens.</td></tr>
+            <tr><td><code>php vendor/bin/haki auth:clean</code></td><td>Apaga tokens vencidos.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </article>
 
     <!-- ================================================================== ROADMAP -->
