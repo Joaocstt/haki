@@ -48,8 +48,7 @@ final class InitCommand implements CommandInterface
     public function __construct(private readonly string $basePath, ?Closure $dumpAutoload = null)
     {
         $this->dumpAutoload = $dumpAutoload ?? static function (string $path): bool {
-            $command = 'cd ' . escapeshellarg($path) . ' && composer dump-autoload --quiet 2>&1';
-            exec($command, $output, $code);
+            exec('composer dump-autoload --quiet --working-dir=' . escapeshellarg($path) . ' 2>&1', $output, $code);
 
             return $code === 0;
         };
@@ -120,21 +119,26 @@ final class InitCommand implements CommandInterface
     private function registerAutoload(Output $output): void
     {
         $file = $this->path('composer.json');
-        $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : [];
 
-        if (!is_array($data)) {
+        // Decodifica como objetos (não arrays) para "{}" continuar sendo "{}" ao salvar.
+        $data = is_file($file) ? json_decode((string) file_get_contents($file)) : new \stdClass();
+
+        if (!$data instanceof \stdClass) {
             $output->error('Não consegui ler o composer.json. Adicione manualmente: "autoload": { "psr-4": { "App\\\\": "app/" } }');
 
             return;
         }
 
-        if (isset($data['autoload']['psr-4']['App\\'])) {
+        $data->autoload ??= new \stdClass();
+        $data->autoload->{'psr-4'} ??= new \stdClass();
+
+        if (isset($data->autoload->{'psr-4'}->{'App\\'})) {
             $output->line('  ' . $output->muted('mantido  composer.json (autoload App\\ já configurado)'));
 
             return;
         }
 
-        $data['autoload']['psr-4']['App\\'] = 'app/';
+        $data->autoload->{'psr-4'}->{'App\\'} = 'app/';
 
         file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
         $output->success('alterado composer.json (autoload App\\ → app/)');

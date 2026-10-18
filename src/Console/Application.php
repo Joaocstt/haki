@@ -9,6 +9,7 @@ use Haki\Auth\Storage\SqliteTokenStore;
 use Haki\Console\Commands\AuthCleanCommand;
 use Haki\Console\Commands\AuthInstallCommand;
 use Haki\Console\Commands\CommandInterface;
+use Haki\Console\Commands\InitCommand;
 use Haki\Console\Commands\KeyGenerateCommand;
 use Haki\Exceptions\HakiException;
 use Haki\Haki;

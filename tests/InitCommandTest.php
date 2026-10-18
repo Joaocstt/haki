@@ -63,6 +63,17 @@ final class InitCommandTest extends TestCase
         self::assertSame('^1.0', $composer['require']['shankscode/haki'], 'O resto do composer.json é preservado.');
     }
 
+    public function testKeepsEmptyJsonObjectsAsObjects(): void
+    {
+        file_put_contents($this->dir . '/composer.json', '{"require": {}, "config": {}}');
+
+        $this->run_();
+
+        $json = (string) file_get_contents($this->dir . '/composer.json');
+        self::assertStringContainsString('"require": {}', $json);
+        self::assertStringNotContainsString('[]', $json);
+    }
+
     public function testExampleRouteUsesOnlyOneControllerAndNoArrowFunctions(): void
     {
         $this->run_();
