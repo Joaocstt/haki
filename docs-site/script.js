@@ -23,25 +23,45 @@
 
   /* ------------------------------------------------------------- tema */
 
-  var themeButton = document.getElementById('theme-toggle');
-  var themes = ['system', 'dark', 'light'];
-  var themeLabels = { system: 'Tema: sistema', dark: 'Tema: escuro', light: 'Tema: claro' };
+  // Dois botões (claro/escuro). Sem escolha salva, segue o tema do sistema.
+  var themeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-theme-set]'));
+  var systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
-  function applyTheme(theme) {
-    if (theme === 'system') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', theme);
-    themeButton.setAttribute('aria-label', themeLabels[theme]);
-    themeButton.setAttribute('title', themeLabels[theme]);
-    themeButton.dataset.theme = theme;
+  function effectiveTheme() {
+    var saved = document.documentElement.getAttribute('data-theme');
+    if (saved) return saved;
+    return systemDark && systemDark.matches ? 'dark' : 'light';
   }
 
-  applyTheme(storage('haki-theme') || 'system');
+  function markTheme() {
+    var current = effectiveTheme();
+    themeButtons.forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-set') === current));
+    });
+  }
 
-  themeButton.addEventListener('click', function () {
-    var next = themes[(themes.indexOf(themeButton.dataset.theme) + 1) % themes.length];
-    storage('haki-theme', next === 'system' ? null : next);
-    applyTheme(next);
+  themeButtons.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var theme = b.getAttribute('data-theme-set');
+      document.documentElement.setAttribute('data-theme', theme);
+      storage('haki-theme', theme);
+      markTheme();
+    });
   });
+
+  if (systemDark && systemDark.addEventListener) systemDark.addEventListener('change', markTheme);
+  markTheme();
+
+  /* ------------------------------------------------------------- recolher a barra lateral */
+
+  function setCollapsed(collapsed) {
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    storage('haki-sidebar', collapsed ? 'recolhida' : null);
+  }
+
+  document.getElementById('sidebar-collapse').addEventListener('click', function () { setCollapsed(true); });
+  document.getElementById('sidebar-expand').addEventListener('click', function () { setCollapsed(false); });
+  if (storage('haki-sidebar') === 'recolhida') document.body.classList.add('sidebar-collapsed');
 
   /* ------------------------------------------------------------- páginas */
 
@@ -155,16 +175,13 @@
 
   window.addEventListener('hashchange', function () { show(location.hash); });
 
-  /* ------------------------------------------------------------- menu mobile e header */
+  /* ------------------------------------------------------------- menu mobile */
 
   document.getElementById('menu-toggle').addEventListener('click', function () {
     document.body.classList.toggle('nav-open');
   });
 
-  var header = document.querySelector('.site-header');
   window.addEventListener('scroll', function () {
-    header.classList.toggle('is-scrolled', window.scrollY > 4);
-
     // No fim da página, o último título nunca chega ao topo: marca ele manualmente.
     if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) {
       var links = tocList.querySelectorAll('a');
@@ -340,6 +357,7 @@
   }
 
   document.getElementById('search-open').addEventListener('click', openSearch);
+  document.getElementById('search-open-mobile').addEventListener('click', openSearch);
   input.addEventListener('input', function () { search(input.value); });
 
   input.addEventListener('keydown', function (e) {
