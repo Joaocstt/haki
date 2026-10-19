@@ -14,11 +14,13 @@
         "phpunit/phpunit": "^11.0"
     },
     "suggest": {
-        "ext-pdo_sqlite": "Necessária para o armazenamento padrão de tokens da autenticação JWT"
+        "ext-pdo_sqlite": "Necessária para o armazenamento padrão de tokens da autenticação JWT",
+        "ext-pdo": "Necessária apenas se você usar o EloPHP (ORM opcional)"
     },
     "autoload": {
         "psr-4": {
-            "Haki\\": "src/"
+            "Haki\\": "src/",
+            "Elo\\": "src/Elo/"
         },
         "files": [
             "src/helpers.php"
@@ -31,7 +33,8 @@
         }
     },
     "bin": [
-        "bin/haki"
+        "bin/haki",
+        "bin/elo"
     ],
     "scripts": {
         "test": "phpunit"
