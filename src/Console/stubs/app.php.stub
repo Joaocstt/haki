@@ -8,8 +8,12 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $app = new Haki(dirname(__DIR__));
 
-// Ligações do container (interface => implementação), por exemplo:
-// $app->container()->bind(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);
+// Interfaces de app/Contracts são ligadas sozinhas às classes de app/Repositories pelo nome:
+// ProdutoRepositoryInterface → ProdutoRepository ou PdoProdutoRepository.
+$app->container()->discover('App\\Contracts', 'App\\Repositories');
+
+// Para casos fora do padrão, ligue manualmente:
+// $app->container()->bind(PagamentoInterface::class, StripePagamento::class);
 
 // Middlewares globais, por exemplo:
 // $app->middleware(Cors::class);

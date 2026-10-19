@@ -31,7 +31,7 @@
   </button>
 
   <div class="header-actions">
-    <span class="version">Versão 1.4</span>
+    <span class="version">Versão 1.5</span>
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Tema">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
     </button>
@@ -428,8 +428,12 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $app = new Haki(dirname(__DIR__));
 
-// Ligações do container (interface =&gt; implementação), por exemplo:
-// $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);
+// Interfaces de app/Contracts são ligadas sozinhas às classes de app/Repositories pelo nome:
+// ProdutoRepositoryInterface → ProdutoRepository ou PdoProdutoRepository.
+$app-&gt;container()-&gt;discover('App\\Contracts', 'App\\Repositories');
+
+// Para casos fora do padrão, ligue manualmente:
+// $app-&gt;container()-&gt;bind(PagamentoInterface::class, StripePagamento::class);
 
 // Middlewares globais, por exemplo:
 // $app-&gt;middleware(Cors::class);
@@ -3242,13 +3246,85 @@ use App\Repositories\PdoUsuarioRepository;
 
 $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, PdoUsuarioRepository::class);</code></pre>
       </div>
-      <p>Lendo: "quando alguém pedir <code>UsuarioRepositoryInterface</code>, entregue um <code>PdoUsuarioRepository</code>". Todas as classes que pedem a interface passam a receber essa implementação. Para trocar, você muda só essa linha.</p>
+      <p>Lendo: "quando alguém pedir <code>UsuarioRepositoryInterface</code>, entregue um <code>PdoUsuarioRepository</code>". Se as suas classes seguem um padrão de nomes, dá para dispensar esse bind com a <a href="#container-discover">descoberta automática</a>. Todas as classes que pedem a interface passam a receber essa implementação. Para trocar, você muda só essa linha.</p>
 
       <p>Se você esquecer o bind, o erro explica o que fazer:</p>
       <div class="code">
         <pre><code data-lang="text">Não foi possível criar App\Contracts\UsuarioRepositoryInterface: a classe é uma interface.
 Dica: Registre uma implementação: $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, SuaClasse::class);</code></pre>
       </div>
+
+      <h2 id="container-discover">Descoberta automática: sem bind para cada interface</h2>
+      <p>Escrever um <code>bind()</code> para cada interface cansa. Se as suas classes seguem um padrão de nomes, o Haki encontra a implementação sozinho. O <code>haki init</code> já deixa isto no <code>bootstrap/app.php</code>:</p>
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">$app-&gt;container()-&gt;discover('App\\Contracts', 'App\\Repositories');</code></pre>
+      </div>
+      <p>A partir daí, quando alguém pedir uma interface de <code>App\Contracts</code>, o Haki tira o <code>Interface</code> do fim do nome e procura a classe em <code>App\Repositories</code>:</p>
+      <div class="code">
+        <pre><code data-lang="text">App\Contracts\ProdutoRepositoryInterface
+    → procura App\Repositories\ProdutoRepository
+    → procura App\Repositories\PdoProdutoRepository</code></pre>
+      </div>
+      <p>Você cria a interface e a classe seguindo os nomes, e não escreve nenhum <code>bind</code>. Subpastas também funcionam: <code>App\Contracts\Fiscal\NotaRepositoryInterface</code> procura em <code>App\Repositories\Fiscal\</code>.</p>
+
+      <h3 id="container-discover-padrao">Outros padrões de nome</h3>
+      <p>Se o seu projeto usa outro padrão, informe na chamada:</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;container()-&gt;discover(
+    from: 'App\\Domain\\Contracts',       // onde ficam as interfaces
+    to: 'App\\Infra\\Persistence',        // onde ficam as classes
+    suffix: 'Contract',                   // parte removida do fim do nome da interface
+    prefix: '',                           // parte removida do começo (ex.: 'I')
+    patterns: ['Mysql{name}', '{name}'],  // nomes procurados; {name} = nome sem prefixo/sufixo
+);</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Interface</th><th>Classe</th><th>Configuração</th></tr></thead>
+          <tbody>
+            <tr><td><code>ProdutoRepositoryInterface</code></td><td><code>ProdutoRepository</code> ou <code>PdoProdutoRepository</code></td><td>o padrão</td></tr>
+            <tr><td><code>ProdutoRepositoryContract</code></td><td><code>ProdutoRepository</code></td><td><code>suffix: 'Contract'</code></td></tr>
+            <tr><td><code>IProdutoRepository</code></td><td><code>ProdutoRepository</code></td><td><code>prefix: 'I', suffix: ''</code></td></tr>
+            <tr><td><code>IPagamento</code></td><td><code>StripePagamento</code></td><td><code>prefix: 'I', suffix: '', patterns: ['Stripe{name}']</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Chame <code>discover()</code> mais de uma vez para pastas diferentes:</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;container()-&gt;discover('App\\Contracts', 'App\\Repositories');
+$app-&gt;container()-&gt;discover('App\\Contracts\\Gateways', 'App\\Integrations', patterns: ['Stripe{name}']);</code></pre>
+      </div>
+
+      <h3 id="container-discover-regras">Regras de segurança</h3>
+      <ul>
+        <li><strong>O bind manual sempre vence.</strong> Para um caso fora do padrão, basta um <code>bind()</code>; o resto continua automático.</li>
+        <li><strong>Nunca chuta.</strong> Se duas classes servirem (por exemplo, <code>ProdutoRepository</code> e <code>PdoProdutoRepository</code>), é erro, e a mensagem pede um bind para escolher.</li>
+        <li><strong>A classe encontrada precisa implementar a interface.</strong> Uma classe com o nome certo, mas sem o <code>implements</code>, é recusada.</li>
+        <li><strong>É opcional.</strong> Sem <code>discover()</code>, tudo funciona só com <code>bind()</code>, como antes.</li>
+      </ul>
+
+      <h3 id="container-discover-erros">Quando você erra um nome</h3>
+      <p>O erro diz o que foi procurado e sugere a classe mais parecida que existe:</p>
+      <div class="code">
+        <pre><code data-lang="text">Nenhuma implementação encontrada para App\Contracts\ProdutoRepositoryInterface.
+Procurei: App\Repositories\ProdutoRepository, App\Repositories\PdoProdutoRepository.
+
+Dica: Você quis dizer App\Repositories\PdoProdutoRepositry? Renomeie a classe
+para seguir o padrão ou faça um bind.</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Erro</th><th>Mensagem</th></tr></thead>
+          <tbody>
+            <tr><td>Nome errado na classe</td><td>"Nenhuma implementação encontrada... Você quis dizer ...?"</td></tr>
+            <tr><td>Nome errado no construtor do controller</td><td>"a classe não existe. Você quis dizer ...?"</td></tr>
+            <tr><td>Faltou o <code>implements</code></td><td>"... foi encontrada, mas não implementa essa interface. Adicione na classe: implements ..."</td></tr>
+            <tr><td>Duas classes servem</td><td>"Mais de uma classe serve para ... Escolha uma com um bind explícito."</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Para descobrir esses erros sem precisar acessar cada rota, rode <a href="#cli-check"><code>php vendor/bin/haki check</code></a>.</p>
 
       <h2 id="container-metodos">bind, singleton e instance</h2>
       <div class="table-wrap">
@@ -3405,13 +3481,14 @@ $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, ApiUsuarioRepos
         <pre><code data-lang="bash">php vendor/bin/haki</code></pre>
       </div>
       <div class="code">
-        <pre><code data-lang="text">Haki 1.4.1
+        <pre><code data-lang="text">Haki 1.5.0
 
 Uso: php vendor/bin/haki &lt;comando&gt; [opções]
 
 Comandos:
   init            Cria a estrutura padrão do projeto (app, bootstrap, routes, public...); --force sobrescreve
   make:request    Cria uma classe de validação em app/Requests (ex.: make:request CriarClienteRequest)
+  check           Confere interfaces, controllers e dependências antes de publicar
   key:generate    Gera JWT_SECRET no .env (use --rsa para gerar chaves RS256, --force para sobrescrever)
   auth:install    Cria o banco SQLite e as tabelas de tokens
   auth:clean      Remove refresh tokens e revogações vencidos</code></pre>
@@ -3435,6 +3512,32 @@ php vendor/bin/haki init --force   # recria os arquivos padrão, sobrescrevendo<
   Use no controller: public function store(CriarClienteRequest $request)</code></pre>
       </div>
       <p>O nome precisa começar com letra maiúscula. Se o arquivo já existir, nada é sobrescrito, a menos que você use <code>--force</code>. Veja <a href="#validacao">Validação</a>.</p>
+
+      <h2 id="cli-check">check</h2>
+      <p>Confere se a aplicação consegue montar tudo, sem precisar acessar cada rota: as interfaces encontradas pelo <code>discover()</code>, os controllers de cada rota e as dependências deles.</p>
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki check</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="text">Interfaces
+✔ App\Contracts\ClienteRepositoryInterface → App\Repositories\PdoClienteRepository
+✖ App\Contracts\ProdutoRepositoryInterface
+    Nenhuma implementação encontrada para App\Contracts\ProdutoRepositoryInterface. Procurei: ...
+    Você quis dizer App\Repositories\PdoProdutoRepositry? ...
+
+Rotas
+✔ GET / → App\Controllers\HomeController::index
+✖ GET /produtos
+    Nenhuma implementação encontrada para App\Contracts\ProdutoRepositoryInterface. ...
+✔ GET /clientes → App\Controllers\ClienteController::index
+
+✖ 2 problemas encontrados.</code></pre>
+      </div>
+      <p>Quando está tudo certo, a última linha é <code>✔ Tudo certo.</code> e o comando termina com código 0. Com problemas, termina com código 1. Isso permite usá-lo antes de cada deploy ou num pipeline de CI para barrar código quebrado.</p>
+      <div class="callout">
+        <span class="callout-label">Nota</span>
+        <p>Para conferir de verdade, o <code>check</code> carrega o <code>bootstrap/app.php</code> e cria cada controller com as dependências, como aconteceria numa requisição. Se um repository abre a conexão com o banco no construtor, o banco precisa estar acessível.</p>
+      </div>
 
       <h2 id="cli-key">key:generate</h2>
       <p>Gera um segredo aleatório e forte para os tokens e grava no <code>.env</code> como <code>JWT_SECRET</code>. Se o <code>.env</code> não existir, ele é criado.</p>
@@ -4091,6 +4194,9 @@ curl localhost:8000/admin/painel -H "Authorization: Bearer SEU_TOKEN"</code></pr
             <tr><td><code>get($id)</code></td><td>Devolve o objeto, criando-o se preciso.</td></tr>
             <tr><td><code>has($id)</code></td><td><code>true</code> se registrado ou se a classe existe.</td></tr>
             <tr><td><code>build($classe)</code></td><td>Sempre cria um objeto novo, resolvendo o construtor.</td></tr>
+            <tr><td><code>discover($de, $para, $suffix, $prefix, $patterns)</code></td><td>Encontra a implementação das interfaces pelo nome (veja <a href="#container-discover">Descoberta automática</a>).</td></tr>
+            <tr><td><code>discoverFor($interface)</code></td><td>Qual classe o <code>discover()</code> encontra para a interface.</td></tr>
+            <tr><td><code>bound($id)</code></td><td><code>true</code> se há um bind, singleton ou instance para o id.</td></tr>
           </tbody>
         </table>
       </div>
@@ -4235,6 +4341,7 @@ interface MiddlewareInterface
             <tr><td><code>php vendor/bin/haki</code></td><td>Lista os comandos.</td></tr>
             <tr><td><code>php vendor/bin/haki init [--force]</code></td><td>Cria a estrutura padrão do projeto.</td></tr>
             <tr><td><code>php vendor/bin/haki make:request Nome [--force]</code></td><td>Cria uma classe de validação.</td></tr>
+            <tr><td><code>php vendor/bin/haki check</code></td><td>Confere interfaces, controllers e dependências.</td></tr>
             <tr><td><code>php vendor/bin/haki key:generate [--force]</code></td><td>Cria o <code>JWT_SECRET</code> no <code>.env</code>.</td></tr>
             <tr><td><code>php vendor/bin/haki key:generate --rsa [--force]</code></td><td>Cria as chaves RS256 em <code>storage/keys/</code>.</td></tr>
             <tr><td><code>php vendor/bin/haki auth:install</code></td><td>Cria o banco de tokens.</td></tr>
@@ -4265,7 +4372,7 @@ interface MiddlewareInterface
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
 
-      <p class="footer-note">Haki 1.4 · Licença MIT · shankscode/haki</p>
+      <p class="footer-note">Haki 1.5 · Licença MIT · shankscode/haki</p>
     </article>
 
   </main>
