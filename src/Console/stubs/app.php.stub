@@ -12,6 +12,9 @@ $app = new Haki(dirname(__DIR__));
 // ProdutoRepositoryInterface → ProdutoRepository ou PdoProdutoRepository.
 $app->container()->discover('App\\Contracts', 'App\\Repositories');
 
+// Exige tipos em todo o código do projeto: parâmetro ou retorno sem tipo vira erro com a linha exata.
+$app->requireTypes();
+
 // Para casos fora do padrão, ligue manualmente:
 // $app->container()->bind(PagamentoInterface::class, StripePagamento::class);
 

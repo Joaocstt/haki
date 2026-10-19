@@ -31,7 +31,7 @@
   </button>
 
   <div class="header-actions">
-    <span class="version">Versão 1.6</span>
+    <span class="version">Versão 1.7</span>
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Tema">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
     </button>
@@ -87,6 +87,7 @@
     <div class="nav-group">
       <p class="nav-group-title">Arquitetura</p>
       <ul class="nav-list">
+        <li><a href="#tipagem">Tipagem</a></li>
         <li><a href="#container">Container de dependências</a></li>
         <li><a href="#solid">SOLID na prática</a></li>
       </ul>
@@ -245,6 +246,29 @@ HTTP/1.1 200 OK                   ← a API responde: deu certo
         <figcaption>O caminho de toda requisição. Em qualquer etapa, um problema interrompe o fluxo e vira uma resposta de erro padronizada.</figcaption>
       </figure>
 
+      <h2 id="introducao-tipagem">Tipado de ponta a ponta</h2>
+      <p>O PHP permite escrever código sem tipos, e muitos frameworks deixam assim. O Haki faz o contrário: ele usa os tipos que você escreve para fazer trabalho por você, e pode exigir que todo o projeto seja tipado.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Onde</th><th>Como o Haki usa os tipos</th></tr></thead>
+          <tbody>
+            <tr><td>Parâmetros da rota</td><td><code>function show(int $id)</code>: <code>"10"</code> vira o número <code>10</code>, e <code>/produtos/abc</code> responde 404 antes do seu código rodar.</td></tr>
+            <tr><td>Injeção de dependências</td><td>O tipo do parâmetro diz o que entregar: <code>Request $request</code>, <code>Auth $auth</code>, <code>ProdutoRepositoryInterface $produtos</code>.</td></tr>
+            <tr><td>Validação</td><td><code>$rule-&gt;integer()</code> entrega <code>int</code>, <code>$rule-&gt;date()</code> entrega <code>DateTimeImmutable</code>, <code>$rule-&gt;enum(Plano::class)</code> entrega o enum. Nada chega como texto solto.</td></tr>
+            <tr><td>Arquivos gerados</td><td>Tudo o que o <code>init</code> e o <code>make:request</code> criam já vem com <code>declare(strict_types=1)</code> e tudo tipado.</td></tr>
+            <tr><td>Tipagem obrigatória</td><td>Com <code>$app-&gt;requireTypes()</code>, um método sem tipo faz a API responder com erro, dizendo a classe, o método e a linha. O <code>haki check</code> aponta antes de publicar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="php">public function show($id)                 // sem tipo: com requireTypes(), a API recusa e diz a linha
+public function show(int $id): array      // tipado: o Haki converte o {id} e confere o retorno</code></pre>
+      </div>
+
+      <p>O resultado é menos erro escondido: um valor errado aparece na hora, com uma mensagem clara, em vez de virar um bug difícil de achar depois. Veja tudo em <a href="#tipagem">Tipagem</a>.</p>
+
       <h2 id="introducao-por-que">Por que usar o Haki?</h2>
       <ul>
         <li><strong>Pouca coisa para aprender.</strong> São poucas classes, e os nomes dizem o que fazem: <code>Request</code>, <code>Response</code>, <code>Auth</code>.</li>
@@ -252,6 +276,7 @@ HTTP/1.1 200 OK                   ← a API responde: deu certo
         <li><strong>Erros que ensinam.</strong> Em desenvolvimento, cada erro vem com uma dica em português explicando como resolver.</li>
         <li><strong>Validação fácil.</strong> <code>$rule-&gt;cpf()</code>, <code>$rule-&gt;email()</code>, <code>$rule-&gt;text()-&gt;length(3, 100)</code>, com mensagens prontas em português.</li>
         <li><strong>Login pronto.</strong> JWT com refresh token, logout e perfis de acesso, sem bibliotecas externas.</li>
+        <li><strong>Tipado de ponta a ponta.</strong> Os tipos que você escreve convertem os dados, escolhem o que injetar e podem ser exigidos em todo o projeto.</li>
         <li><strong>Nenhuma dependência.</strong> O pacote usa apenas extensões nativas do PHP.</li>
       </ul>
 
@@ -520,6 +545,9 @@ $app = new Haki(dirname(__DIR__));
 // Interfaces de app/Contracts são ligadas sozinhas às classes de app/Repositories pelo nome:
 // ProdutoRepositoryInterface → ProdutoRepository ou PdoProdutoRepository.
 $app-&gt;container()-&gt;discover('App\\Contracts', 'App\\Repositories');
+
+// Exige tipos em todo o código do projeto (veja a página Tipagem).
+$app-&gt;requireTypes();
 
 // Para casos fora do padrão, ligue manualmente:
 // $app-&gt;container()-&gt;bind(PagamentoInterface::class, StripePagamento::class);
@@ -2681,6 +2709,7 @@ throw new HttpException(429);   // { "erro": "Muitas requisições", "status": 4
             <tr><td><code>MethodNotAllowedException</code></td><td>405</td><td>O caminho existe, com outro método</td></tr>
             <tr><td><code>ValidationException</code></td><td>422</td><td>Dados inválidos; <code>errors()</code> traz as mensagens por campo (namespace <code>Haki\Validation</code>)</td></tr>
             <tr><td><code>ContainerException</code></td><td>500</td><td>Uma dependência não pôde ser criada ou injetada</td></tr>
+            <tr><td><code>TypeCheckException</code></td><td>500</td><td>Código sem tipo, com <code>requireTypes()</code> ativo; <code>problems()</code> lista o que falta</td></tr>
             <tr><td><code>ConfigurationException</code></td><td>500</td><td>Configuração inválida (segredo curto, chave RSA inválida, extensão faltando)</td></tr>
             <tr><td><code>HakiException</code></td><td>500</td><td>Base de todas as anteriores; tem <code>getHint()</code></td></tr>
           </tbody>
@@ -3805,6 +3834,149 @@ final class MysqlTokenStore implements TokenStore
       <p>Para testes automatizados, o Haki já traz o <code>ArrayTokenStore</code>, que guarda tudo em memória. Veja <a href="#testes-auth">Testando rotas protegidas</a>.</p>
     </article>
 
+    <!-- ================================================================== TIPAGEM -->
+    <article class="doc-page" id="tipagem">
+      <h1>Tipagem</h1>
+
+      <h2 id="tipagem-por-que">Por que tipar</h2>
+      <p class="lead">Tipar é dizer, no próprio código, que tipo de valor cada parte espera e devolve: <code>function buscar(int $id): ?Produto</code> diz "recebo um número inteiro e devolvo um Produto ou nada". O PHP passa a conferir isso a cada chamada.</p>
+      <p>Sem tipo, o PHP aceita qualquer coisa e tenta converter sozinho. O erro aparece longe de onde nasceu, ou nem aparece:</p>
+      <div class="code">
+        <pre><code data-lang="php">// Sem tipos: "abc" vira 0, e o código segue como se estivesse tudo certo
+function desconto($preco, $percentual) { return $preco - $preco * $percentual / 100; }
+
+desconto("abc", 10);   // 0, sem nenhum aviso
+
+// Com tipos: o erro aparece na hora, apontando a linha
+function desconto(float $preco, int $percentual): float { ... }
+
+desconto("abc", 10);   // TypeError: Argument #1 ($preco) must be of type float, string given</code></pre>
+      </div>
+      <p>Com tipos, o editor também completa métodos, avisa erros enquanto você digita e qualquer pessoa entende a função sem precisar ler o corpo dela.</p>
+
+      <h2 id="tipagem-require">Tipagem obrigatória: $app-&gt;requireTypes()</h2>
+      <p>O Haki pode <strong>exigir</strong> tipos no código do projeto. Com isto no <code>bootstrap/app.php</code> (o <code>haki init</code> já cria assim):</p>
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">$app-&gt;requireTypes();</code></pre>
+      </div>
+      <p>toda classe do projeto que o Haki for usar (controllers, services, repositories, classes de validação, middlewares) é conferida antes de rodar. Se faltar algum tipo, a requisição responde com erro dizendo exatamente o que corrigir.</p>
+
+      <h3 id="tipagem-regras">O que é exigido</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Onde</th><th>Exigência</th><th>Exemplo certo</th></tr></thead>
+          <tbody>
+            <tr><td>Arquivo</td><td><code>declare(strict_types=1);</code> logo depois do <code>&lt;?php</code></td><td><code>&lt;?php declare(strict_types=1);</code></td></tr>
+            <tr><td>Parâmetros dos métodos</td><td>Todos com tipo</td><td><code>function show(int $id)</code></td></tr>
+            <tr><td>Retorno dos métodos</td><td>Todos com tipo (menos <code>__construct</code>)</td><td><code>function show(int $id): array</code></td></tr>
+            <tr><td>Propriedades</td><td>Todas com tipo</td><td><code>private int $total = 0;</code></td></tr>
+            <tr><td>Funções anônimas das rotas</td><td>Parâmetros com tipo (o retorno é livre)</td><td><code>function (int $id) { ... }</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Só o <strong>seu</strong> código é conferido: as classes do Haki, do PHP e de pacotes em <code>vendor/</code> ficam de fora.</p>
+
+      <h2 id="tipagem-exemplo">Exemplo: o que acontece quando falta um tipo</h2>
+      <p>Imagine que alguém escreveu o método <code>show</code> sem tipos:</p>
+      <div class="code">
+        <div class="code-title">app/Controllers/ProdutoController.php</div>
+        <pre><code data-lang="php">public function show($id)          // linha 29: sem tipo no $id e sem tipo de retorno
+{
+    return ['produto' =&gt; $this-&gt;encontrar($id)];
+}</code></pre>
+      </div>
+
+      <h3 id="tipagem-exemplo-api">1. A API responde com erro</h3>
+      <p>Na primeira requisição a <strong>qualquer</strong> rota desse controller, o Haki confere a classe inteira e recusa. Em desenvolvimento, a resposta diz o que corrigir e em que linha:</p>
+      <div class="code">
+        <div class="code-title">GET /produtos/1 (APP_ENV=development)</div>
+        <pre><code data-lang="json">{
+    "erro": "Erro interno do servidor",
+    "status": 500,
+    "detalhes": {
+        "dica": "Adicione os tipos indicados (ex.: function show(int $id): array). A exigência vem de $app-&gt;requireTypes() no bootstrap/app.php. Confira tudo de uma vez com: php vendor/bin/haki check",
+        "excecao": "Haki\\Exceptions\\TypeCheckException",
+        "mensagem": "Tipagem obrigatória: App\\Controllers\\ProdutoController tem 2 problemas. ProdutoController::show(): parâmetro $id sem tipo (linha 29). ProdutoController::show(): falta o tipo de retorno (linha 29)."
+    }
+}</code></pre>
+      </div>
+      <p>Em produção, o cliente vê só a mensagem genérica, e o detalhe vai para o log do PHP:</p>
+      <div class="code">
+        <div class="code-title">GET /produtos/1 (APP_ENV=production)</div>
+        <pre><code data-lang="json">{ "erro": "Erro interno do servidor", "status": 500 }</code></pre>
+      </div>
+
+      <h3 id="tipagem-exemplo-check">2. O haki check aponta antes de publicar</h3>
+      <p>Você não precisa esperar alguém acessar a rota. O <code>check</code> confere a tipagem de <strong>todas</strong> as classes da pasta <code>app/</code>, inclusive as que nenhuma rota usa, como as models:</p>
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki check</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="text">Rotas
+✔ POST /login → App\Controllers\AuthController::login
+✖ GET /produtos/{id}
+    App\Controllers\ProdutoController tem problemas de tipagem (detalhes em "Tipagem", abaixo).
+...
+
+Tipagem
+✖ App\Controllers\ProdutoController
+    ProdutoController::show(): parâmetro $id sem tipo (linha 29).
+    ProdutoController::show(): falta o tipo de retorno (linha 29).
+✔ 12 classes tipadas corretamente
+
+✖ 6 problemas encontrados.</code></pre>
+      </div>
+
+      <h3 id="tipagem-exemplo-correcao">3. Corrigindo</h3>
+      <div class="code">
+        <pre><code data-lang="php">public function show(int $id): array
+{
+    return ['produto' =&gt; $this-&gt;encontrar($id)];
+}</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="text">Tipagem
+✔ 13 classes tipadas corretamente
+
+✔ Tudo certo.</code></pre>
+      </div>
+
+      <h2 id="tipagem-guia">Guia rápido de tipos</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Quando usar</th></tr></thead>
+          <tbody>
+            <tr><td><code>int</code>, <code>float</code>, <code>string</code>, <code>bool</code></td><td>Valores simples</td></tr>
+            <tr><td><code>array</code></td><td>Listas e arrays associativos</td></tr>
+            <tr><td><code>Produto</code>, <code>Request</code>...</td><td>Um objeto daquela classe</td></tr>
+            <tr><td><code>?Produto</code></td><td>Um Produto <strong>ou</strong> <code>null</code> (ex.: busca que pode não encontrar)</td></tr>
+            <tr><td><code>int|string</code></td><td>Um dos dois tipos</td></tr>
+            <tr><td><code>void</code></td><td>Método que não devolve nada</td></tr>
+            <tr><td><code>null</code></td><td>Método que sempre devolve <code>null</code> (ex.: rota que responde 204)</td></tr>
+            <tr><td><code>mixed</code></td><td>Qualquer coisa. Evite: só quando não houver outro jeito</td></tr>
+            <tr><td><code>never</code></td><td>Método que sempre lança exceção</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-label">Arrays com conteúdo conhecido</span>
+        <p>O PHP só entende <code>array</code>, sem dizer o que tem dentro. Para documentar o conteúdo (o editor e o PHPStan entendem), use um comentário: <code>/** @return list&lt;Produto&gt; */</code> ou <code>/** @param array&lt;string, mixed&gt; $dados */</code>.</p>
+      </div>
+
+      <h2 id="tipagem-desligar">Desligando</h2>
+      <p>Para um projeto antigo, com muito código sem tipo, remova a linha <code>$app-&gt;requireTypes();</code> do bootstrap e vá tipando aos poucos, usando o <code>haki check</code> como guia. Com a linha removida, nada é conferido e tudo funciona como antes.</p>
+
+      <h2 id="tipagem-phpstan">Indo além: PHPStan</h2>
+      <p>O <code>requireTypes()</code> confere se os tipos <strong>existem</strong>. Para conferir se eles estão <strong>certos</strong> (por exemplo, se você passa uma <code>string</code> onde se espera <code>int</code>, ou chama um método em algo que pode ser <code>null</code>), use o PHPStan, que analisa o código sem executá-lo:</p>
+      <div class="code">
+        <pre><code data-lang="bash">composer require --dev phpstan/phpstan
+php vendor/bin/phpstan analyse app --level=9</code></pre>
+      </div>
+      <p>Os dois se completam: rode <code>php vendor/bin/phpstan analyse app --level=9 &amp;&amp; php vendor/bin/haki check</code> antes de cada deploy.</p>
+    </article>
+
     <!-- ================================================================== CONTAINER -->
     <article class="doc-page" id="container">
       <h1>Container de dependências</h1>
@@ -4083,7 +4255,7 @@ $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, ApiUsuarioRepos
         <pre><code data-lang="bash">php vendor/bin/haki</code></pre>
       </div>
       <div class="code">
-        <pre><code data-lang="text">Haki 1.6.0
+        <pre><code data-lang="text">Haki 1.7.0
 
 Uso: php vendor/bin/haki &lt;comando&gt; [opções]
 
@@ -4117,7 +4289,7 @@ php vendor/bin/haki init --force   # recria os arquivos padrão, sobrescrevendo<
       <p>O nome precisa começar com letra maiúscula. Se o arquivo já existir, nada é sobrescrito, a menos que você use <code>--force</code>. Veja <a href="#validacao">Validação</a>.</p>
 
       <h2 id="cli-check">check</h2>
-      <p>Confere se a aplicação consegue montar tudo, sem precisar acessar cada rota: as interfaces encontradas pelo <code>discover()</code>, os controllers de cada rota e as dependências deles.</p>
+      <p>Confere se a aplicação consegue montar tudo, sem precisar acessar cada rota: as interfaces encontradas pelo <code>discover()</code>, os controllers de cada rota e as dependências deles. Com <code>$app-&gt;requireTypes()</code> ativo, confere também a tipagem de todas as classes da pasta <code>app/</code> (veja <a href="#tipagem-exemplo-check">Tipagem</a>).</p>
       <div class="code">
         <pre><code data-lang="bash">php vendor/bin/haki check</code></pre>
       </div>
@@ -4605,8 +4777,8 @@ final class Connection
         $driver = (string) Env::get('DB_CONNECTION', 'sqlite');
         $database = (string) Env::get('DB_DATABASE', 'database/app.sqlite');
 
-        if ($driver === 'sqlite' &amp;&amp; !preg_match('#^([A-Za-z]:[\\/]|/)#', $database)) {
-            $database = rtrim($basePath, '/\') . DIRECTORY_SEPARATOR . $database;
+        if ($driver === 'sqlite' &amp;&amp; !preg_match('#^([A-Za-z]:[\\\\/]|/)#', $database)) {
+            $database = rtrim($basePath, '/\\') . DIRECTORY_SEPARATOR . $database;
         }
 
         return new self(
@@ -5150,7 +5322,10 @@ $app-&gt;container()-&gt;singleton(Connection::class, function () use ($app) {
 });
 
 // Interfaces de app/Contracts ligadas às classes de app/Repositories pelo nome.
-$app-&gt;container()-&gt;discover('App\Contracts', 'App\Repositories');
+$app-&gt;container()-&gt;discover('App\\Contracts', 'App\\Repositories');
+
+// Exige tipagem em todo o código do projeto.
+$app-&gt;requireTypes();
 
 // Rotas
 $app-&gt;routes(__DIR__ . '/../routes/api.php');
@@ -5284,6 +5459,10 @@ curl localhost:8000/produtos</code></pre>
       <p><strong>Causa:</strong> o controller pede uma interface e o Haki não sabe qual classe entregar.</p>
       <p><strong>Solução:</strong> confira se o <code>bootstrap/app.php</code> tem o <code>discover('App\\Contracts', 'App\\Repositories')</code> e se os nomes seguem o padrão (<code>ProdutoRepositoryInterface</code> → <code>ProdutoRepository</code> ou <code>PdoProdutoRepository</code>). Para nomes fora do padrão, use <code>bind()</code>. Veja <a href="#container-discover">Descoberta automática</a>.</p>
 
+      <h3 id="problema-tipagem">"Tipagem obrigatória: ... tem N problemas"</h3>
+      <p><strong>Causa:</strong> o <code>bootstrap/app.php</code> tem <code>$app-&gt;requireTypes()</code> e uma classe do projeto tem parâmetro, retorno ou propriedade sem tipo, ou não tem <code>declare(strict_types=1)</code>.</p>
+      <p><strong>Solução:</strong> a mensagem diz a classe, o método e a linha. Adicione os tipos e confira tudo com <code>php vendor/bin/haki check</code>. Veja <a href="#tipagem">Tipagem</a>.</p>
+
       <h3 id="problema-injetar">"Não sei como injetar $x em ..."</h3>
       <p><strong>Causa:</strong> um parâmetro do método (ou do construtor) não é uma classe e não é um parâmetro da rota.</p>
       <p><strong>Solução:</strong> se é um valor da URL, o nome precisa ser igual ao da rota (<code>{id}</code> → <code>$id</code>). Se é configuração, dê um valor padrão ou crie a classe com uma função no container. Veja <a href="#container-closure">Criando com uma função</a>.</p>
@@ -5401,6 +5580,7 @@ curl localhost:8000/produtos</code></pre>
             <tr><td><code>routes($arquivo)</code></td><td>Carrega um <a href="#rotas-arquivos">arquivo de rotas</a>.</td></tr>
             <tr><td><code>middleware(...$middlewares)</code></td><td>Adiciona <a href="#middleware-registrando">middlewares globais</a>.</td></tr>
             <tr><td><code>auth(array $opcoes)</code></td><td>Configura a autenticação. Veja <a href="#autenticacao-opcoes">as opções</a>.</td></tr>
+            <tr><td><code>requireTypes()</code></td><td>Exige tipagem no código do projeto. Veja <a href="#tipagem">Tipagem</a>.</td></tr>
             <tr><td><code>container()</code></td><td>Retorna o <a href="#container">container de dependências</a>.</td></tr>
             <tr><td><code>router()</code></td><td>Retorna o roteador (para <a href="#rotas-listar">listar rotas</a>).</td></tr>
             <tr><td><code>basePath($caminho = '')</code></td><td>Caminho absoluto a partir da raiz do projeto.</td></tr>
@@ -5475,6 +5655,7 @@ curl localhost:8000/produtos</code></pre>
             <tr><td><code>discover($de, $para, $suffix, $prefix, $patterns)</code></td><td>Encontra a implementação das interfaces pelo nome (veja <a href="#container-discover">Descoberta automática</a>).</td></tr>
             <tr><td><code>discoverFor($interface)</code></td><td>Qual classe o <code>discover()</code> encontra para a interface.</td></tr>
             <tr><td><code>bound($id)</code></td><td><code>true</code> se há um bind, singleton ou instance para o id.</td></tr>
+            <tr><td><code>requireTypes()</code> / <code>assertTyped($classe)</code></td><td>Liga a tipagem obrigatória / confere uma classe (lança <code>TypeCheckException</code>).</td></tr>
           </tbody>
         </table>
       </div>
@@ -5651,7 +5832,7 @@ interface MiddlewareInterface
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
 
-      <p class="footer-note">Haki 1.6 · Licença MIT · shankscode/haki</p>
+      <p class="footer-note">Haki 1.7 · Licença MIT · shankscode/haki</p>
     </article>
 
   </main>

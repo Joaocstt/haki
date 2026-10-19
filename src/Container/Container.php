@@ -6,7 +6,9 @@ namespace Haki\Container;
 
 use Closure;
 use Haki\Exceptions\ContainerException;
+use Haki\Exceptions\TypeCheckException;
 use Haki\Support\ClassFinder;
+use Haki\Support\TypeChecker;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -39,6 +41,40 @@ final class Container implements ContainerInterface
 
     /** @var list<array{from: string, to: string, prefix: string, suffix: string, patterns: list<string>}> */
     private array $discoveries = [];
+
+    private ?TypeChecker $typeChecker = null;
+
+    /**
+     * Passa a exigir tipagem em toda classe do projeto que o container criar.
+     * Normalmente ativado por $app->requireTypes().
+     */
+    public function requireTypes(TypeChecker $checker = new TypeChecker()): self
+    {
+        $this->typeChecker = $checker;
+
+        return $this;
+    }
+
+    public function typeChecker(): ?TypeChecker
+    {
+        return $this->typeChecker;
+    }
+
+    /**
+     * @throws TypeCheckException se a tipagem é exigida e a classe tem problemas
+     */
+    public function assertTyped(string $class): void
+    {
+        if ($this->typeChecker === null) {
+            return;
+        }
+
+        $problems = $this->typeChecker->checkClass($class);
+
+        if ($problems !== []) {
+            throw new TypeCheckException($class, $problems);
+        }
+    }
 
     /**
      * Descobre sozinho a implementação de cada interface, pelo nome, sem precisar de bind().
@@ -278,6 +314,8 @@ final class Container implements ContainerInterface
                 'Duas classes dependem uma da outra pelo construtor. Quebre o ciclo extraindo uma terceira classe.',
             );
         }
+
+        $this->assertTyped($class);
 
         $reflection = new ReflectionClass($class);
 

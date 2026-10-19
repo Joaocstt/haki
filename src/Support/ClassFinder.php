@@ -32,6 +32,57 @@ final class ClassFinder
     }
 
     /**
+     * Todas as classes do projeto: as pastas PSR-4 que ficam dentro de $basePath (fora do vendor),
+     * incluindo subpastas. Ex.: tudo em app/ para o prefixo App\.
+     *
+     * @return list<string>
+     */
+    public static function inProject(string $basePath): array
+    {
+        $base = realpath($basePath);
+
+        if ($base === false || !class_exists(ClassLoader::class, false)) {
+            return [];
+        }
+
+        $base = str_replace('\\', '/', $base);
+        $classes = [];
+
+        foreach (ClassLoader::getRegisteredLoaders() as $loader) {
+            foreach ($loader->getPrefixesPsr4() as $prefix => $paths) {
+                foreach ($paths as $path) {
+                    $directory = realpath($path);
+
+                    if ($directory === false) {
+                        continue;
+                    }
+
+                    $normalized = str_replace('\\', '/', $directory);
+
+                    if (!str_starts_with($normalized . '/', $base . '/') || str_contains($normalized, '/vendor/')) {
+                        continue;
+                    }
+
+                    $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS));
+
+                    foreach ($files as $file) {
+                        if ($file->getExtension() !== 'php') {
+                            continue;
+                        }
+
+                        $relative = substr(str_replace('\\', '/', $file->getPathname()), strlen($normalized) + 1, -4);
+                        $classes[] = $prefix . str_replace('/', '\\', $relative);
+                    }
+                }
+            }
+        }
+
+        sort($classes);
+
+        return array_values(array_unique($classes));
+    }
+
+    /**
      * A classe do namespace com o nome mais parecido, ou null se nenhuma for parecida o bastante.
      */
     public static function similar(string $class): ?string

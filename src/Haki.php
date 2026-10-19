@@ -39,7 +39,7 @@ use Throwable;
  */
 final class Haki
 {
-    public const VERSION = '1.6.0';
+    public const VERSION = '1.7.0';
 
     private readonly string $basePath;
 
@@ -167,6 +167,18 @@ final class Haki
         if ($result instanceof Closure) {
             $result($this);
         }
+
+        return $this;
+    }
+
+    /**
+     * Passa a exigir tipagem no código do projeto: se um controller, service, repository,
+     * request ou middleware tiver parâmetro, retorno ou propriedade sem tipo (ou faltar
+     * declare(strict_types=1)), a requisição responde 500 dizendo o que corrigir.
+     */
+    public function requireTypes(): self
+    {
+        $this->container->requireTypes();
 
         return $this;
     }

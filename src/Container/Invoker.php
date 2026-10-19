@@ -7,6 +7,7 @@ namespace Haki\Container;
 use Closure;
 use Haki\Exceptions\ContainerException;
 use Haki\Exceptions\HttpException;
+use Haki\Exceptions\TypeCheckException;
 use Haki\Http\Request;
 use Haki\Http\Response;
 use Haki\Validation\FormRequest;
@@ -51,7 +52,10 @@ final class Invoker
     private function normalize(mixed $handler): array
     {
         if ($handler instanceof Closure) {
-            return [$handler, new ReflectionFunction($handler), 'closure da rota'];
+            $reflection = new ReflectionFunction($handler);
+            $this->assertTypedClosure($reflection);
+
+            return [$handler, $reflection, 'closure da rota'];
         }
 
         if (is_string($handler) && class_exists($handler)) {
@@ -67,6 +71,10 @@ final class Invoker
                     "O método {$class}::{$method}() não existe.",
                     "Crie o método public function {$method}() na classe {$class}.",
                 );
+            }
+
+            if (is_object($target)) {
+                $this->container->assertTyped($class);
             }
 
             $instance = is_object($target) ? $target : $this->container->get($class);
@@ -89,6 +97,26 @@ final class Invoker
             'Handler de rota inválido.',
             'Use uma closure, [Controller::class, \'metodo\'] ou uma classe com __invoke().',
         );
+    }
+
+    /**
+     * Funções anônimas de rota: exige tipo nos parâmetros (o retorno é livre).
+     */
+    private function assertTypedClosure(ReflectionFunction $reflection): void
+    {
+        $checker = $this->container->typeChecker();
+
+        if ($checker === null) {
+            return;
+        }
+
+        $file = (string) $reflection->getFileName();
+        $label = 'função anônima em ' . basename($file);
+        $problems = $checker->checkFunction($reflection, $label, false);
+
+        if ($problems !== []) {
+            throw new TypeCheckException($label, $problems);
+        }
     }
 
     private function resolve(ReflectionParameter $param, Request $request, string $label): mixed

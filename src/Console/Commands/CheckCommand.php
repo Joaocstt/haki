@@ -7,6 +7,7 @@ namespace Haki\Console\Commands;
 use Closure;
 use Haki\Console\Output;
 use Haki\Exceptions\HakiException;
+use Haki\Exceptions\TypeCheckException;
 use Haki\Haki;
 use Haki\Http\Request;
 use Haki\Http\Response;
@@ -67,6 +68,12 @@ final class CheckCommand implements CommandInterface
         $output->line();
         $output->line($output->bold('Rotas'));
         $this->checkRoutes($app, $output);
+
+        if ($app->container()->typeChecker() !== null) {
+            $output->line();
+            $output->line($output->bold('Tipagem'));
+            $this->checkTypes($app, $output);
+        }
 
         $output->line();
 
@@ -147,6 +154,39 @@ final class CheckCommand implements CommandInterface
         }
     }
 
+    /**
+     * Confere a tipagem de todas as classes do projeto (ex.: app/), inclusive as que nenhuma rota usa.
+     */
+    private function checkTypes(Haki $app, Output $output): void
+    {
+        $checker = $app->container()->typeChecker();
+        $classes = ClassFinder::inProject($this->basePath);
+        $ok = 0;
+
+        foreach ($classes as $class) {
+            if (!class_exists($class) && !interface_exists($class) && !enum_exists($class) && !trait_exists($class)) {
+                continue;
+            }
+
+            $problems = $checker?->checkClass($class) ?? [];
+
+            if ($problems === []) {
+                $ok++;
+
+                continue;
+            }
+
+            $this->problems++;
+            $output->error($class);
+
+            foreach ($problems as $problem) {
+                $output->line('    ' . $problem);
+            }
+        }
+
+        $output->success($ok === 1 ? '1 classe tipada corretamente' : "{$ok} classes tipadas corretamente");
+    }
+
     private function checkHandler(Haki $app, string $class, string $method): void
     {
         $container = $app->container();
@@ -177,6 +217,13 @@ final class CheckCommand implements CommandInterface
     {
         $this->problems++;
         $output->error("{$label}");
+
+        // O detalhe da tipagem aparece uma vez só, na seção "Tipagem".
+        if ($e instanceof TypeCheckException) {
+            $output->line('    ' . $e->subject() . ' tem problemas de tipagem (detalhes em "Tipagem", abaixo).');
+
+            return;
+        }
         $output->line('    ' . $e->getMessage());
 
         if ($e instanceof HakiException && $e->getHint() !== null) {

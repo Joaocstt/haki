@@ -97,6 +97,16 @@ $app->container()->discover('App\Contracts', 'App\Repositories');
 // ProdutoRepositoryInterface → ProdutoRepository ou PdoProdutoRepository
 ```
 
+## Tipagem obrigatória
+
+O `bootstrap/app.php` gerado pelo `init` exige tipos em todo o código do projeto:
+
+```php
+$app->requireTypes();
+```
+
+Um parâmetro ou retorno sem tipo faz a API responder com erro, indicando a classe, o método e a linha. O `haki check` confere todas as classes de `app/` antes de publicar.
+
 ## Rodando
 
 ```bash
