@@ -112,6 +112,7 @@ Acesse `http://localhost:8000`.
 | `php vendor/bin/haki init` | Cria a estrutura padrão do projeto |
 | `php vendor/bin/haki make:request Nome` | Cria uma classe de validação em `app/Requests` |
 | `php vendor/bin/haki check` | Confere interfaces, controllers e dependências antes de publicar |
+| `php vendor/bin/haki db` | Testa a conexão com o banco configurado no `.env` (`DB_*`) |
 | `php vendor/bin/haki key:generate` | Cria `JWT_SECRET` no `.env` (`--rsa` para chaves RS256) |
 | `php vendor/bin/haki auth:install` | Cria o banco SQLite de tokens |
 | `php vendor/bin/haki auth:clean` | Remove tokens vencidos |

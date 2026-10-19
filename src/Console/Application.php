@@ -10,6 +10,7 @@ use Haki\Console\Commands\AuthCleanCommand;
 use Haki\Console\Commands\AuthInstallCommand;
 use Haki\Console\Commands\CheckCommand;
 use Haki\Console\Commands\CommandInterface;
+use Haki\Console\Commands\DbCommand;
 use Haki\Console\Commands\InitCommand;
 use Haki\Console\Commands\KeyGenerateCommand;
 use Haki\Console\Commands\MakeRequestCommand;
@@ -33,6 +34,7 @@ final class Application
         $this->add('init', fn () => new InitCommand($this->basePath));
         $this->add('make:request', fn () => new MakeRequestCommand($this->basePath));
         $this->add('check', fn () => new CheckCommand($this->basePath));
+        $this->add('db', fn () => new DbCommand($this->basePath));
         $this->add('key:generate', fn () => new KeyGenerateCommand($this->basePath));
         $this->add('auth:install', fn () => new AuthInstallCommand($this->sqlite()));
         $this->add('auth:clean', fn () => new AuthCleanCommand($this->sqlite()));

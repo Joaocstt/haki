@@ -31,7 +31,7 @@
   </button>
 
   <div class="header-actions">
-    <span class="version">Versão 1.5</span>
+    <span class="version">Versão 1.6</span>
     <button class="icon-button" id="theme-toggle" type="button" aria-label="Tema">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
     </button>
@@ -640,6 +640,10 @@ $app-&gt;isDebug();               // true em desenvolvimento</code></pre>
             <tr><td><code>JWT_REFRESH_TTL</code></td><td><code>604800</code></td><td>Validade do refresh token em segundos (7 dias)</td></tr>
             <tr><td><code>JWT_ISSUER</code></td><td>nenhum</td><td>Nome do emissor (claim <code>iss</code>), opcional</td></tr>
             <tr><td><code>JWT_DATABASE</code></td><td><code>storage/haki.sqlite</code></td><td>Onde fica o banco de tokens</td></tr>
+            <tr><td><code>DB_CONNECTION</code></td><td>nenhum</td><td><code>sqlite</code> ou <code>mysql</code> (usado pelo comando <a href="#cli-db">db</a> e pela sua conexão)</td></tr>
+            <tr><td><code>DB_DATABASE</code></td><td>nenhum</td><td>Caminho do arquivo (SQLite) ou nome do banco (MySQL)</td></tr>
+            <tr><td><code>DB_HOST</code> / <code>DB_PORT</code></td><td><code>127.0.0.1</code> / <code>3306</code></td><td>Servidor MySQL</td></tr>
+            <tr><td><code>DB_USERNAME</code> / <code>DB_PASSWORD</code></td><td>nenhum</td><td>Usuário e senha do MySQL</td></tr>
           </tbody>
         </table>
       </div>
@@ -3481,7 +3485,7 @@ $app-&gt;container()-&gt;bind(UsuarioRepositoryInterface::class, ApiUsuarioRepos
         <pre><code data-lang="bash">php vendor/bin/haki</code></pre>
       </div>
       <div class="code">
-        <pre><code data-lang="text">Haki 1.5.0
+        <pre><code data-lang="text">Haki 1.6.0
 
 Uso: php vendor/bin/haki &lt;comando&gt; [opções]
 
@@ -3489,6 +3493,7 @@ Comandos:
   init            Cria a estrutura padrão do projeto (app, bootstrap, routes, public...); --force sobrescreve
   make:request    Cria uma classe de validação em app/Requests (ex.: make:request CriarClienteRequest)
   check           Confere interfaces, controllers e dependências antes de publicar
+  db              Testa a conexão com o banco configurado no .env (DB_*)
   key:generate    Gera JWT_SECRET no .env (use --rsa para gerar chaves RS256, --force para sobrescrever)
   auth:install    Cria o banco SQLite e as tabelas de tokens
   auth:clean      Remove refresh tokens e revogações vencidos</code></pre>
@@ -3537,6 +3542,61 @@ Rotas
       <div class="callout">
         <span class="callout-label">Nota</span>
         <p>Para conferir de verdade, o <code>check</code> carrega o <code>bootstrap/app.php</code> e cria cada controller com as dependências, como aconteceria numa requisição. Se um repository abre a conexão com o banco no construtor, o banco precisa estar acessível.</p>
+      </div>
+
+      <h2 id="cli-db">db</h2>
+      <p>Testa a conexão com o banco de dados configurado no <code>.env</code>. Use quando configurar o projeto pela primeira vez, ao trocar de servidor ou quando a API começar a dar erro de banco.</p>
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki db</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">conectou</div>
+        <pre><code data-lang="text">✔ Conectado ao banco.
+  Driver:   mysql
+  Banco:    root@127.0.0.1:3306/loja
+  Versão:   MySQL 8.0.36
+  Tabelas:  clientes, pedidos, produtos
+  Tempo:    4.2 ms</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">não conectou</div>
+        <pre><code data-lang="text">✖ Não foi possível conectar: SQLSTATE[HY000] [1045] Access denied for user 'root'@'localhost'
+  Usuário ou senha incorretos. Confira DB_USERNAME e DB_PASSWORD.</code></pre>
+      </div>
+
+      <p>O comando lê estas variáveis do <code>.env</code>:</p>
+      <div class="code">
+        <div class="code-title">.env</div>
+        <pre><code data-lang="env"># SQLite (um arquivo, não precisa de servidor)
+DB_CONNECTION=sqlite
+DB_DATABASE=database/app.sqlite
+
+# MySQL
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=loja
+DB_USERNAME=root
+DB_PASSWORD=senha</code></pre>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Problema</th><th>O que o comando diz</th></tr></thead>
+          <tbody>
+            <tr><td><code>DB_CONNECTION</code> faltando</td><td>Mostra as linhas que precisam ser adicionadas</td></tr>
+            <tr><td>Extensão <code>pdo_mysql</code> ou <code>pdo_sqlite</code> desativada</td><td>Qual linha ativar no <code>php.ini</code></td></tr>
+            <tr><td>Arquivo SQLite inexistente</td><td>Avisa, em vez de criar um banco vazio sem você perceber</td></tr>
+            <tr><td>Usuário ou senha errados (MySQL 1045)</td><td>Confira <code>DB_USERNAME</code> e <code>DB_PASSWORD</code></td></tr>
+            <tr><td>Banco inexistente (MySQL 1049)</td><td>Crie o banco ou corrija <code>DB_DATABASE</code></td></tr>
+            <tr><td>Servidor desligado ou porta errada (MySQL 2002)</td><td>Confira se o MySQL está ligado e <code>DB_HOST</code>/<code>DB_PORT</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Como o <code>check</code>, termina com código 0 quando conecta e 1 quando falha, então pode ser usado num script de deploy.</p>
+      <div class="callout">
+        <span class="callout-label">Nota</span>
+        <p>O Haki não tem uma camada de banco própria: as variáveis <code>DB_*</code> são uma convenção para o comando <code>db</code> e para a sua classe de conexão. Veja um exemplo de conexão em <a href="#armazenamento-proprio">Usando outro banco</a> e na página <a href="#container-closure">Container</a>.</p>
       </div>
 
       <h2 id="cli-key">key:generate</h2>
@@ -4342,6 +4402,7 @@ interface MiddlewareInterface
             <tr><td><code>php vendor/bin/haki init [--force]</code></td><td>Cria a estrutura padrão do projeto.</td></tr>
             <tr><td><code>php vendor/bin/haki make:request Nome [--force]</code></td><td>Cria uma classe de validação.</td></tr>
             <tr><td><code>php vendor/bin/haki check</code></td><td>Confere interfaces, controllers e dependências.</td></tr>
+            <tr><td><code>php vendor/bin/haki db</code></td><td>Testa a conexão com o banco (variáveis <code>DB_*</code>).</td></tr>
             <tr><td><code>php vendor/bin/haki key:generate [--force]</code></td><td>Cria o <code>JWT_SECRET</code> no <code>.env</code>.</td></tr>
             <tr><td><code>php vendor/bin/haki key:generate --rsa [--force]</code></td><td>Cria as chaves RS256 em <code>storage/keys/</code>.</td></tr>
             <tr><td><code>php vendor/bin/haki auth:install</code></td><td>Cria o banco de tokens.</td></tr>
@@ -4372,7 +4433,7 @@ interface MiddlewareInterface
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
 
-      <p class="footer-note">Haki 1.5 · Licença MIT · shankscode/haki</p>
+      <p class="footer-note">Haki 1.6 · Licença MIT · shankscode/haki</p>
     </article>
 
   </main>
