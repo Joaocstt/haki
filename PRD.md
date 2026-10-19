@@ -78,7 +78,7 @@ $app->run();
 
 ### 3.2 Fora do escopo da v1.0
 
-- ORM ou query builder.
+- ORM ou query builder obrigatórios. O EloPHP (`Elo\`, ORM Active Record opcional) é um módulo à parte, que não altera o fluxo padrão com PDO.
 
 - Templates/views.
 - Filas, eventos, cache.

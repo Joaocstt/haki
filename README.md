@@ -107,6 +107,25 @@ $app->requireTypes();
 
 Um parâmetro ou retorno sem tipo faz a API responder com erro, indicando a classe, o método e a linha. O `haki check` confere todas as classes de `app/` antes de publicar.
 
+## EloPHP (ORM opcional)
+
+O Haki vem com o EloPHP, um ORM Active Record com nomes em português. Ele é opcional: sem usá-lo, o Haki segue com PDO puro.
+
+```php
+use Elo\Modelo;
+
+class Usuario extends Modelo
+{
+    protected array $pertenceA = ['setor' => Setor::class];
+    protected array $pertenceAMuitos = ['cargos' => Cargo::class];
+}
+
+$usuario = Usuario::criar(['nome' => 'João', 'email' => 'joao@exemplo.br']);
+$usuario->cargos()->sincronizar([1, 2]);
+```
+
+Migrações e comandos: `php vendor/bin/elo migrar`, `migrar:reverter`, `migrar:status`. Documentação completa na seção **EloPHP** da documentação.
+
 ## Rodando
 
 ```bash

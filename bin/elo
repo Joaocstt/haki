@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Encontra o autoload tanto no projeto do usuário (vendor/bin/elo) quanto no repositório.
+$autoloads = [
+    __DIR__ . '/../../../autoload.php',
+    __DIR__ . '/../vendor/autoload.php',
+];
+
+foreach ($autoloads as $autoload) {
+    if (is_file($autoload)) {
+        require $autoload;
+        break;
+    }
+}
+
+if (!class_exists(Elo\Console\Cli::class)) {
+    fwrite(STDERR, "Autoload do Composer não encontrado. Rode: composer install\n");
+    exit(1);
+}
+
+exit((new Elo\Console\Cli((string) getcwd()))->executar(array_slice($argv, 1)));
