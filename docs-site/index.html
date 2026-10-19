@@ -65,6 +65,7 @@
         <li><a href="#controllers">Controllers</a></li>
         <li><a href="#requisicoes">Requisições</a></li>
         <li><a href="#validacao">Validação</a></li>
+        <li><a href="#banco-de-dados">Banco de dados</a></li>
         <li><a href="#respostas">Respostas</a></li>
         <li><a href="#middleware">Middleware</a></li>
         <li><a href="#erros">Tratamento de erros</a></li>
@@ -96,6 +97,7 @@
         <li><a href="#cli">Linha de comando</a></li>
         <li><a href="#testes">Testes</a></li>
         <li><a href="#producao">Produção e segurança</a></li>
+        <li><a href="#problemas">Problemas comuns</a></li>
         <li><a href="#exemplo">Exemplo completo</a></li>
         <li><a href="#referencia">Referência da API</a></li>
         <li><a href="#roadmap">Limitações e roadmap</a></li>
@@ -155,6 +157,93 @@ HTTP/1.1 200 OK                   ← a API responde: deu certo
         <li><strong>Transforma o retorno em JSON</strong> e envia a resposta.</li>
         <li>Se algo der errado em qualquer etapa, <strong>responde com um erro padronizado</strong>, sem expor detalhes internos em produção.</li>
       </ol>
+
+      <figure class="diagram" aria-label="Caminho de uma requisição no Haki">
+        <svg viewBox="0 0 720 560" role="img" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="d-arrow"/>
+            </marker>
+            <marker id="seta-erro" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="d-arrow-err"/>
+            </marker>
+          </defs>
+
+          <!-- coluna principal -->
+          <g class="d-step">
+            <rect x="40" y="16" width="300" height="46" rx="8" class="d-box d-box-strong"/>
+            <text x="190" y="44" class="d-text d-bold" text-anchor="middle">Requisição chega no public/index.php</text>
+          </g>
+          <line x1="190" y1="62" x2="190" y2="84" class="d-line" marker-end="url(#seta)"/>
+
+          <g class="d-step">
+            <rect x="40" y="86" width="300" height="52" rx="8" class="d-box"/>
+            <text x="190" y="108" class="d-text" text-anchor="middle">1. Encontra a rota</text>
+            <text x="190" y="127" class="d-muted" text-anchor="middle">routes/api.php</text>
+          </g>
+          <line x1="190" y1="138" x2="190" y2="160" class="d-line" marker-end="url(#seta)"/>
+
+          <g class="d-step">
+            <rect x="40" y="162" width="300" height="52" rx="8" class="d-box"/>
+            <text x="190" y="184" class="d-text" text-anchor="middle">2. Middlewares</text>
+            <text x="190" y="203" class="d-muted" text-anchor="middle">globais → do grupo → da rota</text>
+          </g>
+          <line x1="190" y1="214" x2="190" y2="236" class="d-line" marker-end="url(#seta)"/>
+
+          <g class="d-step">
+            <rect x="40" y="238" width="300" height="52" rx="8" class="d-box"/>
+            <text x="190" y="260" class="d-text" text-anchor="middle">3. Login: -&gt;auth() e -&gt;role()</text>
+            <text x="190" y="279" class="d-muted" text-anchor="middle">valida o token e o perfil</text>
+          </g>
+          <line x1="190" y1="290" x2="190" y2="312" class="d-line" marker-end="url(#seta)"/>
+
+          <g class="d-step">
+            <rect x="40" y="314" width="300" height="52" rx="8" class="d-box"/>
+            <text x="190" y="336" class="d-text" text-anchor="middle">4. Validação</text>
+            <text x="190" y="355" class="d-muted" text-anchor="middle">classe FormRequest, se o método pedir</text>
+          </g>
+          <line x1="190" y1="366" x2="190" y2="388" class="d-line" marker-end="url(#seta)"/>
+
+          <g class="d-step">
+            <rect x="40" y="390" width="300" height="52" rx="8" class="d-box"/>
+            <text x="190" y="412" class="d-text" text-anchor="middle">5. Controller</text>
+            <text x="190" y="431" class="d-muted" text-anchor="middle">com tudo injetado</text>
+          </g>
+          <line x1="190" y1="442" x2="190" y2="464" class="d-line" marker-end="url(#seta)"/>
+
+          <g class="d-step">
+            <rect x="40" y="466" width="300" height="52" rx="8" class="d-box d-box-strong"/>
+            <text x="190" y="488" class="d-text d-bold" text-anchor="middle">6. Resposta JSON</text>
+            <text x="190" y="507" class="d-muted" text-anchor="middle">200, 201, 204...</text>
+          </g>
+
+          <!-- erros -->
+          <line x1="340" y1="112" x2="452" y2="112" class="d-line-err" marker-end="url(#seta-erro)"/>
+          <rect x="456" y="94" width="224" height="36" rx="18" class="d-err"/>
+          <text x="568" y="117" class="d-err-text" text-anchor="middle">404 rota não existe · 405 método</text>
+
+          <line x1="340" y1="188" x2="452" y2="188" class="d-line-err" marker-end="url(#seta-erro)"/>
+          <rect x="456" y="170" width="224" height="36" rx="18" class="d-err"/>
+          <text x="568" y="193" class="d-err-text" text-anchor="middle">um middleware pode barrar</text>
+
+          <line x1="340" y1="264" x2="452" y2="264" class="d-line-err" marker-end="url(#seta-erro)"/>
+          <rect x="456" y="246" width="224" height="36" rx="18" class="d-err"/>
+          <text x="568" y="269" class="d-err-text" text-anchor="middle">401 sem token · 403 sem perfil</text>
+
+          <line x1="340" y1="340" x2="452" y2="340" class="d-line-err" marker-end="url(#seta-erro)"/>
+          <rect x="456" y="322" width="224" height="36" rx="18" class="d-err"/>
+          <text x="568" y="345" class="d-err-text" text-anchor="middle">422 dados inválidos</text>
+
+          <line x1="340" y1="416" x2="452" y2="416" class="d-line-err" marker-end="url(#seta-erro)"/>
+          <rect x="456" y="398" width="224" height="36" rx="18" class="d-err"/>
+          <text x="568" y="421" class="d-err-text" text-anchor="middle">HttpException · 500 erro</text>
+
+          <text x="568" y="470" class="d-muted" text-anchor="middle">Todo erro vira o mesmo JSON:</text>
+          <text x="568" y="492" class="d-code" text-anchor="middle">{ "erro": "...", "status": 401 }</text>
+          <text x="40" y="548" class="d-muted">Middlewares globais também veem as respostas de erro no caminho de volta.</text>
+        </svg>
+        <figcaption>O caminho de toda requisição. Em qualquer etapa, um problema interrompe o fluxo e vira uma resposta de erro padronizada.</figcaption>
+      </figure>
 
       <h2 id="introducao-por-que">Por que usar o Haki?</h2>
       <ul>
@@ -1760,6 +1849,443 @@ public function rules(Rule $rule): array
       <p>Por isso uma requisição sem token recebe <strong>401</strong>, e não 422: a autenticação vem antes.</p>
     </article>
 
+    <!-- ================================================================== BANCO DE DADOS -->
+    <article class="doc-page" id="banco-de-dados">
+      <h1>Banco de dados</h1>
+
+      <h2 id="banco-visao">Como o Haki trabalha com banco</h2>
+      <p class="lead">O Haki não tem banco de dados embutido nem ORM. Você usa o <strong>PDO</strong>, que já vem no PHP, organizado em quatro peças, cada uma com uma responsabilidade.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Peça</th><th>Onde</th><th>Responsabilidade</th></tr></thead>
+          <tbody>
+            <tr><td>Conexão</td><td><code>app/Database/Connection.php</code></td><td>Lê o <code>.env</code> e abre a conexão</td></tr>
+            <tr><td>Model</td><td><code>app/Models/</code></td><td>Representa um registro (um produto, um cliente)</td></tr>
+            <tr><td>Interface</td><td><code>app/Contracts/</code></td><td>Diz o que dá para fazer com os registros</td></tr>
+            <tr><td>Repository</td><td><code>app/Repositories/</code></td><td>Faz o SQL de verdade</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code">
+        <pre><code data-lang="text">Controller ──▶ ProdutoRepositoryInterface ──▶ PdoProdutoRepository ──▶ Connection ──▶ banco
+                                                      │
+                                                      └──▶ new Produto(...)  (cada linha vira um objeto)</code></pre>
+      </div>
+      <p>O controller nunca escreve SQL: ele pede a interface e recebe models prontas. Assim, todo o SQL fica num lugar só, e trocar de banco ou testar sem banco não exige mexer no controller.</p>
+
+      <h2 id="banco-configurar">1. Configurando o .env</h2>
+      <div class="code">
+        <div class="code-title">.env (SQLite: um arquivo, não precisa de servidor)</div>
+        <pre><code data-lang="env">DB_CONNECTION=sqlite
+DB_DATABASE=database/app.sqlite</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">.env (MySQL)</div>
+        <pre><code data-lang="env">DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=loja
+DB_USERNAME=root
+DB_PASSWORD=sua-senha</code></pre>
+      </div>
+      <p>Para começar e aprender, use SQLite. Para MySQL, ative a extensão <code>pdo_mysql</code> no <code>php.ini</code>.</p>
+
+      <h2 id="banco-conexao">2. A classe de conexão</h2>
+      <p>Uma classe pequena que lê as variáveis <code>DB_*</code> e entrega o PDO. A conexão só é aberta na primeira vez que alguém precisa dela:</p>
+      <div class="code">
+        <div class="code-title">app/Database/Connection.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Database;
+
+use Haki\Support\Env;
+use PDO;
+use RuntimeException;
+
+final class Connection
+{
+    private ?PDO $pdo = null;
+
+    public function __construct(
+        private readonly string $driver,
+        private readonly string $database,
+        private readonly string $host = '127.0.0.1',
+        private readonly int $port = 3306,
+        private readonly ?string $username = null,
+        #[\SensitiveParameter] private readonly ?string $password = null,
+    ) {
+    }
+
+    public static function fromEnv(string $basePath): self
+    {
+        $driver = (string) Env::get('DB_CONNECTION', 'sqlite');
+        $database = (string) Env::get('DB_DATABASE', 'database/app.sqlite');
+
+        // No SQLite, um caminho relativo é a partir da raiz do projeto.
+        if ($driver === 'sqlite' &amp;&amp; !preg_match('#^([A-Za-z]:[\\\\/]|/)#', $database)) {
+            $database = rtrim($basePath, '/\\') . DIRECTORY_SEPARATOR . $database;
+        }
+
+        return new self(
+            $driver,
+            $database,
+            (string) Env::get('DB_HOST', '127.0.0.1'),
+            (int) Env::get('DB_PORT', 3306),
+            Env::get('DB_USERNAME'),
+            Env::get('DB_PASSWORD'),
+        );
+    }
+
+    public function pdo(): PDO
+    {
+        return $this-&gt;pdo ??= $this-&gt;connect();
+    }
+
+    private function connect(): PDO
+    {
+        $options = [
+            PDO::ATTR_ERRMODE =&gt; PDO::ERRMODE_EXCEPTION,       // erro de SQL vira exceção
+            PDO::ATTR_DEFAULT_FETCH_MODE =&gt; PDO::FETCH_ASSOC,  // linhas como array associativo
+        ];
+
+        return match ($this-&gt;driver) {
+            'sqlite' =&gt; new PDO('sqlite:' . $this-&gt;database, null, null, $options),
+            'mysql' =&gt; new PDO(
+                "mysql:host={$this-&gt;host};port={$this-&gt;port};dbname={$this-&gt;database};charset=utf8mb4",
+                $this-&gt;username,
+                $this-&gt;password,
+                $options,
+            ),
+            default =&gt; throw new RuntimeException("DB_CONNECTION \"{$this-&gt;driver}\" não suportado. Use sqlite ou mysql."),
+        };
+    }
+}</code></pre>
+      </div>
+      <p>Registre como <code>singleton</code> no bootstrap, para todos os repositories usarem a <strong>mesma</strong> conexão:</p>
+      <div class="code">
+        <div class="code-title">bootstrap/app.php</div>
+        <pre><code data-lang="php">use App\Database\Connection;
+
+$app-&gt;container()-&gt;singleton(Connection::class, function () use ($app) {
+    return Connection::fromEnv($app-&gt;basePath());
+});</code></pre>
+      </div>
+
+      <h3 id="banco-testar">Testando a conexão</h3>
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki db</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="text">✔ Conectado ao banco.
+  Driver:   sqlite
+  Banco:    C:\projetos\loja\database\app.sqlite
+  Versão:   SQLite 3.45.1
+  Tabelas:  produtos
+  Tempo:    0.5 ms</code></pre>
+      </div>
+      <p>Se falhar, a mensagem diz o motivo. Veja o comando <a href="#cli-db">db</a>.</p>
+
+      <h2 id="banco-tabelas">3. Criando as tabelas</h2>
+      <p>Guarde a estrutura do banco num arquivo SQL, versionado junto com o código:</p>
+      <div class="code">
+        <div class="code-title">database/schema.sql</div>
+        <pre><code data-lang="text">CREATE TABLE IF NOT EXISTS produtos (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome    TEXT NOT NULL,
+    preco   REAL NOT NULL,
+    estoque INTEGER NOT NULL DEFAULT 0
+);</code></pre>
+      </div>
+      <p>E um script curto que aplica esse arquivo, usando a mesma conexão da aplicação:</p>
+      <div class="code">
+        <div class="code-title">database/criar.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+use App\Database\Connection;
+use Haki\Support\Env;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$raiz = dirname(__DIR__);
+Env::load($raiz . '/.env');
+
+$pdo = Connection::fromEnv($raiz)-&gt;pdo();
+$pdo-&gt;exec(file_get_contents(__DIR__ . '/schema.sql'));
+
+echo 'Banco pronto.' . PHP_EOL;</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="bash">php database/criar.php</code></pre>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>SQLite</th><th>MySQL</th></tr></thead>
+          <tbody>
+            <tr><td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td><td><code>INT AUTO_INCREMENT PRIMARY KEY</code></td></tr>
+            <tr><td><code>TEXT</code></td><td><code>VARCHAR(255)</code> ou <code>TEXT</code></td></tr>
+            <tr><td><code>REAL</code></td><td><code>DECIMAL(10,2)</code> (para dinheiro)</td></tr>
+            <tr><td><code>TEXT DEFAULT CURRENT_TIMESTAMP</code></td><td><code>DATETIME DEFAULT CURRENT_TIMESTAMP</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Quando a estrutura mudar (uma coluna nova, por exemplo), crie arquivos numerados (<code>002_adicionar_categoria.sql</code>...) em vez de editar o antigo, para saber o que já foi aplicado em cada ambiente. Para projetos maiores, ferramentas como o <strong>Phinx</strong> fazem esse controle automaticamente.</p>
+
+      <h2 id="banco-model">4. A model</h2>
+      <p>A model representa <strong>um registro</strong>. Ela só guarda os dados, com o tipo certo de cada coluna:</p>
+      <div class="code">
+        <div class="code-title">app/Models/Produto.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+final class Produto
+{
+    public function __construct(
+        public readonly int $id,
+        public readonly string $nome,
+        public readonly float $preco,
+        public readonly int $estoque,
+    ) {
+    }
+}</code></pre>
+      </div>
+      <ul>
+        <li><code>readonly</code>: depois de criado, o objeto não muda por acidente.</li>
+        <li>Uma coluna que aceita <code>NULL</code> vira uma propriedade com <code>?</code>: <code>public readonly ?string $telefone</code>.</li>
+        <li>Retornada no controller, a model vira JSON com as propriedades públicas. Se ela tiver um campo que não pode aparecer (como o hash da senha), implemente <code>JsonSerializable</code>. Veja <a href="#respostas-objetos">Respostas</a>.</li>
+      </ul>
+
+      <h2 id="banco-interface">5. A interface</h2>
+      <p>Lista o que dá para fazer com os registros, sem dizer <em>como</em>:</p>
+      <div class="code">
+        <div class="code-title">app/Contracts/ProdutoRepositoryInterface.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Contracts;
+
+use App\Models\Produto;
+
+interface ProdutoRepositoryInterface
+{
+    /** @return list&lt;Produto&gt; */
+    public function listar(int $pagina, int $porPagina): array;
+
+    public function buscar(int $id): ?Produto;
+
+    public function criar(string $nome, float $preco, int $estoque): Produto;
+
+    public function atualizar(int $id, string $nome, float $preco, int $estoque): void;
+
+    public function apagar(int $id): bool;
+}</code></pre>
+      </div>
+
+      <h2 id="banco-repository">6. O repository: onde fica o SQL</h2>
+      <p>O nome <code>PdoProdutoRepository</code> segue o padrão do <a href="#container-discover"><code>discover()</code></a>, então o Haki o liga à interface sem nenhum <code>bind</code>:</p>
+      <div class="code">
+        <div class="code-title">app/Repositories/PdoProdutoRepository.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Repositories;
+
+use App\Contracts\ProdutoRepositoryInterface;
+use App\Database\Connection;
+use App\Models\Produto;
+use PDO;
+
+final class PdoProdutoRepository implements ProdutoRepositoryInterface
+{
+    private readonly PDO $pdo;
+
+    public function __construct(Connection $connection)
+    {
+        $this-&gt;pdo = $connection-&gt;pdo();
+    }
+
+    public function listar(int $pagina, int $porPagina): array
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('SELECT * FROM produtos ORDER BY id LIMIT :limite OFFSET :inicio');
+        $stmt-&gt;bindValue(':limite', $porPagina, PDO::PARAM_INT);
+        $stmt-&gt;bindValue(':inicio', ($pagina - 1) * $porPagina, PDO::PARAM_INT);
+        $stmt-&gt;execute();
+
+        $produtos = [];
+
+        foreach ($stmt-&gt;fetchAll() as $linha) {
+            $produtos[] = new Produto((int) $linha['id'], $linha['nome'], (float) $linha['preco'], (int) $linha['estoque']);
+        }
+
+        return $produtos;
+    }
+
+    public function buscar(int $id): ?Produto
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('SELECT * FROM produtos WHERE id = ?');
+        $stmt-&gt;execute([$id]);
+        $linha = $stmt-&gt;fetch();
+
+        if (!$linha) {
+            return null;
+        }
+
+        return new Produto((int) $linha['id'], $linha['nome'], (float) $linha['preco'], (int) $linha['estoque']);
+    }
+
+    public function criar(string $nome, float $preco, int $estoque): Produto
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('INSERT INTO produtos (nome, preco, estoque) VALUES (?, ?, ?)');
+        $stmt-&gt;execute([$nome, $preco, $estoque]);
+
+        return new Produto((int) $this-&gt;pdo-&gt;lastInsertId(), $nome, $preco, $estoque);
+    }
+
+    public function atualizar(int $id, string $nome, float $preco, int $estoque): void
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('UPDATE produtos SET nome = ?, preco = ?, estoque = ? WHERE id = ?');
+        $stmt-&gt;execute([$nome, $preco, $estoque, $id]);
+    }
+
+    public function apagar(int $id): bool
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('DELETE FROM produtos WHERE id = ?');
+        $stmt-&gt;execute([$id]);
+
+        return $stmt-&gt;rowCount() &gt; 0;
+    }
+}</code></pre>
+      </div>
+
+      <h3 id="banco-pdo-basico">Os comandos do PDO que você vai usar</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>$pdo-&gt;prepare('... WHERE id = ?')</code></td><td>Prepara o SQL com lugares (<code>?</code>) para os valores</td></tr>
+            <tr><td><code>$stmt-&gt;execute([$id])</code></td><td>Roda, preenchendo os <code>?</code> na ordem</td></tr>
+            <tr><td><code>$stmt-&gt;fetch()</code></td><td>Uma linha (array), ou <code>false</code> se não houver</td></tr>
+            <tr><td><code>$stmt-&gt;fetchAll()</code></td><td>Todas as linhas</td></tr>
+            <tr><td><code>$stmt-&gt;fetchColumn()</code></td><td>Um valor só (ex.: <code>SELECT COUNT(*)</code>)</td></tr>
+            <tr><td><code>$stmt-&gt;rowCount()</code></td><td>Quantas linhas um <code>UPDATE</code>/<code>DELETE</code> afetou</td></tr>
+            <tr><td><code>$pdo-&gt;lastInsertId()</code></td><td>O id gerado pelo último <code>INSERT</code></td></tr>
+            <tr><td><code>$stmt-&gt;bindValue(':limite', 20, PDO::PARAM_INT)</code></td><td>Preenche um parâmetro com nome, informando o tipo</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="banco-injection">Nunca coloque valores direto no SQL</h2>
+      <p>Esta é a regra mais importante desta página. Colocar uma variável dentro do texto do SQL permite que alguém mande um "valor" que é, na verdade, outro comando. Isso se chama <strong>SQL injection</strong>:</p>
+      <div class="code">
+        <pre><code data-lang="php">// ERRADO: se $busca for  ' OR 1=1 --  a consulta devolve tudo; com outros textos, pode apagar dados
+$pdo-&gt;query("SELECT * FROM produtos WHERE nome = '$busca'");
+
+// CERTO: o valor vai separado do SQL e nunca é interpretado como comando
+$stmt = $pdo-&gt;prepare('SELECT * FROM produtos WHERE nome = ?');
+$stmt-&gt;execute([$busca]);</code></pre>
+      </div>
+      <p>Use sempre <code>prepare()</code> com <code>?</code> (ou <code>:nome</code>) para qualquer valor que venha de fora. A única exceção são partes fixas que você mesmo escreveu, como o nome de uma coluna escolhida de uma lista permitida:</p>
+      <div class="code">
+        <pre><code data-lang="php">$ordem = in_array($request-&gt;query('ordem'), ['nome', 'preco'], true) ? $request-&gt;query('ordem') : 'id';
+$stmt = $pdo-&gt;prepare("SELECT * FROM produtos ORDER BY $ordem");   // seguro: só valores da lista</code></pre>
+      </div>
+
+      <h2 id="banco-paginacao">Paginação</h2>
+      <p>Nunca devolva uma tabela inteira: com milhares de linhas, a API fica lenta. Use <code>LIMIT</code> e <code>OFFSET</code>:</p>
+      <div class="code">
+        <pre><code data-lang="text">página 1, 20 por página  →  LIMIT 20 OFFSET 0
+página 2, 20 por página  →  LIMIT 20 OFFSET 20
+página 3, 20 por página  →  LIMIT 20 OFFSET 40</code></pre>
+      </div>
+      <p>Como no <code>listar()</code> acima, passe <code>LIMIT</code> e <code>OFFSET</code> com <code>bindValue(..., PDO::PARAM_INT)</code>. Se forem como texto, o MySQL recusa a consulta.</p>
+
+      <h2 id="banco-transacoes">Transações: tudo ou nada</h2>
+      <p>Quando várias gravações dependem umas das outras (criar um pedido <strong>e</strong> os itens dele), use uma transação. Se qualquer uma falhar, nada é gravado:</p>
+      <div class="code">
+        <pre><code data-lang="php">public function criarPedido(int $clienteId, array $itens): int
+{
+    $this-&gt;pdo-&gt;beginTransaction();
+
+    try {
+        $this-&gt;pdo-&gt;prepare('INSERT INTO pedidos (cliente_id) VALUES (?)')-&gt;execute([$clienteId]);
+        $pedidoId = (int) $this-&gt;pdo-&gt;lastInsertId();
+
+        $item = $this-&gt;pdo-&gt;prepare('INSERT INTO itens (pedido_id, produto_id, quantidade) VALUES (?, ?, ?)');
+
+        foreach ($itens as $i) {
+            $item-&gt;execute([$pedidoId, $i['produto_id'], $i['quantidade']]);
+        }
+
+        $this-&gt;pdo-&gt;commit();      // grava tudo
+
+        return $pedidoId;
+    } catch (Throwable $e) {
+        $this-&gt;pdo-&gt;rollBack();    // desfaz tudo
+        throw $e;
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="banco-controller">7. Usando no controller</h2>
+      <p>O controller pede a <strong>interface</strong> e não sabe nada de SQL:</p>
+      <div class="code">
+        <div class="code-title">app/Controllers/ProdutoController.php</div>
+        <pre><code data-lang="php">final class ProdutoController
+{
+    public function __construct(private readonly ProdutoRepositoryInterface $produtos)
+    {
+    }
+
+    public function show(int $id): array
+    {
+        $produto = $this-&gt;produtos-&gt;buscar($id);
+
+        if ($produto === null) {
+            throw new HttpException(404, 'Produto não encontrado');
+        }
+
+        return ['produto' =&gt; $produto];
+    }
+
+    public function store(ProdutoRequest $request, Response $response): Response
+    {
+        $produto = $this-&gt;produtos-&gt;criar($request-&gt;nome, $request-&gt;preco, $request-&gt;estoque);
+
+        return $response-&gt;json(['produto' =&gt; $produto], 201);
+    }
+}</code></pre>
+      </div>
+      <p>Depois de criar as peças, confira se está tudo ligado:</p>
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki check</code></pre>
+      </div>
+      <p>O <a href="#exemplo">Exemplo completo</a> monta uma API inteira com banco seguindo exatamente esta página.</p>
+
+      <h2 id="banco-erros">Erros comuns</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mensagem</th><th>Causa e solução</th></tr></thead>
+          <tbody>
+            <tr><td>"could not find driver"</td><td>A extensão <code>pdo_sqlite</code> ou <code>pdo_mysql</code> está desativada. Ative no <code>php.ini</code>.</td></tr>
+            <tr><td>"no such table: produtos"</td><td>A tabela não foi criada, ou o <code>DB_DATABASE</code> aponta para outro arquivo. Rode <code>php database/criar.php</code> e confira com <code>php vendor/bin/haki db</code>.</td></tr>
+            <tr><td>"Access denied for user"</td><td>Usuário ou senha do MySQL errados no <code>.env</code>.</td></tr>
+            <tr><td>"Unknown database"</td><td>O banco não existe no MySQL. Crie com <code>CREATE DATABASE loja;</code>.</td></tr>
+            <tr><td>"UNIQUE constraint failed" / "Duplicate entry"</td><td>Tentou gravar um valor repetido numa coluna única (como e-mail). Confira antes, de preferência na validação (veja <a href="#validacao-check-classe">check() na classe</a>).</td></tr>
+            <tr><td>Syntax error perto de <code>'20'</code> no <code>LIMIT</code> (MySQL)</td><td>O valor foi como texto. Use <code>bindValue(..., PDO::PARAM_INT)</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
     <!-- ================================================================== RESPOSTAS -->
     <article class="doc-page" id="respostas">
       <h1>Respostas</h1>
@@ -2311,6 +2837,78 @@ error_log($texto);</code></pre>
         <li>Quando o access token expira, o cliente troca o refresh token por um par novo em <code>POST /refresh</code>.</li>
         <li>No logout, os tokens daquela sessão são revogados.</li>
       </ol>
+
+      <figure class="diagram" aria-label="Fluxo de login, uso do token e renovação">
+        <svg viewBox="0 0 720 720" role="img" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="seta2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="d-arrow"/>
+            </marker>
+            <marker id="seta2-erro" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="d-arrow-err"/>
+            </marker>
+          </defs>
+
+          <!-- participantes -->
+          <rect x="30" y="12" width="150" height="40" rx="8" class="d-box d-box-strong"/>
+          <text x="105" y="37" class="d-text d-bold" text-anchor="middle">Cliente (app/site)</text>
+          <rect x="290" y="12" width="150" height="40" rx="8" class="d-box d-box-strong"/>
+          <text x="365" y="37" class="d-text d-bold" text-anchor="middle">Sua API (Haki)</text>
+          <rect x="540" y="12" width="150" height="40" rx="8" class="d-box d-box-strong"/>
+          <text x="615" y="37" class="d-text d-bold" text-anchor="middle">Banco de tokens</text>
+
+          <line x1="105" y1="52" x2="105" y2="710" class="d-lifeline"/>
+          <line x1="365" y1="52" x2="365" y2="710" class="d-lifeline"/>
+          <line x1="615" y1="52" x2="615" y2="710" class="d-lifeline"/>
+
+          <!-- 1. login -->
+          <text x="20" y="86" class="d-section">1. LOGIN</text>
+          <text x="233" y="110" class="d-text d-small" text-anchor="middle">POST /login (e-mail e senha)</text>
+          <line x1="105" y1="118" x2="361" y2="118" class="d-line" marker-end="url(#seta2)"/>
+          <rect x="378" y="128" width="170" height="40" rx="6" class="d-note"/>
+          <text x="463" y="145" class="d-muted" text-anchor="middle">sua aplicação confere a</text>
+          <text x="463" y="160" class="d-muted" text-anchor="middle">senha e chama login()</text>
+          <text x="488" y="190" class="d-muted" text-anchor="middle">guarda o hash do refresh</text>
+          <line x1="365" y1="198" x2="611" y2="198" class="d-line" marker-end="url(#seta2)"/>
+          <text x="233" y="222" class="d-text d-small" text-anchor="middle">access_token + refresh_token</text>
+          <line x1="361" y1="230" x2="109" y2="230" class="d-line" marker-end="url(#seta2)"/>
+
+          <!-- 2. uso -->
+          <text x="20" y="274" class="d-section">2. USANDO A API (ATÉ 15 MIN)</text>
+          <text x="233" y="298" class="d-text d-small" text-anchor="middle">GET /pedidos · Bearer access</text>
+          <line x1="105" y1="306" x2="361" y2="306" class="d-line" marker-end="url(#seta2)"/>
+          <text x="488" y="322" class="d-muted" text-anchor="middle">foi revogado?</text>
+          <line x1="365" y1="330" x2="611" y2="330" class="d-line" marker-end="url(#seta2)"/>
+          <text x="233" y="352" class="d-text d-small" text-anchor="middle">200 com os dados</text>
+          <line x1="361" y1="360" x2="109" y2="360" class="d-line" marker-end="url(#seta2)"/>
+
+          <!-- 3. venceu -->
+          <text x="20" y="404" class="d-section">3. O ACCESS TOKEN VENCEU</text>
+          <text x="233" y="428" class="d-text d-small" text-anchor="middle">GET /pedidos · Bearer access</text>
+          <line x1="105" y1="436" x2="361" y2="436" class="d-line" marker-end="url(#seta2)"/>
+          <text x="233" y="458" class="d-err-text" text-anchor="middle">401 Token expirado</text>
+          <line x1="361" y1="466" x2="109" y2="466" class="d-line-err" marker-end="url(#seta2-erro)"/>
+
+          <!-- 4. refresh -->
+          <text x="20" y="510" class="d-section">4. RENOVANDO</text>
+          <text x="233" y="534" class="d-text d-small" text-anchor="middle">POST /refresh (refresh_token)</text>
+          <line x1="105" y1="542" x2="361" y2="542" class="d-line" marker-end="url(#seta2)"/>
+          <text x="488" y="558" class="d-muted" text-anchor="middle">marca o antigo como usado</text>
+          <line x1="365" y1="566" x2="611" y2="566" class="d-line" marker-end="url(#seta2)"/>
+          <text x="233" y="588" class="d-text d-small" text-anchor="middle">par NOVO de tokens</text>
+          <line x1="361" y1="596" x2="109" y2="596" class="d-line" marker-end="url(#seta2)"/>
+
+          <!-- 5. reuso -->
+          <text x="20" y="640" class="d-section">5. SE UM REFRESH JÁ USADO APARECER (ROUBO)</text>
+          <text x="233" y="664" class="d-err-text" text-anchor="middle">POST /refresh (token já usado)</text>
+          <line x1="105" y1="672" x2="361" y2="672" class="d-line-err" marker-end="url(#seta2-erro)"/>
+          <text x="488" y="664" class="d-err-text" text-anchor="middle">revoga TODAS as sessões</text>
+          <line x1="365" y1="672" x2="611" y2="672" class="d-line-err" marker-end="url(#seta2-erro)"/>
+          <text x="233" y="694" class="d-err-text" text-anchor="middle">401 · login de novo</text>
+          <line x1="361" y1="702" x2="109" y2="702" class="d-line-err" marker-end="url(#seta2-erro)"/>
+        </svg>
+        <figcaption>Login, uso do access token, renovação com o refresh token e a proteção contra roubo.</figcaption>
+      </figure>
 
       <h2 id="autenticacao-configurando">Configurando</h2>
       <p>Gere um segredo forte. O comando grava o <code>JWT_SECRET</code> no seu <code>.env</code>:</p>
@@ -3875,25 +4473,184 @@ php vendor/bin/haki key:generate</code></pre>
       <h1>Exemplo completo</h1>
 
       <h2 id="exemplo-estrutura">O que vamos construir</h2>
-      <p>Uma API com login, listagem de usuários protegida e um painel exclusivo para administradores. São todos os arquivos, na estrutura recomendada:</p>
-
-<div class="tree"><span class="dir">minha-api/</span>
+      <p class="lead">A API de uma loja, com banco de dados de verdade: as pessoas se cadastram, fazem login e veem os produtos; só administradores criam, alteram e apagam produtos. Todo o código desta página foi rodado e testado.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rota</th><th>Quem pode</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>POST /cadastro</code></td><td>qualquer um</td><td>Cria uma conta de cliente</td></tr>
+            <tr><td><code>POST /login</code></td><td>qualquer um</td><td>Devolve os tokens</td></tr>
+            <tr><td><code>POST /refresh</code></td><td>qualquer um</td><td>Renova os tokens</td></tr>
+            <tr><td><code>GET /produtos</code>, <code>GET /produtos/{id}</code></td><td>qualquer um</td><td>Lista e mostra produtos</td></tr>
+            <tr><td><code>GET /eu</code>, <code>POST /logout</code></td><td>logado</td><td>Mostra quem está logado / sai</td></tr>
+            <tr><td><code>POST</code>, <code>PUT</code>, <code>DELETE /produtos</code></td><td>admin</td><td>Cria, altera e apaga produtos</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Os arquivos, todos na estrutura recomendada:</p>
+<div class="tree"><span class="dir">loja/</span>
 ├── <span class="dir">app/</span>
-│   ├── <span class="dir">Contracts/</span>UsuarioRepositoryInterface.php
-│   ├── <span class="dir">Controllers/</span>AuthController.php
-│   ├── <span class="dir">Controllers/</span>UsuarioController.php
-│   ├── <span class="dir">Controllers/</span>AdminController.php
-│   ├── <span class="dir">Models/</span>Usuario.php
-│   ├── <span class="dir">Repositories/</span>ArrayUsuarioRepository.php
-│   ├── <span class="dir">Requests/</span>LoginRequest.php
-│   └── <span class="dir">Services/</span>LoginService.php
+│   ├── <span class="dir">Contracts/</span>        ProdutoRepositoryInterface.php, UsuarioRepositoryInterface.php
+│   ├── <span class="dir">Controllers/</span>      AuthController.php, ProdutoController.php
+│   ├── <span class="dir">Database/</span>         Connection.php
+│   ├── <span class="dir">Models/</span>           Produto.php, Usuario.php
+│   ├── <span class="dir">Repositories/</span>     PdoProdutoRepository.php, PdoUsuarioRepository.php
+│   ├── <span class="dir">Requests/</span>         CadastroRequest.php, LoginRequest.php, ProdutoRequest.php
+│   └── <span class="dir">Services/</span>         LoginService.php
 ├── <span class="dir">bootstrap/</span>app.php
+├── <span class="dir">database/</span>schema.sql, criar.php
 ├── <span class="dir">routes/</span>api.php
-├── <span class="dir">public/</span>index.php
-├── .env
-└── composer.json</div>
+├── <span class="dir">public/</span>index.php       <span class="note">gerado pelo init, sem mudanças</span>
+└── .env</div>
 
-      <h2 id="exemplo-model">Model</h2>
+      <h2 id="exemplo-comecando">1. Criando o projeto</h2>
+      <div class="code">
+        <pre><code data-lang="bash">mkdir loja
+cd loja
+composer require shankscode/haki
+php vendor/bin/haki init
+php vendor/bin/haki key:generate</code></pre>
+      </div>
+      <p>Depois, apague o <code>app/Controllers/HomeController.php</code> de exemplo e deixe o <code>.env</code> assim (o <code>JWT_SECRET</code> é o que o <code>key:generate</code> gerou):</p>
+      <div class="code">
+        <pre><code data-lang="env">APP_ENV=development
+
+JWT_SECRET=(o valor gerado)
+
+DB_CONNECTION=sqlite
+DB_DATABASE=database/loja.sqlite</code></pre>
+      </div>
+
+      <h2 id="exemplo-banco">2. Banco de dados</h2>
+      <p>A estrutura das tabelas e um script que as cria, já com um administrador:</p>
+      <div class="code">
+        <div class="code-title">database/schema.sql</div>
+        <pre><code data-lang="text">CREATE TABLE IF NOT EXISTS usuarios (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome       TEXT NOT NULL,
+    email      TEXT NOT NULL UNIQUE,
+    senha_hash TEXT NOT NULL,
+    perfil     TEXT NOT NULL DEFAULT 'cliente'
+);
+
+CREATE TABLE IF NOT EXISTS produtos (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome    TEXT NOT NULL,
+    preco   REAL NOT NULL,
+    estoque INTEGER NOT NULL DEFAULT 0
+);</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">database/criar.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+// Cria as tabelas e um administrador. Rode na raiz do projeto: php database/criar.php
+
+use App\Database\Connection;
+use Haki\Support\Env;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+$raiz = dirname(__DIR__);
+Env::load($raiz . '/.env');
+
+$pdo = Connection::fromEnv($raiz)-&gt;pdo();
+$pdo-&gt;exec((string) file_get_contents(__DIR__ . '/schema.sql'));
+
+$existe = $pdo-&gt;prepare('SELECT 1 FROM usuarios WHERE email = ?');
+$existe-&gt;execute(['admin@loja.com']);
+
+if ($existe-&gt;fetchColumn() === false) {
+    $pdo-&gt;prepare('INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES (?, ?, ?, ?)')
+        -&gt;execute(['Administrador', 'admin@loja.com', password_hash('segredo123', PASSWORD_DEFAULT), 'admin']);
+}
+
+echo 'Banco pronto. Administrador: admin@loja.com / segredo123' . PHP_EOL;</code></pre>
+      </div>
+      <p>A classe de conexão (explicada em <a href="#banco-conexao">Banco de dados</a>):</p>
+      <div class="code">
+        <div class="code-title">app/Database/Connection.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Database;
+
+use Haki\Support\Env;
+use PDO;
+use RuntimeException;
+
+/**
+ * Conexão com o banco, configurada pelas variáveis DB_* do .env.
+ * A conexão só é aberta na primeira vez que pdo() é chamado.
+ */
+final class Connection
+{
+    private ?PDO $pdo = null;
+
+    public function __construct(
+        private readonly string $driver,
+        private readonly string $database,
+        private readonly string $host = '127.0.0.1',
+        private readonly int $port = 3306,
+        private readonly ?string $username = null,
+        #[\SensitiveParameter] private readonly ?string $password = null,
+    ) {
+    }
+
+    public static function fromEnv(string $basePath): self
+    {
+        $driver = (string) Env::get('DB_CONNECTION', 'sqlite');
+        $database = (string) Env::get('DB_DATABASE', 'database/app.sqlite');
+
+        if ($driver === 'sqlite' &amp;&amp; !preg_match('#^([A-Za-z]:[\\/]|/)#', $database)) {
+            $database = rtrim($basePath, '/\') . DIRECTORY_SEPARATOR . $database;
+        }
+
+        return new self(
+            $driver,
+            $database,
+            (string) Env::get('DB_HOST', '127.0.0.1'),
+            (int) Env::get('DB_PORT', 3306),
+            Env::get('DB_USERNAME'),
+            Env::get('DB_PASSWORD'),
+        );
+    }
+
+    public function pdo(): PDO
+    {
+        return $this-&gt;pdo ??= $this-&gt;connect();
+    }
+
+    private function connect(): PDO
+    {
+        $options = [
+            PDO::ATTR_ERRMODE =&gt; PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE =&gt; PDO::FETCH_ASSOC,
+        ];
+
+        return match ($this-&gt;driver) {
+            'sqlite' =&gt; new PDO('sqlite:' . $this-&gt;database, null, null, $options),
+            'mysql' =&gt; new PDO(
+                "mysql:host={$this-&gt;host};port={$this-&gt;port};dbname={$this-&gt;database};charset=utf8mb4",
+                $this-&gt;username,
+                $this-&gt;password,
+                $options,
+            ),
+            default =&gt; throw new RuntimeException("DB_CONNECTION \"{$this-&gt;driver}\" não suportado. Use sqlite ou mysql."),
+        };
+    }
+}</code></pre>
+      </div>
+      <div class="code">
+        <pre><code data-lang="bash">php database/criar.php
+php vendor/bin/haki db</code></pre>
+      </div>
+
+      <h2 id="exemplo-models">3. Models</h2>
+      <p>O <code>Usuario</code> implementa <code>JsonSerializable</code> para que o hash da senha nunca apareça nas respostas. O <code>Produto</code> só tem os dados.</p>
       <div class="code">
         <div class="code-title">app/Models/Usuario.php</div>
         <pre><code data-lang="php">&lt;?php
@@ -3910,19 +4667,45 @@ final class Usuario implements JsonSerializable
         public readonly int $id,
         public readonly string $nome,
         public readonly string $email,
-        public readonly string $perfil,
         public readonly string $senhaHash,
+        public readonly string $perfil,
     ) {
     }
 
+    public function senhaConfere(string $senha): bool
+    {
+        return password_verify($senha, $this-&gt;senhaHash);
+    }
+
+    /** O hash da senha nunca vai para o JSON. */
     public function jsonSerialize(): array
     {
         return ['id' =&gt; $this-&gt;id, 'nome' =&gt; $this-&gt;nome, 'email' =&gt; $this-&gt;email, 'perfil' =&gt; $this-&gt;perfil];
     }
 }</code></pre>
       </div>
+      <div class="code">
+        <div class="code-title">app/Models/Produto.php</div>
+        <pre><code data-lang="php">&lt;?php
 
-      <h2 id="exemplo-repository">Contrato e repository</h2>
+declare(strict_types=1);
+
+namespace App\Models;
+
+final class Produto
+{
+    public function __construct(
+        public readonly int $id,
+        public readonly string $nome,
+        public readonly float $preco,
+        public readonly int $estoque,
+    ) {
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="exemplo-repositories">4. Interfaces e repositories</h2>
+      <p>Os nomes seguem o padrão do <code>discover()</code>, então nenhum <code>bind</code> é necessário.</p>
       <div class="code">
         <div class="code-title">app/Contracts/UsuarioRepositoryInterface.php</div>
         <pre><code data-lang="php">&lt;?php
@@ -3935,17 +4718,37 @@ use App\Models\Usuario;
 
 interface UsuarioRepositoryInterface
 {
-    /** @return list&lt;Usuario&gt; */
-    public function todos(): array;
-
-    public function buscarPorId(int $id): ?Usuario;
-
     public function buscarPorEmail(string $email): ?Usuario;
+
+    public function criar(string $nome, string $email, string $senhaHash): Usuario;
 }</code></pre>
       </div>
-
       <div class="code">
-        <div class="code-title">app/Repositories/ArrayUsuarioRepository.php</div>
+        <div class="code-title">app/Contracts/ProdutoRepositoryInterface.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Contracts;
+
+use App\Models\Produto;
+
+interface ProdutoRepositoryInterface
+{
+    /** @return list&lt;Produto&gt; */
+    public function listar(int $pagina, int $porPagina): array;
+
+    public function buscar(int $id): ?Produto;
+
+    public function criar(string $nome, float $preco, int $estoque): Produto;
+
+    public function atualizar(int $id, string $nome, float $preco, int $estoque): void;
+
+    public function apagar(int $id): bool;
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">app/Repositories/PdoUsuarioRepository.php</div>
         <pre><code data-lang="php">&lt;?php
 
 declare(strict_types=1);
@@ -3953,51 +4756,246 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Contracts\UsuarioRepositoryInterface;
+use App\Database\Connection;
 use App\Models\Usuario;
+use PDO;
 
-// Em memória, para começar sem banco. Depois, crie um PdoUsuarioRepository.
-final class ArrayUsuarioRepository implements UsuarioRepositoryInterface
+final class PdoUsuarioRepository implements UsuarioRepositoryInterface
 {
-    /** @var array&lt;int, Usuario&gt; */
-    private array $usuarios;
+    private readonly PDO $pdo;
 
-    public function __construct()
+    public function __construct(Connection $connection)
     {
-        $hash = password_hash('segredo123', PASSWORD_DEFAULT);
-
-        $this-&gt;usuarios = [
-            1 =&gt; new Usuario(1, 'Monkey D. Luffy', 'luffy@exemplo.com', 'admin', $hash),
-            2 =&gt; new Usuario(2, 'Roronoa Zoro', 'zoro@exemplo.com', 'membro', $hash),
-        ];
-    }
-
-    public function todos(): array
-    {
-        return array_values($this-&gt;usuarios);
-    }
-
-    public function buscarPorId(int $id): ?Usuario
-    {
-        return $this-&gt;usuarios[$id] ?? null;
+        $this-&gt;pdo = $connection-&gt;pdo();
     }
 
     public function buscarPorEmail(string $email): ?Usuario
     {
-        foreach ($this-&gt;usuarios as $usuario) {
-            if (strcasecmp($usuario-&gt;email, $email) === 0) {
-                return $usuario;
-            }
+        $stmt = $this-&gt;pdo-&gt;prepare('SELECT * FROM usuarios WHERE email = ?');
+        $stmt-&gt;execute([$email]);
+        $linha = $stmt-&gt;fetch();
+
+        if (!$linha) {
+            return null;
         }
 
-        return null;
+        return new Usuario((int) $linha['id'], $linha['nome'], $linha['email'], $linha['senha_hash'], $linha['perfil']);
+    }
+
+    public function criar(string $nome, string $email, string $senhaHash): Usuario
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)');
+        $stmt-&gt;execute([$nome, $email, $senhaHash]);
+
+        return new Usuario((int) $this-&gt;pdo-&gt;lastInsertId(), $nome, $email, $senhaHash, 'cliente');
+    }
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">app/Repositories/PdoProdutoRepository.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Repositories;
+
+use App\Contracts\ProdutoRepositoryInterface;
+use App\Database\Connection;
+use App\Models\Produto;
+use PDO;
+
+final class PdoProdutoRepository implements ProdutoRepositoryInterface
+{
+    private readonly PDO $pdo;
+
+    public function __construct(Connection $connection)
+    {
+        $this-&gt;pdo = $connection-&gt;pdo();
+    }
+
+    public function listar(int $pagina, int $porPagina): array
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('SELECT * FROM produtos ORDER BY id LIMIT :limite OFFSET :inicio');
+        $stmt-&gt;bindValue(':limite', $porPagina, PDO::PARAM_INT);
+        $stmt-&gt;bindValue(':inicio', ($pagina - 1) * $porPagina, PDO::PARAM_INT);
+        $stmt-&gt;execute();
+
+        $produtos = [];
+
+        foreach ($stmt-&gt;fetchAll() as $linha) {
+            $produtos[] = new Produto((int) $linha['id'], $linha['nome'], (float) $linha['preco'], (int) $linha['estoque']);
+        }
+
+        return $produtos;
+    }
+
+    public function buscar(int $id): ?Produto
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('SELECT * FROM produtos WHERE id = ?');
+        $stmt-&gt;execute([$id]);
+        $linha = $stmt-&gt;fetch();
+
+        if (!$linha) {
+            return null;
+        }
+
+        return new Produto((int) $linha['id'], $linha['nome'], (float) $linha['preco'], (int) $linha['estoque']);
+    }
+
+    public function criar(string $nome, float $preco, int $estoque): Produto
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('INSERT INTO produtos (nome, preco, estoque) VALUES (?, ?, ?)');
+        $stmt-&gt;execute([$nome, $preco, $estoque]);
+
+        return new Produto((int) $this-&gt;pdo-&gt;lastInsertId(), $nome, $preco, $estoque);
+    }
+
+    public function atualizar(int $id, string $nome, float $preco, int $estoque): void
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('UPDATE produtos SET nome = ?, preco = ?, estoque = ? WHERE id = ?');
+        $stmt-&gt;execute([$nome, $preco, $estoque, $id]);
+    }
+
+    public function apagar(int $id): bool
+    {
+        $stmt = $this-&gt;pdo-&gt;prepare('DELETE FROM produtos WHERE id = ?');
+        $stmt-&gt;execute([$id]);
+
+        return $stmt-&gt;rowCount() &gt; 0;
     }
 }</code></pre>
       </div>
 
-      <h2 id="exemplo-service">Service e validação</h2>
-      <p>Os mesmos <code>LoginService</code> (em <code>app/Services</code>) e <code>LoginRequest</code> (em <code>app/Requests</code>) da página <a href="#login">Login e tokens</a>.</p>
+      <h2 id="exemplo-validacao">5. Validação</h2>
+      <p>O <code>CadastroRequest</code> usa o repository no <code>check()</code> para recusar e-mails repetidos, e o <code>prepare()</code> para padronizar o e-mail em minúsculas.</p>
+      <div class="code">
+        <div class="code-title">app/Requests/CadastroRequest.php</div>
+        <pre><code data-lang="php">&lt;?php
 
-      <h2 id="exemplo-controllers">Controllers</h2>
+declare(strict_types=1);
+
+namespace App\Requests;
+
+use App\Contracts\UsuarioRepositoryInterface;
+use Haki\Validation\FormRequest;
+use Haki\Validation\Rule;
+
+final class CadastroRequest extends FormRequest
+{
+    public function __construct(private readonly UsuarioRepositoryInterface $usuarios)
+    {
+    }
+
+    public function rules(Rule $rule): array
+    {
+        return [
+            'nome'              =&gt; $rule-&gt;text()-&gt;length(3, 100),
+            'email'             =&gt; $rule-&gt;email(),
+            'senha'             =&gt; $rule-&gt;text()-&gt;length(8, 72),
+            'senha_confirmacao' =&gt; $rule-&gt;text()-&gt;same('senha'),
+        ];
+    }
+
+    protected function prepare(array $data): array
+    {
+        $data['email'] = strtolower(trim((string) ($data['email'] ?? '')));
+
+        return $data;
+    }
+
+    protected function check(array $data): void
+    {
+        if ($this-&gt;usuarios-&gt;buscarPorEmail($data['email']) !== null) {
+            $this-&gt;fail('email', 'Este e-mail já está cadastrado.');
+        }
+    }
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">app/Requests/LoginRequest.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Requests;
+
+use Haki\Validation\FormRequest;
+use Haki\Validation\Rule;
+
+final class LoginRequest extends FormRequest
+{
+    public function rules(Rule $rule): array
+    {
+        return [
+            'email' =&gt; $rule-&gt;email(),
+            'senha' =&gt; $rule-&gt;text(),
+        ];
+    }
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">app/Requests/ProdutoRequest.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Requests;
+
+use Haki\Validation\FormRequest;
+use Haki\Validation\Rule;
+
+final class ProdutoRequest extends FormRequest
+{
+    public function rules(Rule $rule): array
+    {
+        return [
+            'nome'    =&gt; $rule-&gt;text()-&gt;length(3, 100),
+            'preco'   =&gt; $rule-&gt;number()-&gt;min(0.01),
+            'estoque' =&gt; $rule-&gt;integer()-&gt;min(0)-&gt;optional(0),
+        ];
+    }
+
+    public function labels(): array
+    {
+        return ['preco' =&gt; 'preço'];
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="exemplo-service">6. Service de login</h2>
+      <div class="code">
+        <div class="code-title">app/Services/LoginService.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Contracts\UsuarioRepositoryInterface;
+use App\Models\Usuario;
+use Haki\Exceptions\HttpException;
+
+final class LoginService
+{
+    public function __construct(private readonly UsuarioRepositoryInterface $usuarios)
+    {
+    }
+
+    public function autenticar(string $email, string $senha): Usuario
+    {
+        $usuario = $this-&gt;usuarios-&gt;buscarPorEmail(strtolower($email));
+
+        // Mesma mensagem nos dois casos: não revela quais e-mails existem.
+        if ($usuario === null || !$usuario-&gt;senhaConfere($senha)) {
+            throw new HttpException(401, 'E-mail ou senha incorretos');
+        }
+
+        return $usuario;
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="exemplo-controllers">7. Controllers</h2>
       <div class="code">
         <div class="code-title">app/Controllers/AuthController.php</div>
         <pre><code data-lang="php">&lt;?php
@@ -4006,29 +5004,49 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Contracts\UsuarioRepositoryInterface;
+use App\Requests\CadastroRequest;
 use App\Requests\LoginRequest;
 use App\Services\LoginService;
 use Haki\Auth\Auth;
 use Haki\Http\Request;
+use Haki\Http\Response;
 
 final class AuthController
 {
-    public function __construct(private readonly LoginService $login)
-    {
+    public function __construct(
+        private readonly UsuarioRepositoryInterface $usuarios,
+        private readonly LoginService $login,
+    ) {
     }
 
+    // POST /cadastro
+    public function cadastro(CadastroRequest $request, Response $response): Response
+    {
+        $usuario = $this-&gt;usuarios-&gt;criar(
+            $request-&gt;nome,
+            $request-&gt;email,
+            password_hash($request-&gt;senha, PASSWORD_DEFAULT),
+        );
+
+        return $response-&gt;json(['usuario' =&gt; $usuario], 201);
+    }
+
+    // POST /login
     public function login(LoginRequest $request, Auth $auth): array
     {
         $usuario = $this-&gt;login-&gt;autenticar($request-&gt;email, $request-&gt;senha);
 
-        return $auth-&gt;login($usuario-&gt;id, ['role' =&gt; $usuario-&gt;perfil]);
+        return $auth-&gt;login($usuario-&gt;id, ['role' =&gt; $usuario-&gt;perfil, 'nome' =&gt; $usuario-&gt;nome]);
     }
 
+    // POST /refresh
     public function refresh(Request $request, Auth $auth): array
     {
         return $auth-&gt;refresh($request-&gt;input('refresh_token'));
     }
 
+    // POST /logout (protegida)
     public function logout(Request $request, Auth $auth): null
     {
         $auth-&gt;logout($request);
@@ -4036,133 +5054,333 @@ final class AuthController
         return null;
     }
 
+    // GET /eu (protegida)
     public function eu(Request $request): array
     {
         return ['usuario' =&gt; $request-&gt;user()];
     }
 }</code></pre>
       </div>
-
       <div class="code">
-        <div class="code-title">app/Controllers/UsuarioController.php</div>
+        <div class="code-title">app/Controllers/ProdutoController.php</div>
         <pre><code data-lang="php">&lt;?php
 
 declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Contracts\UsuarioRepositoryInterface;
+use App\Contracts\ProdutoRepositoryInterface;
+use App\Models\Produto;
+use App\Requests\ProdutoRequest;
 use Haki\Exceptions\HttpException;
+use Haki\Http\Request;
+use Haki\Http\Response;
 
-final class UsuarioController
+final class ProdutoController
 {
-    public function __construct(private readonly UsuarioRepositoryInterface $usuarios)
+    public function __construct(private readonly ProdutoRepositoryInterface $produtos)
     {
     }
 
-    public function index(): array
+    // GET /produtos?pagina=1
+    public function index(Request $request): array
     {
-        return ['usuarios' =&gt; $this-&gt;usuarios-&gt;todos()];
+        $pagina = max(1, (int) $request-&gt;query('pagina', 1));
+
+        return ['pagina' =&gt; $pagina, 'produtos' =&gt; $this-&gt;produtos-&gt;listar($pagina, 20)];
     }
 
+    // GET /produtos/{id}
     public function show(int $id): array
     {
-        $usuario = $this-&gt;usuarios-&gt;buscarPorId($id)
-            ?? throw new HttpException(404, 'Usuário não encontrado');
-
-        return ['usuario' =&gt; $usuario];
+        return ['produto' =&gt; $this-&gt;encontrar($id)];
     }
-}</code></pre>
-      </div>
 
-      <div class="code">
-        <div class="code-title">app/Controllers/AdminController.php</div>
-        <pre><code data-lang="php">&lt;?php
-
-declare(strict_types=1);
-
-namespace App\Controllers;
-
-use Haki\Http\Request;
-
-final class AdminController
-{
-    public function painel(Request $request): array
+    // POST /produtos (admin)
+    public function store(ProdutoRequest $request, Response $response): Response
     {
-        return ['mensagem' =&gt; 'Bem-vindo ao painel', 'usuario' =&gt; $request-&gt;user()];
+        $produto = $this-&gt;produtos-&gt;criar($request-&gt;nome, $request-&gt;preco, $request-&gt;estoque);
+
+        return $response-&gt;json(['produto' =&gt; $produto], 201);
+    }
+
+    // PUT /produtos/{id} (admin)
+    public function update(int $id, ProdutoRequest $request): array
+    {
+        $this-&gt;encontrar($id);
+        $this-&gt;produtos-&gt;atualizar($id, $request-&gt;nome, $request-&gt;preco, $request-&gt;estoque);
+
+        return ['produto' =&gt; $this-&gt;encontrar($id)];
+    }
+
+    // DELETE /produtos/{id} (admin)
+    public function destroy(int $id): null
+    {
+        if (!$this-&gt;produtos-&gt;apagar($id)) {
+            throw new HttpException(404, 'Produto não encontrado');
+        }
+
+        return null;
+    }
+
+    private function encontrar(int $id): Produto
+    {
+        return $this-&gt;produtos-&gt;buscar($id) ?? throw new HttpException(404, 'Produto não encontrado');
     }
 }</code></pre>
       </div>
 
-      <h2 id="exemplo-rotas">Rotas e bootstrap</h2>
-      <div class="code">
-        <div class="code-title">routes/api.php</div>
-        <pre><code data-lang="php">&lt;?php
-
-declare(strict_types=1);
-
-use App\Controllers\AdminController;
-use App\Controllers\AuthController;
-use App\Controllers\UsuarioController;
-use Haki\Haki;
-
-/** @var Haki $app */
-
-$app-&gt;post('/login', [AuthController::class, 'login']);
-$app-&gt;post('/refresh', [AuthController::class, 'refresh']);
-
-$app-&gt;group('/', function (Haki $app) {
-    $app-&gt;get('/eu', [AuthController::class, 'eu']);
-    $app-&gt;post('/logout', [AuthController::class, 'logout']);
-    $app-&gt;get('/usuarios', [UsuarioController::class, 'index']);
-    $app-&gt;get('/usuarios/{id}', [UsuarioController::class, 'show']);
-})-&gt;auth();
-
-$app-&gt;group('/admin', function (Haki $app) {
-    $app-&gt;get('/painel', [AdminController::class, 'painel']);
-})-&gt;role('admin');</code></pre>
-      </div>
-
+      <h2 id="exemplo-rotas">8. Bootstrap e rotas</h2>
       <div class="code">
         <div class="code-title">bootstrap/app.php</div>
         <pre><code data-lang="php">&lt;?php
 
 declare(strict_types=1);
 
-use App\Contracts\UsuarioRepositoryInterface;
-use App\Repositories\ArrayUsuarioRepository;
+use App\Database\Connection;
 use Haki\Haki;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = new Haki(dirname(__DIR__));
 
-$app-&gt;container()-&gt;singleton(UsuarioRepositoryInterface::class, ArrayUsuarioRepository::class);
+// Banco de dados: uma conexão só, configurada pelas variáveis DB_* do .env.
+$app-&gt;container()-&gt;singleton(Connection::class, function () use ($app) {
+    return Connection::fromEnv($app-&gt;basePath());
+});
 
+// Interfaces de app/Contracts ligadas às classes de app/Repositories pelo nome.
+$app-&gt;container()-&gt;discover('App\Contracts', 'App\Repositories');
+
+// Rotas
 $app-&gt;routes(__DIR__ . '/../routes/api.php');
 
 return $app;</code></pre>
       </div>
-
-      <h2 id="exemplo-rodando">Rodando</h2>
       <div class="code">
-        <pre><code data-lang="bash">php vendor/bin/haki key:generate
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+use App\Controllers\AuthController;
+use App\Controllers\ProdutoController;
+use Haki\Haki;
+
+/** @var Haki $app */
+
+// Públicas
+$app-&gt;post('/cadastro', [AuthController::class, 'cadastro']);
+$app-&gt;post('/login', [AuthController::class, 'login']);
+$app-&gt;post('/refresh', [AuthController::class, 'refresh']);
+$app-&gt;get('/produtos', [ProdutoController::class, 'index']);
+$app-&gt;get('/produtos/{id}', [ProdutoController::class, 'show']);
+
+// Qualquer usuário logado
+$app-&gt;group('/', function (Haki $app) {
+    $app-&gt;get('/eu', [AuthController::class, 'eu']);
+    $app-&gt;post('/logout', [AuthController::class, 'logout']);
+})-&gt;auth();
+
+// Só administradores
+$app-&gt;group('/produtos', function (Haki $app) {
+    $app-&gt;post('/', [ProdutoController::class, 'store']);
+    $app-&gt;put('/{id}', [ProdutoController::class, 'update']);
+    $app-&gt;delete('/{id}', [ProdutoController::class, 'destroy']);
+})-&gt;role('admin');</code></pre>
+      </div>
+
+      <h2 id="exemplo-rodando">9. Rodando e testando</h2>
+      <div class="code">
+        <pre><code data-lang="bash">php vendor/bin/haki check
 php -S localhost:8000 -t public</code></pre>
       </div>
-
       <div class="code">
-        <pre><code data-lang="bash"># 1. Login
+        <pre><code data-lang="text">✔ App\Contracts\ProdutoRepositoryInterface → App\Repositories\PdoProdutoRepository
+✔ App\Contracts\UsuarioRepositoryInterface → App\Repositories\PdoUsuarioRepository
+...
+✔ Tudo certo.</code></pre>
+      </div>
+      <p>Em outro terminal, siga a ordem abaixo. Ao lado, a resposta que você deve ver:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Passo</th><th>Requisição</th><th>Resposta</th></tr></thead>
+          <tbody>
+            <tr><td>Cadastro</td><td><code>POST /cadastro</code> com nome, email, senha e senha_confirmacao</td><td><code>201</code> com o usuário (sem a senha)</td></tr>
+            <tr><td>Cadastro repetido</td><td>o mesmo e-mail de novo</td><td><code>422</code> "Este e-mail já está cadastrado."</td></tr>
+            <tr><td>Login errado</td><td><code>POST /login</code> com senha errada</td><td><code>401</code> "E-mail ou senha incorretos"</td></tr>
+            <tr><td>Login</td><td><code>POST /login</code> certo</td><td><code>200</code> com <code>access_token</code> e <code>refresh_token</code></td></tr>
+            <tr><td>Quem sou eu</td><td><code>GET /eu</code> com o token</td><td><code>{"usuario": {"id": "2", "role": "cliente", "nome": "Nami"}}</code></td></tr>
+            <tr><td>Criar produto sem token</td><td><code>POST /produtos</code></td><td><code>401</code> "Token não informado"</td></tr>
+            <tr><td>Criar produto como cliente</td><td><code>POST /produtos</code> com o token da Nami</td><td><code>403</code> "Acesso negado"</td></tr>
+            <tr><td>Criar produto como admin</td><td>login com <code>admin@loja.com</code> / <code>segredo123</code></td><td><code>201</code> com o produto</td></tr>
+            <tr><td>Produto inválido</td><td><code>{"nome": "X", "preco": 0}</code></td><td><code>422</code> com as mensagens de nome e preço</td></tr>
+            <tr><td>Listar</td><td><code>GET /produtos</code> sem token</td><td><code>200</code> com a lista</td></tr>
+            <tr><td>Logout</td><td><code>POST /logout</code> e depois <code>GET /eu</code> com o mesmo token</td><td><code>204</code>, depois <code>401</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code">
+        <pre><code data-lang="bash"># Cadastro
+curl -X POST localhost:8000/cadastro -H "Content-Type: application/json" \
+     -d '{"nome":"Nami","email":"nami@exemplo.com","senha":"tangerina1","senha_confirmacao":"tangerina1"}'
+
+# Login do administrador (guarde o access_token)
 curl -X POST localhost:8000/login -H "Content-Type: application/json" \
-     -d '{"email":"luffy@exemplo.com","senha":"segredo123"}'
+     -d '{"email":"admin@loja.com","senha":"segredo123"}'
 
-# 2. Rota protegida (use o access_token recebido)
-curl localhost:8000/usuarios -H "Authorization: Bearer SEU_TOKEN"
+# Criar produto como admin
+curl -X POST localhost:8000/produtos -H "Content-Type: application/json" \
+     -H "Authorization: Bearer SEU_TOKEN" \
+     -d '{"nome":"Mapa da Grand Line","preco":89.5,"estoque":25}'
 
-# 3. Painel de admin
-curl localhost:8000/admin/painel -H "Authorization: Bearer SEU_TOKEN"</code></pre>
+# Listar (público)
+curl localhost:8000/produtos</code></pre>
+      </div>
+      <div class="callout">
+        <span class="callout-label">Próximos passos</span>
+        <p>Para continuar: adicione categorias aos produtos (uma tabela nova, uma model, uma interface, um repository), crie testes para as rotas (veja <a href="#testes">Testes</a>) e confira a lista de <a href="#producao">Produção e segurança</a> antes de publicar.</p>
+      </div>
+    </article>
+
+    <!-- ================================================================== PROBLEMAS COMUNS -->
+    <article class="doc-page" id="problemas">
+      <h1>Problemas comuns</h1>
+
+      <p class="lead">Os erros que mais aparecem, organizados pelo que você vê na tela. Use a busca (<kbd>Ctrl</kbd> + <kbd>K</kbd>) com um trecho da mensagem para chegar direto.</p>
+
+      <div class="callout tip">
+        <span class="callout-label">Antes de tudo</span>
+        <p>Deixe <code>APP_ENV=development</code> no <code>.env</code> enquanto desenvolve: assim cada erro vem com uma <code>dica</code> explicando a causa. E rode <code>php vendor/bin/haki check</code> e <code>php vendor/bin/haki db</code>: eles encontram boa parte dos problemas abaixo sozinhos.</p>
       </div>
 
-      <p>Faça login com <code>zoro@exemplo.com</code> e tente acessar <code>/admin/painel</code>: a resposta será <strong>403</strong>, porque o Zoro tem o perfil <code>membro</code>.</p>
+      <h2 id="problemas-instalacao">Instalação</h2>
+
+      <h3 id="problema-zip">"The zip extension and unzip/7z commands are both missing"</h3>
+      <p><strong>Causa:</strong> o Composer baixa os pacotes compactados e o PHP está sem a extensão <code>zip</code>. A pasta <code>vendor/</code> não é criada.</p>
+      <p><strong>Solução:</strong> no <code>php.ini</code> (veja onde está com <code>php --ini</code>), troque <code>;extension=zip</code> por <code>extension=zip</code>, abra o terminal de novo e rode <code>composer require shankscode/haki</code> outra vez.</p>
+
+      <h3 id="problema-php-nao-reconhecido">"php não é reconhecido como um comando"</h3>
+      <p><strong>Causa:</strong> a pasta do PHP não está no <code>PATH</code> do Windows.</p>
+      <p><strong>Solução:</strong> adicione a pasta (por exemplo, <code>C:\php</code>) às variáveis de ambiente do sistema, em <em>Configurações → Sistema → Sobre → Configurações avançadas → Variáveis de Ambiente</em>, e abra o terminal de novo.</p>
+
+      <h3 id="problema-versao-php">"Your requirements could not be resolved" / "php ^8.2"</h3>
+      <p><strong>Causa:</strong> a versão do PHP é anterior à 8.2.</p>
+      <p><strong>Solução:</strong> confira com <code>php -v</code> e atualize o PHP.</p>
+
+      <h2 id="problemas-classes">Classes e autoload</h2>
+
+      <h3 id="problema-class-not-found">"Class ... not found" / "a classe não existe"</h3>
+      <p><strong>Causas mais comuns, nesta ordem:</strong></p>
+      <ol>
+        <li>O <code>namespace</code> do arquivo não bate com a pasta. Em <code>app/Controllers/ProdutoController.php</code>, precisa ser <code>namespace App\Controllers;</code>.</li>
+        <li>O nome da classe não é igual ao nome do arquivo (atenção às maiúsculas: <code>ProdutoController</code> ≠ <code>produtoController</code>).</li>
+        <li>Faltou o <code>use App\...;</code> no arquivo que usa a classe.</li>
+        <li>O <code>composer.json</code> não tem o autoload de <code>App\</code>, ou ele foi editado sem rodar <code>composer dump-autoload</code>.</li>
+      </ol>
+      <p>Em desenvolvimento, a mensagem do Haki costuma trazer "Você quis dizer ...?" com o nome mais parecido que existe.</p>
+
+      <h3 id="problema-interface">"... a classe é uma interface" / "Nenhuma implementação encontrada"</h3>
+      <p><strong>Causa:</strong> o controller pede uma interface e o Haki não sabe qual classe entregar.</p>
+      <p><strong>Solução:</strong> confira se o <code>bootstrap/app.php</code> tem o <code>discover('App\\Contracts', 'App\\Repositories')</code> e se os nomes seguem o padrão (<code>ProdutoRepositoryInterface</code> → <code>ProdutoRepository</code> ou <code>PdoProdutoRepository</code>). Para nomes fora do padrão, use <code>bind()</code>. Veja <a href="#container-discover">Descoberta automática</a>.</p>
+
+      <h3 id="problema-injetar">"Não sei como injetar $x em ..."</h3>
+      <p><strong>Causa:</strong> um parâmetro do método (ou do construtor) não é uma classe e não é um parâmetro da rota.</p>
+      <p><strong>Solução:</strong> se é um valor da URL, o nome precisa ser igual ao da rota (<code>{id}</code> → <code>$id</code>). Se é configuração, dê um valor padrão ou crie a classe com uma função no container. Veja <a href="#container-closure">Criando com uma função</a>.</p>
+
+      <h2 id="problemas-rotas">Rotas e servidor</h2>
+
+      <h3 id="problema-404-tudo">Toda rota dá 404 (menos a página inicial)</h3>
+      <p><strong>Causa:</strong> o servidor web não está mandando as requisições para o <code>public/index.php</code>.</p>
+      <p><strong>Solução:</strong> com o servidor do PHP, use <code>php -S localhost:8000 -t public</code> (o <code>-t public</code> é obrigatório). No Apache, crie o <code>public/.htaccess</code>; no Nginx, configure o <code>try_files</code>. Veja <a href="#instalacao-servidor">Servidores web</a>.</p>
+
+      <h3 id="problema-404-rota">"Rota não encontrada" numa rota que existe</h3>
+      <p><strong>Causas:</strong> o método HTTP não é o mesmo (a rota é <code>post</code> e você chamou com <code>GET</code>, o que daria 405), o caminho tem um erro de digitação, ou o arquivo de rotas não foi carregado no bootstrap (<code>$app-&gt;routes(...)</code>).</p>
+      <p><strong>Solução:</strong> leia a <code>dica</code> do erro: ela sugere rotas parecidas. E rode <code>php vendor/bin/haki check</code> para ver a lista de rotas registradas.</p>
+
+      <h3 id="problema-405">"Método não permitido" (405)</h3>
+      <p><strong>Causa:</strong> o caminho existe, mas com outro método. O cabeçalho <code>Allow</code> da resposta lista os métodos aceitos.</p>
+
+      <h3 id="problema-html-no-json">A resposta começa com HTML (ou um bloco escuro) antes do JSON</h3>
+      <p><strong>Causa:</strong> um <code>haki()</code>, <code>echo</code>, <code>var_dump</code> ou <code>print_r</code> esquecido no código. Também pode ser um espaço ou linha em branco <strong>antes</strong> do <code>&lt;?php</code> em algum arquivo.</p>
+      <p><strong>Solução:</strong> procure por <code>haki(</code>, <code>echo</code> e <code>var_dump</code> no projeto, e confira se todo arquivo começa exatamente com <code>&lt;?php</code>.</p>
+
+      <h2 id="problemas-dados">Dados enviados</h2>
+
+      <h3 id="problema-corpo-vazio">input() sempre devolve null</h3>
+      <p><strong>Causa:</strong> o cliente enviou JSON sem o cabeçalho <code>Content-Type: application/json</code>, então o corpo não foi lido como JSON.</p>
+      <p><strong>Solução:</strong> envie o cabeçalho. No <code>curl</code>: <code>-H "Content-Type: application/json"</code>; no <code>fetch</code>: <code>headers: { 'Content-Type': 'application/json' }</code>. Para conferir o que chegou, use <code>haki($request-&gt;all(), $request-&gt;headers())</code>.</p>
+
+      <h3 id="problema-json-invalido">"JSON inválido no corpo da requisição" (400)</h3>
+      <p><strong>Causa:</strong> o corpo tem um erro de sintaxe (vírgula sobrando, aspas simples no lugar de duplas, chave sem aspas). A <code>dica</code> diz qual foi o erro.</p>
+      <p>Se a dica for <strong>"Malformed UTF-8 characters"</strong> e o texto tiver acentos, o problema é a <strong>codificação de quem enviou</strong>: alguns terminais do Windows (como o Git Bash) mandam o "é" fora do padrão UTF-8. Salve o JSON num arquivo UTF-8 e envie com <code>curl --data-binary @dados.json</code>, ou use Insomnia, Postman ou o próprio front-end, que enviam em UTF-8.</p>
+
+      <h3 id="problema-422">Recebo 422 e não entendo por quê</h3>
+      <p><strong>Causa:</strong> a validação recusou os dados. O campo <code>campos</code> da resposta diz exatamente o que está errado em cada campo.</p>
+      <p>Lembre que <strong>todo campo é obrigatório</strong>, a menos que tenha <code>-&gt;optional()</code>, e que <code>""</code> (texto vazio) conta como não enviado. Veja <a href="#validacao-obrigatorio">Obrigatório e opcional</a>.</p>
+
+      <h3 id="problema-campo-nao-existe">"O campo \"x\" não existe em ...Request"</h3>
+      <p><strong>Causa:</strong> você usou <code>$request-&gt;x</code> numa classe de validação, mas <code>x</code> não está em <code>rules()</code>. Só os campos declarados ficam disponíveis.</p>
+      <p><strong>Solução:</strong> adicione o campo em <code>rules()</code> (com <code>-&gt;optional()</code>, se ele puder faltar).</p>
+
+      <h2 id="problemas-auth">Login e tokens</h2>
+
+      <h3 id="problema-token-nao-informado">"Token não informado" mesmo enviando o token</h3>
+      <p><strong>Causas:</strong></p>
+      <ul>
+        <li>Faltou a palavra <code>Bearer</code> e o espaço. O certo é <code>Authorization: Bearer eyJ...</code>.</li>
+        <li>No Apache, o cabeçalho <code>Authorization</code> é descartado. Adicione ao <code>public/.htaccess</code> as linhas mostradas em <a href="#instalacao-apache">Apache</a>.</li>
+      </ul>
+
+      <h3 id="problema-token-invalido">"Token inválido ou expirado"</h3>
+      <p>A <code>dica</code> (em desenvolvimento) diz o motivo exato:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Dica</th><th>O que fazer</th></tr></thead>
+          <tbody>
+            <tr><td>"Token expirado."</td><td>Normal depois de 15 minutos. Renove com o refresh token (veja <a href="#refresh-cliente">o fluxo no cliente</a>).</td></tr>
+            <tr><td>"Assinatura inválida"</td><td>O token foi gerado com outro <code>JWT_SECRET</code> (por exemplo, o segredo foi trocado, ou o token é de outro ambiente). Faça login de novo.</td></tr>
+            <tr><td>"Token revogado (logout)."</td><td>O usuário fez logout com esse token. Faça login de novo.</td></tr>
+            <tr><td>"Token malformado"</td><td>O valor enviado não é um token completo: confira se não foi cortado ou se não enviou o refresh token no lugar do access token.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="problema-secret">"O segredo JWT não foi definido" / "precisa ter pelo menos 32 caracteres"</h3>
+      <p><strong>Solução:</strong> rode <code>php vendor/bin/haki key:generate</code>. Ele grava um segredo forte no <code>.env</code>.</p>
+
+      <h3 id="problema-403">"Acesso negado" (403) para quem deveria ter acesso</h3>
+      <p><strong>Causa:</strong> o perfil no token é diferente do exigido pelo <code>-&gt;role()</code>. A comparação é exata (<code>Admin</code> ≠ <code>admin</code>), e o perfil fica gravado no token no momento do login.</p>
+      <p><strong>Solução:</strong> confira o valor em <code>GET /eu</code> e, se o perfil mudou, faça login de novo.</p>
+
+      <h3 id="problema-pdo-sqlite">"A extensão pdo_sqlite não está ativa"</h3>
+      <p><strong>Causa:</strong> o login guarda os tokens num SQLite, e a extensão está desativada.</p>
+      <p><strong>Solução:</strong> ative <code>extension=pdo_sqlite</code> no <code>php.ini</code>.</p>
+
+      <h2 id="problemas-banco">Banco de dados</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mensagem</th><th>Solução</th></tr></thead>
+          <tbody>
+            <tr><td>"could not find driver"</td><td>Ative <code>pdo_sqlite</code> ou <code>pdo_mysql</code> no <code>php.ini</code>.</td></tr>
+            <tr><td>"no such table"</td><td>Crie as tabelas (<code>php database/criar.php</code>) e confira o arquivo com <code>php vendor/bin/haki db</code>.</td></tr>
+            <tr><td>"Access denied for user"</td><td>Usuário ou senha do MySQL errados no <code>.env</code>.</td></tr>
+            <tr><td>"Unknown database"</td><td>Crie o banco no MySQL ou corrija <code>DB_DATABASE</code>.</td></tr>
+            <tr><td>"UNIQUE constraint failed" / "Duplicate entry"</td><td>Valor repetido numa coluna única. Confira antes, na validação.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Mais detalhes em <a href="#banco-erros">Banco de dados</a>.</p>
+
+      <h2 id="problemas-navegador">Navegador e front-end</h2>
+
+      <h3 id="problema-cors">"blocked by CORS policy" no console do navegador</h3>
+      <p><strong>Causa:</strong> o front-end está em outro endereço (por exemplo, <code>localhost:5173</code>) e a API não autorizou esse endereço.</p>
+      <p><strong>Solução:</strong> crie o middleware de CORS e registre como o <strong>primeiro</strong> middleware global, com o endereço do seu front-end. Veja <a href="#middleware-cors">Exemplo: CORS</a>. Se o erro só aparece em requisições com token, confira se o middleware responde ao <code>OPTIONS</code> e libera o cabeçalho <code>Authorization</code>.</p>
+
+      <h3 id="problema-500-producao">Em produção só aparece "Erro interno do servidor"</h3>
+      <p><strong>Causa:</strong> em produção, os detalhes nunca vão para o cliente, de propósito.</p>
+      <p><strong>Solução:</strong> leia o log do PHP no servidor (o caminho está na diretiva <code>error_log</code> do <code>php.ini</code>): o erro completo, com arquivo e linha, está lá.</p>
     </article>
 
     <!-- ================================================================== REFERÊNCIA -->
