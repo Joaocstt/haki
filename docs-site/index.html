@@ -2535,14 +2535,20 @@ DB_PASSWORD=sua-senha
       <p>O banco só é aberto na primeira vez que um model ou uma migração precisa dele. Antes disso, nada acontece.</p>
 
       <h2 id="elo-conexao-codigo">Configurando pelo código</h2>
-      <p>No <code>bootstrap/app.php</code>, você pode informar a conexão explicitamente. Útil para testes e para quem não quer depender do <code>.env</code>:</p>
+      <p>No <code>bootstrap/app.php</code>, você pode informar a conexão explicitamente, sem depender do <code>.env</code>. Escolha <strong>uma</strong> das formas abaixo. Cada chamada a <code>configurar()</code> substitui a conexão anterior, então não use as duas juntas.</p>
       <div class="code">
-        <div class="code-title">bootstrap/app.php</div>
+        <div class="code-title">Opção 1: por dados (o EloPHP abre o PDO para você)</div>
         <pre><code data-lang="php">use Elo\Conexao;
 
-Conexao::configurar(['driver' =&gt; 'sqlite', 'arquivo' =&gt; __DIR__ . '/../database/app.sqlite']);
+Conexao::configurar([
+    'driver'  =&gt; 'sqlite',
+    'arquivo' =&gt; __DIR__ . '/../database/app.sqlite',
+]);</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">Opção 2: com um PDO que você já criou (útil em testes)</div>
+        <pre><code data-lang="php">use Elo\Conexao;
 
-// ou com um PDO pronto
 Conexao::configurar(new PDO('sqlite::memory:'));</code></pre>
       </div>
 
