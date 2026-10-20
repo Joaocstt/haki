@@ -96,6 +96,7 @@
           <li><a href="#requisicoes">Requisições</a></li>
           <li><a href="#validacao">Validação</a></li>
           <li><a href="#banco-de-dados">Banco de dados</a></li>
+          <li><a href="#fluxo-banco">Do banco ao controller</a></li>
           <li><a href="#respostas">Respostas</a></li>
           <li><a href="#middleware">Middleware</a></li>
           <li><a href="#erros">Tratamento de erros</a></li>
@@ -2381,6 +2382,188 @@ página 3, 20 por página  →  LIMIT 20 OFFSET 40</code></pre>
           </tbody>
         </table>
       </div>
+    </article>
+
+    <article class="doc-page" id="fluxo-banco">
+      <h1>Do banco ao controller</h1>
+      <p class="page-desc">Um exemplo completo: a migração, o model, a rota e o controller de um recurso "produtos".</p>
+
+      <h2 id="fluxo-visao">O caminho de uma requisição</h2>
+      <p class="lead">Uma funcionalidade nova passa por cinco arquivos, nesta ordem. Cada um tem uma única responsabilidade.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Passo</th><th>Arquivo</th><th>Responsabilidade</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>database/migracoes/...criar_produtos.php</code></td><td>Cria a tabela no banco</td></tr>
+            <tr><td>2</td><td><code>app/Models/Produto.php</code></td><td>Representa um registro e fala com a tabela</td></tr>
+            <tr><td>3</td><td><code>app/Services/ProdutoService.php</code></td><td>Regra de negócio (opcional em casos simples)</td></tr>
+            <tr><td>4</td><td><code>app/Controllers/ProdutoController.php</code></td><td>Recebe a requisição e devolve o resultado</td></tr>
+            <tr><td>5</td><td><code>routes/api.php</code></td><td>Liga a URL ao controller</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <span class="callout-label">Nota</span>
+        <p>Os exemplos de migração e de model usam o <a href="#elo">EloPHP</a>, o ORM opcional do Haki. Se você preferir PDO puro, o fluxo é o mesmo: a tabela, uma classe que acessa o banco, e o controller.</p>
+      </div>
+
+      <h2 id="fluxo-migracao">1. A migração</h2>
+      <p>Crie o arquivo na pasta <code>database/migracoes/</code>. O prefixo de data define a ordem em que as migrações rodam, então use a data de criação no início do nome.</p>
+      <div class="code">
+        <div class="code-title">database/migracoes/2026_01_10_000001_criar_produtos.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+use Elo\Coluna;
+use Elo\Migracao;
+use Elo\Tabela;
+
+return new class extends Migracao
+{
+    public function subir(): void
+    {
+        Tabela::criar('produtos', [
+            'nome'   =&gt; Coluna::texto(120),
+            'preco'  =&gt; Coluna::decimal(10, 2)-&gt;padrao(0),
+            'status' =&gt; Coluna::opcoes(['ATIVO', 'INATIVO'])-&gt;padrao('ATIVO'),
+        ], ['exclusao_logica' =&gt; true]);
+    }
+
+    public function descer(): void
+    {
+        Tabela::apagar('produtos');
+    }
+};</code></pre>
+      </div>
+      <p>A tabela já nasce com <code>id</code>, <code>criado_em</code>, <code>atualizado_em</code> e, por causa de <code>exclusao_logica</code>, <code>excluido_em</code>.</p>
+
+      <p>Para criar a tabela no banco:</p>
+      <div class="code">
+        <div class="code-title">Terminal</div>
+        <pre><code data-lang="bash">php vendor/bin/elo migrar</code></pre>
+      </div>
+      <p>Se algo der errado, <code>php vendor/bin/elo migrar:reverter</code> desfaz o último lote. Para ver o que já foi aplicado, use <code>php vendor/bin/elo migrar:status</code>.</p>
+
+      <h2 id="fluxo-model">2. O model</h2>
+      <p>O model descreve o registro. Como o nome da tabela é <code>produtos</code>, não precisa declarar nada além da exclusão lógica:</p>
+      <div class="code">
+        <div class="code-title">app/Models/Produto.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+namespace App\Models;
+
+use Elo\Modelo;
+
+class Produto extends Modelo
+{
+    protected bool $exclusaoLogica = true;
+}</code></pre>
+      </div>
+      <p>Com o model pronto, já dá para usar sem escrever SQL:</p>
+      <div class="code">
+        <pre><code data-lang="php">$produto = Produto::criar(['nome' =&gt; 'Espada', 'preco' =&gt; 150]);   // INSERT
+$produto = Produto::buscar(1);                              // SELECT pela chave, ou null
+$produtos = Produto::onde('status', 'ATIVO')-&gt;ordenarPor('nome')-&gt;obter();
+
+$produto-&gt;preco = 120;
+$produto-&gt;salvar();                                       // UPDATE só de preco e atualizado_em
+
+$produto-&gt;excluir();                                      // grava excluido_em</code></pre>
+      </div>
+
+      <h2 id="fluxo-servico">3. O service (opcional)</h2>
+      <p>Se a regra for só "listar" ou "criar", o controller pode usar o model direto. Quando houver regra de negócio, ela fica no service, e não no controller:</p>
+      <div class="code">
+        <div class="code-title">app/Services/ProdutoService.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+namespace App\Services;
+
+use App\Models\Produto;
+
+final class ProdutoService
+{
+    public function listarAtivos(): array
+    {
+        return Produto::onde('status', 'ATIVO')-&gt;ordenarPor('nome')-&gt;paginar(20, 1)-&gt;dados;
+    }
+
+    public function cadastrar(string $nome, float $preco): Produto
+    {
+        if ($preco &lt; 0) {
+            throw new \InvalidArgumentException('O preço não pode ser negativo.');
+        }
+
+        return Produto::criar(['nome' =&gt; $nome, 'preco' =&gt; $preco]);
+    }
+}</code></pre>
+      </div>
+
+      <h2 id="fluxo-controller">4. O controller</h2>
+      <p>O controller recebe o service pelo construtor (o Haki injeta automaticamente) e só conecta as peças. Ele devolve um array, e o Haki transforma em JSON:</p>
+      <div class="code">
+        <div class="code-title">app/Controllers/ProdutoController.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+namespace App\Controllers;
+
+use App\Services\ProdutoService;
+use Haki\Http\Request;
+use Haki\Http\Response;
+
+final class ProdutoController
+{
+    public function __construct(private ProdutoService $produtos)
+    {
+    }
+
+    public function index(): array
+    {
+        return ['produtos' =&gt; $this-&gt;produtos-&gt;listarAtivos()];
+    }
+
+    public function store(Request $request): Response
+    {
+        $produto = $this-&gt;produtos-&gt;cadastrar(
+            (string) $request-&gt;input('nome'),
+            (float) $request-&gt;input('preco'),
+        );
+
+        return (new Response())->json(['produto' =&gt; $produto], 201);
+    }
+}</code></pre>
+      </div>
+      <div class="callout tip">
+        <span class="callout-label">Dica</span>
+        <p>Para validar a entrada antes do controller, crie uma <a href="#validacao">classe de validação</a> e receba-a como parâmetro do método, no lugar do <code>Request</code>.</p>
+      </div>
+
+      <h2 id="fluxo-rota">5. A rota</h2>
+      <p>Por último, ligue as URLs ao controller em <code>routes/api.php</code>:</p>
+      <div class="code">
+        <div class="code-title">routes/api.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+use App\Controllers\ProdutoController;
+
+/** @var Haki\Haki $app */
+
+$app-&gt;get('/produtos', [ProdutoController::class, 'index']);
+$app-&gt;post('/produtos', [ProdutoController::class, 'store']);</code></pre>
+      </div>
+
+      <h2 id="fluxo-teste">Testando o caminho</h2>
+      <div class="code">
+        <div class="code-title">Terminal</div>
+        <pre><code data-lang="bash">php vendor/bin/haki check      # confere controllers e dependências
+php -S localhost:8000 -t public
+
+curl -X POST localhost:8000/produtos -H "Content-Type: application/json" -d '{"nome":"Espada","preco":150}'
+curl localhost:8000/produtos</code></pre>
+      </div>
+      <p>O <code>haki check</code> avisa antes de publicar se algum controller não consegue ser montado, por exemplo por causa de uma dependência sem tipo.</p>
     </article>
 
     <!-- ================================================================== RESPOSTAS -->
