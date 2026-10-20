@@ -167,6 +167,79 @@ final class ValidationTest extends TestCase
         self::assertSame(['O campo t precisa ser um texto.'], $errors['t']);
     }
 
+    public function testRequiredRejectsEmptyAndAcceptsCustomMessage(): void
+    {
+        $r = $this->rule;
+
+        $errors = $this->errors(
+            ['nome' => '   ', 'cidade' => ''],
+            [
+                'nome' => $r->text()->required('Informe o nome do cliente.'),
+                'cidade' => $r->text()->required(),
+            ],
+        );
+
+        self::assertSame(['Informe o nome do cliente.'], $errors['nome']);
+        self::assertSame(['O campo cidade é obrigatório.'], $errors['cidade']);
+    }
+
+    public function testRequiredAfterOptionalMakesTheFieldRequired(): void
+    {
+        $r = $this->rule;
+
+        $errors = $this->errors([], ['apelido' => $r->text()->optional('-')->required()]);
+
+        self::assertSame(['O campo apelido é obrigatório.'], $errors['apelido']);
+    }
+
+    public function testIntegerMinAndMaxRange(): void
+    {
+        $r = $this->rule;
+
+        $errors = $this->errors(
+            ['idade' => 70, 'quantidade' => 0, 'nota' => 5],
+            [
+                'idade' => $r->integer()->min(18)->max(65),
+                'quantidade' => $r->integer()->between(1, 10),
+                'nota' => $r->integer()->between(1, 10),
+            ],
+        );
+
+        self::assertSame(['O campo idade pode ser no máximo 65.'], $errors['idade']);
+        self::assertSame(['O campo quantidade precisa ser no mínimo 1.'], $errors['quantidade']);
+        self::assertArrayNotHasKey('nota', $errors);
+    }
+
+    public function testNumberMinAndMaxWithDecimals(): void
+    {
+        $r = $this->rule;
+
+        $errors = $this->errors(
+            ['preco' => 0, 'desconto' => 10.5],
+            [
+                'preco' => $r->number()->between(0.01, 9999.99),
+                'desconto' => $r->number()->max(10),
+            ],
+        );
+
+        self::assertSame(['O campo preco precisa ser no mínimo 0,01.'], $errors['preco']);
+        self::assertSame(['O campo desconto pode ser no máximo 10.'], $errors['desconto']);
+    }
+
+    public function testMinAndMaxOnTextAreRejectedWhenBuilding(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->rule->text()->min(3);
+    }
+
+    public function testMinGreaterThanMaxIsRejectedWhenBuilding(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->rule->integer()->min(10)->max(5);
+    }
+
     public function testLengthMinMaxAndBetween(): void
     {
         $r = $this->rule;

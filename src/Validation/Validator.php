@@ -73,7 +73,7 @@ final class Validator
                 return [true, $field->defaultValue()];
             }
 
-            $this->addErrors($errors, $path, $field, ["{$subject} é obrigatório."]);
+            $this->addErrors($errors, $path, $field, [$field->requiredMessage() ?? "{$subject} é obrigatório."]);
 
             return [false, null];
         }

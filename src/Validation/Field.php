@@ -7,6 +7,7 @@ namespace Haki\Validation;
 use BackedEnum;
 use Closure;
 use DateTimeImmutable;
+use InvalidArgumentException;
 
 /**
  * A regra de um campo. Criada por Rule e configurada com métodos encadeados:
@@ -24,6 +25,8 @@ final class Field
     private ?int $minLength = null;
 
     private ?int $maxLength = null;
+
+    private ?string $requiredMessage = null;
 
     private int|float|null $min = null;
 
@@ -63,6 +66,24 @@ final class Field
     {
         $this->optional = true;
         $this->default = $default;
+        $this->requiredMessage = null;
+
+        return $this;
+    }
+
+    /**
+     * O campo é obrigatório: não pode faltar nem vir vazio ("" ou só espaços).
+     * Todo campo já é obrigatório por padrão; este método deixa a intenção explícita
+     * e permite trocar a mensagem de erro.
+     *
+     *     $rule->text()->required()
+     *     $rule->text()->required('Informe o nome do cliente.')
+     */
+    public function required(?string $message = null): self
+    {
+        $this->optional = false;
+        $this->default = null;
+        $this->requiredMessage = $message;
 
         return $this;
     }
@@ -82,23 +103,50 @@ final class Field
         return $this;
     }
 
-    /** Menor valor aceito (números). */
+    /**
+     * Menor valor aceito. Só para integer() e number().
+     *
+     *     $rule->integer()->min(18)     18 ou mais
+     *     $rule->number()->min(0.01)    0,01 ou mais
+     */
     public function min(int|float $value): self
     {
+        $this->assertNumeric('min');
+
+        if ($this->max !== null && $value > $this->max) {
+            throw new InvalidArgumentException("min({$value}) é maior que o max({$this->max}) já informado.");
+        }
+
         $this->min = $value;
 
         return $this;
     }
 
-    /** Maior valor aceito (números). */
+    /**
+     * Maior valor aceito. Só para integer() e number().
+     *
+     *     $rule->integer()->max(100)    até 100
+     *     $rule->number()->max(9.99)    até 9,99
+     */
     public function max(int|float $value): self
     {
+        $this->assertNumeric('max');
+
+        if ($this->min !== null && $value < $this->min) {
+            throw new InvalidArgumentException("max({$value}) é menor que o min({$this->min}) já informado.");
+        }
+
         $this->max = $value;
 
         return $this;
     }
 
-    /** Faixa de valores aceitos (números). */
+    /**
+     * Faixa de valores aceitos, com mínimo e máximo. Só para integer() e number().
+     *
+     *     $rule->integer()->between(1, 5)
+     *     $rule->number()->between(0, 100)
+     */
     public function between(int|float $min, int|float $max): self
     {
         return $this->min($min)->max($max);
@@ -181,6 +229,12 @@ final class Field
     public function defaultValue(): mixed
     {
         return $this->default;
+    }
+
+    /** @internal */
+    public function requiredMessage(): ?string
+    {
+        return $this->requiredMessage;
     }
 
     /** @internal */
@@ -441,6 +495,15 @@ final class Field
         }
 
         return null;
+    }
+
+    private function assertNumeric(string $method): void
+    {
+        if (!in_array($this->type, ['integer', 'number'], true)) {
+            throw new InvalidArgumentException(
+                "{$method}() só vale para integer() e number(). Para textos ou listas, use length().",
+            );
+        }
     }
 
     private function format(int|float $number): string
