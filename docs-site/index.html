@@ -106,19 +106,12 @@
       <div class="nav-group">
         <p class="nav-group-title">EloPHP (ORM opcional)</p>
         <ul class="nav-list">
-          <li><a href="#elo">Visão geral e diferenciais</a></li>
-          <li><a href="#elo-configuracao">Conexão e configuração</a></li>
-          <li><a href="#elo-tabelas">Tabelas e migrações</a></li>
-          <li><a href="#elo-migracao-passo">Migração passo a passo</a></li>
-          <li><a href="#elo-cli">Linha de comando elo</a></li>
-          <li><a href="#elo-modelos">Modelos</a></li>
-          <li><a href="#elo-model-completo">Model passo a passo</a></li>
-          <li><a href="#elo-nomes">Nomes em português</a></li>
+          <li><a href="#elo">Visão geral</a></li>
+          <li><a href="#elo-configuracao">Configuração</a></li>
+          <li><a href="#elo-migracoes">Migrações</a></li>
+          <li><a href="#elo-models">Models</a></li>
           <li><a href="#elo-relacionamentos">Relacionamentos</a></li>
-          <li><a href="#elo-muitos">Muitos para muitos</a></li>
-          <li><a href="#elo-consultas">Consultas e paginação</a></li>
-          <li><a href="#elo-eager">Carregamento ansioso (com)</a></li>
-          <li><a href="#elo-transacoes">Transações</a></li>
+          <li><a href="#elo-consultas">Consultas e transações</a></li>
         </ul>
       </div>
       <div class="nav-group">
@@ -2610,35 +2603,45 @@ curl localhost:8000/produtos</code></pre>
       <p>O <code>haki check</code> avisa antes de publicar se algum controller não consegue ser montado, por exemplo por causa de uma dependência sem tipo.</p>
     </article>
 
-    <!-- ================================================================== RESPOSTAS -->
+    <!-- ================================================================== ELOPHP (ORM OPCIONAL) -->
     <article class="doc-page" id="elo">
       <h1>EloPHP: ORM opcional</h1>
-      <p class="page-desc">Models, migrações e relacionamentos declarados em arrays, com nomes em português.</p>
+      <p class="page-desc">Um ORM simples, com models, migrações e relacionamentos declarados em arrays.</p>
 
-      <h2 id="elo-visao">Visão geral</h2>
-      <p class="lead">O EloPHP é um ORM (Active Record) que vem junto com o Haki. <strong>Não é obrigatório.</strong> Quem prefere PDO puro continua usando o Haki exatamente como está. Quem quer um ORM ativa o EloPHP só nos models que precisar.</p>
+      <h2 id="elo-o-que">O que é</h2>
+      <p class="lead">O EloPHP é um ORM (Active Record) que já vem no Haki. <strong>Ele é opcional.</strong> Você pode usar PDO puro, como descrito em <a href="#banco-de-dados">Banco de dados</a>, ou um ORM só nos models que quiser. Nada do que está nas outras páginas depende dele.</p>
 
-      <div class="callout">
-        <span class="callout-label">Nota</span>
-        <p>Usar o EloPHP não muda nada no restante do Haki: rotas, validação, autenticação e o container funcionam igual. O EloPHP lê as mesmas variáveis <code>DB_*</code> do <code>.env</code>.</p>
-      </div>
-
-      <h2 id="elo-pilares">Os quatro pilares</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Pilar</th><th>O que significa na prática</th></tr></thead>
+          <thead><tr><th>Quero</th><th>Use</th></tr></thead>
           <tbody>
-            <tr><td><strong>Simetria visual</strong></td><td>Relações no model e colunas na migração são mapas <code>'nome' =&gt; Definição</code>. Dá para ler a estrutura de cima a baixo.</td></tr>
-            <tr><td><strong>Convenções inteligentes</strong></td><td>Toda tabela criada com <code>Tabela::criar()</code> ganha <code>id</code>, <code>criado_em</code> e <code>atualizado_em</code>. Todo model aceita preenchimento em massa, exceto a chave primária.</td></tr>
-            <tr><td><strong>Acesso vs. ação</strong></td><td><code>$usuario-&gt;cargos</code> devolve os dados. <code>$usuario-&gt;cargos()</code> devolve o motor da relação, para filtrar ou vincular.</td></tr>
-            <tr><td><strong>Segurança nativa</strong></td><td>Todo valor vai como parâmetro do PDO. Nomes de tabela e coluna são validados e colocados entre aspas.</td></tr>
+            <tr><td>Escrever SQL à mão, sem nada a mais</td><td><a href="#banco-de-dados">PDO</a></td></tr>
+            <tr><td>Models com CRUD, relações e migrações prontas</td><td>EloPHP</td></tr>
+            <tr><td>As duas coisas no mesmo projeto</td><td>EloPHP em alguns models; PDO nos outros</td></tr>
           </tbody>
         </table>
       </div>
 
-      <h2 id="elo-exemplo">Como fica, de ponta a ponta</h2>
+      <h2 id="elo-caminho">O caminho de um recurso</h2>
+      <p>Com o EloPHP, cada peça tem uma página própria, e elas aparecem nesta ordem:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Passo</th><th>O que você escreve</th><th>Página</th></tr></thead>
+          <tbody>
+            <tr><td>1. Configurar</td><td>As variáveis <code>DB_*</code> no <code>.env</code></td><td><a href="#elo-configuracao">Configuração</a></td></tr>
+            <tr><td>2. Criar as tabelas</td><td>Uma migração em <code>database/migracoes/</code></td><td><a href="#elo-migracoes">Migrações</a></td></tr>
+            <tr><td>3. Descrever o registro</td><td>Um model em <code>app/Models/</code></td><td><a href="#elo-models">Models</a></td></tr>
+            <tr><td>4. Ligar as entidades</td><td>As relações do model</td><td><a href="#elo-relacionamentos">Relacionamentos</a></td></tr>
+            <tr><td>5. Buscar e gravar</td><td>Consultas e transações</td><td><a href="#elo-consultas">Consultas e transações</a></td></tr>
+            <tr><td>6. Usar no controller</td><td>O model dentro de um service</td><td><a href="#fluxo-banco">Do banco ao controller</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="elo-exemplo">Visão rápida</h2>
+      <p>Assim fica um recurso completo, em três arquivos:</p>
       <div class="code">
-        <div class="code-title">database/migracoes/2026_01_01_000001_criar_usuarios.php</div>
+        <div class="code-title">database/migracoes/2026_01_10_000001_criar_setores.php</div>
         <pre><code data-lang="php">&lt;?php
 
 use Elo\Coluna;
@@ -2653,118 +2656,85 @@ return new class extends Migracao
             'nome'  =&gt; Coluna::texto(100),
             'sigla' =&gt; Coluna::texto(15)-&gt;unico(),
         ]);
-
-        Tabela::criar('usuarios', [
-            'nome'     =&gt; Coluna::texto(150),
-            'email'    =&gt; Coluna::texto()-&gt;unico(),
-            'status'   =&gt; Coluna::opcoes(['ATIVO', 'INATIVO'])-&gt;padrao('ATIVO'),
-            'setor_id' =&gt; Coluna::pertenceA('setores')-&gt;aoExcluir('CASCADE'),
-        ]);
     }
 
     public function descer(): void
     {
-        Tabela::apagar('usuarios');
         Tabela::apagar('setores');
     }
 };</code></pre>
       </div>
-
       <div class="code">
-        <div class="code-title">app/Modelos/Usuario.php</div>
+        <div class="code-title">app/Models/Setor.php</div>
         <pre><code data-lang="php">&lt;?php
 
-namespace App\Modelos;
+namespace App\Models;
 
 use Elo\Modelo;
 
-class Usuario extends Modelo
+class Setor extends Modelo
 {
-    protected array $pertenceA = [
-        'setor' =&gt; Setor::class,
-    ];
-
-    protected array $pertenceAMuitos = [
-        'cargos' =&gt; Cargo::class,
+    protected array $temMuitos = [
+        'usuarios' =&gt; Usuario::class,
     ];
 }</code></pre>
       </div>
-
       <div class="code">
         <div class="code-title">Uso</div>
         <pre><code data-lang="php">$setor = Setor::criar(['nome' =&gt; 'Núcleo de Apoio', 'sigla' =&gt; 'NAT']);
-
-$usuario = Usuario::criar(['nome' =&gt; 'João', 'email' =&gt; 'joao@exemplo.br', 'setor_id' =&gt; $setor-&gt;id]);
-
-echo $usuario-&gt;setor-&gt;sigla;                 // NAT
-
-$usuario-&gt;cargos()-&gt;sincronizar([1, 2]);     // grava só a diferença na tabela pivô
-echo count($usuario-&gt;cargos);                  // 2</code></pre>
-      </div>
-
-      <h2 id="elo-optin">Usar ou não usar</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Quero</th><th>Faço</th></tr></thead>
-          <tbody>
-            <tr><td>Só PDO, como antes</td><td>Nada. Continue com <a href="#banco-de-dados">Banco de dados</a>.</td></tr>
-            <tr><td>Um ORM em alguns models</td><td>Crie um model que estende <code>Elo\Modelo</code>. Os outros continuam com PDO.</td></tr>
-            <tr><td>Migrações declarativas</td><td>Use <a href="#elo-tabelas">Tabela::criar()</a> dentro de uma migração e rode <code>php vendor/bin/elo migrar</code>.</td></tr>
-          </tbody>
-        </table>
+$setor-&gt;usuarios;                           // lista de usuários do setor
+Setor::buscarPor('sigla', 'NAT');              // o setor, ou null</code></pre>
       </div>
 
       <h2 id="elo-diferenciais">Diferenciais</h2>
       <ul>
-        <li><strong>Sem closures.</strong> Migrações e models são só arrays e classes. Nada de <code>function (Blueprint $table) { ... }</code>.</li>
-        <li><strong>Sem boilerplate.</strong> Sem <code>$fillable</code> para liberar colunas, sem método para declarar cada relação. Você declara o que a entidade é.</li>
-        <li><strong>Português de verdade.</strong> <code>criar</code>, <code>buscar</code>, <code>onde</code>, <code>ordenarPor</code>, <code>anexar</code>, <code>sincronizar</code>. Nomes de tabelas são pluralizados em português (<a href="#elo-nomes">veja as regras</a>).</li>
-        <li><strong>Quatro bancos.</strong> MySQL/MariaDB, PostgreSQL, SQL Server e SQLite, com o mesmo código. Cada banco tem sua gramática.</li>
-        <li><strong>Opcional e sem dependências.</strong> Usa só PDO e as extensões que o Haki já pede.</li>
+        <li><strong>Sem closures.</strong> Migrações e models são arrays e classes. Não existe <code>function (Blueprint $table) { ... }</code>.</li>
+        <li><strong>Sem repetição.</strong> Relações são linhas em um array. Não é preciso escrever um método para cada uma, nem uma lista de colunas liberadas.</li>
+        <li><strong>Nomes em português.</strong> <code>criar</code>, <code>buscar</code>, <code>onde</code>, <code>ordenarPor</code>, <code>anexar</code>, <code>sincronizar</code>. O nome da tabela é pluralizado pelas regras do português: <code>Usuario</code> vira <code>usuarios</code>.</li>
+        <li><strong>Quatro bancos.</strong> MySQL/MariaDB, PostgreSQL, SQL Server e SQLite, com o mesmo código.</li>
+        <li><strong>Seguro por padrão.</strong> Todo valor vai como parâmetro do PDO. Nomes de tabela e coluna são validados.</li>
       </ul>
 
-      <h2 id="elo-comparacao">Comparação rápida</h2>
+      <h2 id="elo-comparacao">Comparação com outros ORMs</h2>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Assunto</th><th>Eloquent / Doctrine</th><th>EloPHP</th></tr></thead>
           <tbody>
             <tr><td>Migração</td><td>Closure com <code>$table-&gt;...</code> repetido</td><td>Array <code>'coluna' =&gt; Coluna::...</code></td></tr>
-            <tr><td>Preenchimento em massa</td><td>Lista <code>$fillable</code> ou <code>$guarded</code></td><td>Liberado por padrão; só o <code>id</code> é protegido</td></tr>
-            <tr><td>Relação</td><td>Método que retorna <code>hasMany(...)</code></td><td>Linha no array <code>$temMuitos</code></td></tr>
-            <tr><td>Nome da tabela</td><td>Inglês, plural por regra do inglês</td><td>Português, regras do PT-BR</td></tr>
-            <tr><td>Curva de aprendizado</td><td>Termos em inglês e muitas convenções</td><td>Poucas convenções, todas explicadas aqui</td></tr>
+            <tr><td>Preenchimento em massa</td><td>Lista <code>$fillable</code> ou <code>$guarded</code></td><td>Tudo liberado; só a chave primária é protegida</td></tr>
+            <tr><td>Relação</td><td>Método que retorna <code>hasMany(...)</code></td><td>Uma linha no array <code>$temMuitos</code></td></tr>
+            <tr><td>Nome da tabela</td><td>Plural pelas regras do inglês</td><td>Plural pelas regras do português</td></tr>
           </tbody>
         </table>
       </div>
     </article>
 
     <article class="doc-page" id="elo-configuracao">
-      <h1>Conexão e configuração</h1>
-      <p class="page-desc">Como o EloPHP encontra o banco, e como trocar de banco sem mudar o código.</p>
+      <h1>Configuração</h1>
+      <p class="page-desc">Como o EloPHP descobre o banco e como trocar de banco.</p>
 
-      <h2 id="elo-conexao-env">Pelo .env (o caminho mais simples)</h2>
-      <p class="lead">O EloPHP usa as mesmas variáveis <code>DB_*</code> do Haki. Não precisa configurar nada a mais.</p>
+      <h2 id="elo-conexao-env">Pelo .env</h2>
+      <p class="lead">O EloPHP usa as mesmas variáveis <code>DB_*</code> do Haki. Se o <code>.env</code> já está certo para o PDO, o EloPHP funciona sem mais nada.</p>
       <div class="code">
-        <div class="code-title">.env</div>
+        <div class="code-title">.env (SQLite)</div>
         <pre><code data-lang="env">DB_CONNECTION=sqlite
-DB_DATABASE=database/app.sqlite
-
-# ou
-DB_CONNECTION=mysql
+DB_DATABASE=database/app.sqlite</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">.env (MySQL, PostgreSQL ou SQL Server)</div>
+        <pre><code data-lang="env">DB_CONNECTION=mysql        # ou pgsql, sqlsrv
 DB_HOST=127.0.0.1
-DB_PORT=3306
+DB_PORT=3306               # 5432 no pgsql, 1433 no sqlsrv
 DB_DATABASE=loja
 DB_USERNAME=root
-DB_PASSWORD=sua-senha
-
-# ou: pgsql (PostgreSQL) e sqlsrv (SQL Server)</code></pre>
+DB_PASSWORD=sua-senha</code></pre>
       </div>
-      <p>O banco só é aberto na primeira vez que um model ou uma migração precisa dele. Antes disso, nada acontece.</p>
+      <p>O banco só é aberto quando um model ou uma migração precisa dele. Antes disso, nada é conectado.</p>
 
-      <h2 id="elo-conexao-codigo">Configurando pelo código</h2>
-      <p>No <code>bootstrap/app.php</code>, você pode informar a conexão explicitamente, sem depender do <code>.env</code>. Escolha <strong>uma</strong> das formas abaixo. Cada chamada a <code>configurar()</code> substitui a conexão anterior, então não use as duas juntas.</p>
+      <h2 id="elo-conexao-codigo">Pelo código</h2>
+      <p>Você pode informar a conexão no <code>bootstrap/app.php</code>, sem depender do <code>.env</code>. Escolha <strong>uma</strong> das formas. Cada chamada a <code>configurar()</code> substitui a anterior.</p>
       <div class="code">
-        <div class="code-title">Opção 1: por dados (o EloPHP abre o PDO para você)</div>
+        <div class="code-title">Opção 1: com os dados (o EloPHP abre o PDO)</div>
         <pre><code data-lang="php">use Elo\Conexao;
 
 Conexao::configurar([
@@ -2780,27 +2750,28 @@ Conexao::configurar(new PDO('sqlite::memory:'));</code></pre>
       </div>
 
       <div class="callout tip">
-        <span class="callout-label">Dica</span>
-        <p>Caminhos relativos de SQLite são resolvidos pela pasta do projeto. Use <code>Conexao::raizDoProjeto(__DIR__ . '/..')</code> se o PHP não for iniciado na raiz (por exemplo, dentro de <code>public/</code>).</p>
+        <span class="callout-label">Caminhos relativos</span>
+        <p>Um caminho relativo de SQLite (como <code>database/app.sqlite</code>) é resolvido a partir da pasta do projeto. Se o PHP não estiver rodando na raiz (por exemplo, dentro de <code>public/</code>), informe a raiz com <code>Conexao::raizDoProjeto(__DIR__ . '/..')</code>.</p>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Comando elo</span>
+        <p>O comando <code>elo</code> lê só o <code>.env</code>. Uma conexão feita em <code>bootstrap/app.php</code> não vale para ele. Para as migrações, deixe a configuração no <code>.env</code>.</p>
       </div>
 
       <h2 id="elo-bancos">Os quatro bancos</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>DB_CONNECTION</th><th>Banco</th><th>Extensão PHP</th><th>Diferença que o EloPHP cuida por você</th></tr></thead>
+          <thead><tr><th>DB_CONNECTION</th><th>Banco</th><th>Extensão PHP</th><th>O que o EloPHP trata por você</th></tr></thead>
           <tbody>
-            <tr><td><code>sqlite</code></td><td>SQLite</td><td><code>pdo_sqlite</code></td><td>Ativa <code>PRAGMA foreign_keys</code>, para o <code>ON DELETE</code> funcionar</td></tr>
-            <tr><td><code>mysql</code></td><td>MySQL / MariaDB</td><td><code>pdo_mysql</code></td><td>Crases, <code>ENUM</code> nativo, <code>UNSIGNED</code></td></tr>
-            <tr><td><code>pgsql</code></td><td>PostgreSQL</td><td><code>pdo_pgsql</code></td><td>Aspas duplas, <code>RETURNING</code> para pegar o id, <code>BOOLEAN</code></td></tr>
-            <tr><td><code>sqlsrv</code></td><td>SQL Server</td><td><code>pdo_sqlsrv</code></td><td>Colchetes, <code>OFFSET/FETCH</code>, <code>OUTPUT</code> para pegar o id, <code>NVARCHAR</code></td></tr>
+            <tr><td><code>sqlite</code></td><td>SQLite</td><td><code>pdo_sqlite</code></td><td>Liga as chaves estrangeiras (<code>PRAGMA foreign_keys</code>), para o <code>ON DELETE</code> funcionar</td></tr>
+            <tr><td><code>mysql</code></td><td>MySQL / MariaDB</td><td><code>pdo_mysql</code></td><td>Crases, <code>ENUM</code> nativo e <code>UNSIGNED</code></td></tr>
+            <tr><td><code>pgsql</code></td><td>PostgreSQL</td><td><code>pdo_pgsql</code></td><td>Aspas duplas, <code>RETURNING</code> para pegar o id e <code>BOOLEAN</code></td></tr>
+            <tr><td><code>sqlsrv</code></td><td>SQL Server</td><td><code>pdo_sqlsrv</code></td><td>Colchetes, <code>OFFSET/FETCH</code>, <code>OUTPUT</code> para pegar o id e <code>NVARCHAR</code></td></tr>
           </tbody>
         </table>
       </div>
-
-      <div class="callout">
-        <span class="callout-label">Nota</span>
-        <p>Trocar de banco é trocar o <code>.env</code>. Os models e migrações não mudam, porque cada banco tem a sua <em>gramática</em>: a tradução de <code>Coluna::texto(100)</code> para <code>VARCHAR(100)</code> ou <code>NVARCHAR(100)</code> fica dentro do EloPHP.</p>
-      </div>
+      <p>Trocar de banco é trocar o <code>.env</code>. Os models e as migrações não mudam, porque cada banco tem sua tradução (a gramática) dentro do EloPHP.</p>
 
       <h2 id="elo-conexao-erros">Erros comuns</h2>
       <div class="table-wrap">
@@ -2809,135 +2780,21 @@ Conexao::configurar(new PDO('sqlite::memory:'));</code></pre>
           <tbody>
             <tr><td>Nenhum banco configurado</td><td>Defina <code>DB_CONNECTION</code> no <code>.env</code> ou use <code>Conexao::configurar()</code>.</td></tr>
             <tr><td>DB_CONNECTION não é suportado</td><td>Use <code>sqlite</code>, <code>mysql</code>, <code>pgsql</code> ou <code>sqlsrv</code>.</td></tr>
-            <tr><td>Driver de banco não suportado</td><td>Confira se a extensão <code>pdo_*</code> do banco está ativa no <code>php.ini</code>.</td></tr>
+            <tr><td>Driver de banco não suportado</td><td>Ative a extensão <code>pdo_*</code> correspondente no <code>php.ini</code>.</td></tr>
           </tbody>
         </table>
       </div>
     </article>
 
-    <article class="doc-page" id="elo-tabelas">
-      <h1>Tabelas e migrações</h1>
-      <p class="page-desc">Criar, alterar e apagar tabelas com <code>Tabela</code> e <code>Coluna</code>, sem closures.</p>
+    <article class="doc-page" id="elo-migracoes">
+      <h1>Migrações</h1>
+      <p class="page-desc">Como criar, nomear, escrever, aplicar e desfazer as tabelas do banco.</p>
 
-      <h2 id="elo-tabelas-criar">Tabela::criar()</h2>
-      <p class="lead">Recebe o nome, um array de colunas e, opcionalmente, algumas opções. As colunas de auditoria já vêm prontas.</p>
-      <div class="code">
-        <div class="code-title">Tabela::criar(string $nome, array $colunas, array $opcoes = [])</div>
-        <pre><code data-lang="php">Tabela::criar('produtos', [
-    'nome'  =&gt; Coluna::texto(120),
-    'preco' =&gt; Coluna::decimal(10, 2)-&gt;padrao(0),
-], ['exclusao_logica' =&gt; true]);</code></pre>
-      </div>
+      <h2 id="elo-migracoes-o-que">O que é uma migração</h2>
+      <p class="lead">Uma migração é um arquivo PHP que descreve uma mudança no banco. Ela tem duas partes: <code>subir()</code> aplica a mudança, e <code>descer()</code> desfaz. Como os arquivos rodam sempre na mesma ordem, o banco de cada pessoa do time (e de produção) chega ao mesmo estado.</p>
 
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Opção</th><th>Faz</th></tr></thead>
-          <tbody>
-            <tr><td><code>sem_id</code></td><td>Não cria a coluna <code>id</code>. Útil para tabelas pivô.</td></tr>
-            <tr><td><code>sem_datas</code></td><td>Não cria <code>criado_em</code> e <code>atualizado_em</code>.</td></tr>
-            <tr><td><code>exclusao_logica</code></td><td>Acrescenta <code>excluido_em</code> no fim da tabela.</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p>Você não escreve <code>id</code>, <code>criado_em</code> nem <code>atualizado_em</code> em toda tabela. Eles vêm por padrão, na ordem certa: <code>id</code> no início, datas no fim.</p>
-      </div>
-
-      <h2 id="elo-tabelas-colunas">Catálogo de colunas</h2>
-      <p>Cada método de <code>Coluna::</code> é um tipo. Os modificadores se encadeiam depois dele.</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Coluna</th><th>Tipo gerado (MySQL / PostgreSQL / SQL Server / SQLite)</th><th>Modificadores</th></tr></thead>
-          <tbody>
-            <tr><td><code>Coluna::texto(100)</code></td><td>VARCHAR(100) / VARCHAR(100) / NVARCHAR(100) / VARCHAR(100)</td><td><code>nulo()</code>, <code>unico()</code>, <code>padrao()</code>, <code>indice()</code></td></tr>
-            <tr><td><code>Coluna::textoLongo()</code></td><td>TEXT / TEXT / NVARCHAR(MAX) / TEXT</td><td><code>nulo()</code></td></tr>
-            <tr><td><code>Coluna::inteiro()</code></td><td>INT / INTEGER / INT / INTEGER</td><td><code>nulo()</code>, <code>unico()</code>, <code>padrao()</code>, <code>semSinal()</code></td></tr>
-            <tr><td><code>Coluna::decimal(10, 2)</code></td><td>DECIMAL(10, 2) / DECIMAL / DECIMAL / NUMERIC</td><td><code>nulo()</code>, <code>padrao()</code></td></tr>
-            <tr><td><code>Coluna::booleano()</code></td><td>TINYINT(1) / BOOLEAN / BIT / BOOLEAN</td><td><code>nulo()</code>, <code>padrao(true)</code></td></tr>
-            <tr><td><code>Coluna::opcoes([...])</code></td><td>ENUM(...) / VARCHAR + CHECK / NVARCHAR + CHECK / VARCHAR + CHECK</td><td><code>nulo()</code>, <code>padrao()</code></td></tr>
-            <tr><td><code>Coluna::data()</code></td><td>DATE</td><td><code>nulo()</code>, <code>padraoAtual()</code></td></tr>
-            <tr><td><code>Coluna::dataHora()</code></td><td>DATETIME / TIMESTAMP / DATETIME2 / DATETIME</td><td><code>nulo()</code>, <code>padraoAtual()</code></td></tr>
-            <tr><td><code>Coluna::json()</code></td><td>JSON / JSON / NVARCHAR(MAX) / TEXT</td><td><code>nulo()</code></td></tr>
-            <tr><td><code>Coluna::pertenceA('tabela')</code></td><td>Chave estrangeira para <code>tabela(id)</code></td><td><code>nulo()</code>, <code>aoExcluir()</code>, <code>aoAtualizar()</code>, <code>indice()</code></td></tr>
-            <tr><td><code>Coluna::exclusaoLogica()</code></td><td>TIMESTAMP NULL (excluido_em)</td><td>Já aceita NULL</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2 id="elo-tabelas-relacao">Chave estrangeira sem repetição</h2>
-      <p>Você só informa a tabela de destino. O <code>id</code> é a chave padrão. Para outra chave, passe o segundo parâmetro: <code>Coluna::pertenceA('setores', 'codigo')</code>.</p>
-      <div class="code">
-        <pre><code data-lang="php">'setor_id' =&gt; Coluna::pertenceA('setores')-&gt;aoExcluir('CASCADE')-&gt;aoAtualizar('CASCADE'),</code></pre>
-      </div>
-      <p><code>aoExcluir()</code> aceita <code>CASCADE</code>, <code>SET NULL</code>, <code>RESTRICT</code> e <code>NO ACTION</code>. Qualquer outro valor gera erro antes de chegar ao banco.</p>
-
-      <h2 id="elo-tabelas-alterar">Alterando e apagando</h2>
-      <div class="code">
-        <pre><code data-lang="php">Tabela::alterar('usuarios', [
-    'telefone' =&gt; Coluna::texto(20)-&gt;nulo(),   // adiciona
-    'cpf'      =&gt; Coluna::remover(),             // remove
-]);
-
-Tabela::apagar('usuarios');                    // DROP TABLE IF EXISTS
-Tabela::existe('usuarios');                    // true ou false</code></pre>
-      </div>
-
-      <div class="callout warn">
-        <span class="callout-label">Limite do SQLite</span>
-        <p>O SQLite não aceita <code>UNIQUE</code> nem chave estrangeira em <code>ALTER TABLE</code>. O EloPHP avisa com uma mensagem clara. Nesses casos, recrie a tabela.</p>
-      </div>
-
-      <h2 id="elo-migracoes">Migrações</h2>
-      <p>Cada arquivo em <code>database/migracoes/</code> retorna uma classe anônima com <code>subir()</code> e <code>descer()</code>. O nome do arquivo define a ordem, então use um prefixo com data:</p>
-      <div class="code">
-        <div class="code-title">database/migracoes/2026_01_01_000002_criar_cargos.php</div>
-        <pre><code data-lang="php">&lt;?php
-
-use Elo\Coluna;
-use Elo\Migracao;
-use Elo\Tabela;
-
-return new class extends Migracao
-{
-    public function subir(): void
-    {
-        Tabela::criar('cargos', ['nome' =&gt; Coluna::texto(50)-&gt;unico()]);
-    }
-
-    public function descer(): void
-    {
-        Tabela::apagar('cargos');
-    }
-};</code></pre>
-      </div>
-
-      <div class="callout tip">
-        <span class="callout-label">Dica</span>
-        <p>Em MySQL e em outros bancos com DDL automático, uma migração que falha no meio pode deixar a tabela parcialmente criada. O EloPHP informa o nome da migração que falhou, para você corrigir e rodar de novo.</p>
-      </div>
-
-      <h2 id="elo-tabelas-pivo">Tabela pivô</h2>
-      <p>A tabela pivô de um relacionamento muitos-para-muitos é uma tabela comum, sem <code>id</code>:</p>
-      <div class="code">
-        <pre><code data-lang="php">Tabela::criar('cargo_usuario', [
-    'usuario_id' =&gt; Coluna::pertenceA('usuarios')-&gt;aoExcluir('CASCADE'),
-    'cargo_id'   =&gt; Coluna::pertenceA('cargos')-&gt;aoExcluir('CASCADE'),
-], ['sem_id' =&gt; true, 'sem_datas' =&gt; true]);</code></pre>
-      </div>
-    </article>
-
-    <article class="doc-page" id="elo-migracao-passo">
-      <h1>Migração: passo a passo</h1>
-      <p class="page-desc">Como criar um arquivo de migração, onde ele fica, como nomeá-lo e como aplicá-lo no banco.</p>
-
-      <h2 id="elo-migracao-o-que">O que é uma migração</h2>
-      <p class="lead">Uma migração é um arquivo PHP que descreve uma mudança no banco: criar uma tabela, adicionar uma coluna, remover uma tabela. Cada arquivo tem duas partes: <code>subir()</code>, que aplica a mudança, e <code>descer()</code>, que a desfaz.</p>
-      <p>Assim, o banco de cada colega, de homologação e de produção chega ao mesmo estado, seguindo a mesma sequência de arquivos.</p>
-
-      <h2 id="elo-migracao-pasta">1. A pasta</h2>
-      <p>As migrações ficam em <code>database/migracoes/</code>, na raiz do projeto (a pasta que tem o <code>vendor/</code>):</p>
+      <h2 id="elo-migracoes-pasta">1. A pasta e o nome</h2>
+      <p>Os arquivos ficam em <code>database/migracoes/</code>, na raiz do projeto (a pasta que contém o <code>vendor/</code>). A pasta não é criada sozinha: crie-a antes da primeira migração.</p>
       <div class="code">
         <div class="code-title">Estrutura</div>
         <pre><code data-lang="text">meu-projeto/
@@ -2949,33 +2806,20 @@ return new class extends Migracao
         ├── 2026_01_10_000002_criar_usuarios.php
         └── 2026_01_12_000001_adicionar_telefone_em_usuarios.php</code></pre>
       </div>
-      <div class="callout warn">
-        <span class="callout-label">Atenção</span>
-        <p>A pasta não é criada sozinha. Crie <code>database/migracoes/</code> antes da primeira migração. Se ela não existir, o <code>elo migrar</code> diz que não há nada pendente.</p>
-      </div>
-
-      <h2 id="elo-migracao-nome">2. O nome do arquivo</h2>
-      <p>O nome define a ordem em que as migrações rodam, porque são aplicadas em ordem alfabética. Use este padrão:</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Parte</th><th>Exemplo</th><th>Para que serve</th></tr></thead>
-          <tbody>
-            <tr><td>Data e número</td><td><code>2026_01_10_000001</code></td><td>Ordem. Use a data de hoje e aumente o número se criar mais de uma no mesmo dia.</td></tr>
-            <tr><td>Ação</td><td><code>criar_usuarios</code></td><td>O que a migração faz, em português e em minúsculas.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>Regras que valem para o nome:</p>
+      <p>Os arquivos rodam em ordem alfabética. Por isso, o nome começa com a data e um número:</p>
       <ul>
-        <li>Termine com <code>.php</code>.</li>
-        <li>Nunca renomeie uma migração que já foi aplicada. O banco guarda o nome, e uma migração renomeada parece nova.</li>
-        <li>Crie uma migração nova para cada mudança. Não edite a antiga depois que ela rodou em outro banco.</li>
+        <li><strong>Data e número</strong> (<code>2026_01_10_000001</code>): a ordem. Se criar mais de uma no mesmo dia, aumente o número.</li>
+        <li><strong>Ação</strong> (<code>criar_usuarios</code>): o que a migração faz, em minúsculas.</li>
       </ul>
+      <div class="callout warn">
+        <span class="callout-label">Não renomeie uma migração aplicada</span>
+        <p>O banco guarda o nome de cada migração que já rodou. Renomear um arquivo faz o EloPHP tratá-lo como novo. Para mudar uma tabela que já existe, crie outra migração.</p>
+      </div>
 
-      <h2 id="elo-migracao-classe">3. O conteúdo do arquivo</h2>
-      <p>O arquivo <strong>retorna um objeto</strong>: uma classe anônima que estende <code>Elo\Migracao</code>. Não declare uma classe com nome, porque o EloPHP pega o objeto que o arquivo devolve.</p>
+    <h2 id="elo-migracoes-escrever">2. Escrevendo o arquivo</h2>
+      <p>O arquivo <strong>retorna um objeto</strong>: uma classe anônima que estende <code>Elo\Migracao</code>. Ela não tem nome, porque o EloPHP usa o objeto que o arquivo devolve.</p>
       <div class="code">
-        <div class="code-title">database/migracoes/2026_01_10_000001_criar_setores.php</div>
+        <div class="code-title">database/migracoes/2026_01_10_000002_criar_usuarios.php</div>
         <pre><code data-lang="php">&lt;?php
 
 use Elo\Coluna;
@@ -2986,70 +2830,115 @@ return new class extends Migracao
 {
     public function subir(): void
     {
-        Tabela::criar('setores', [
-            'nome'  =&gt; Coluna::texto(100),
-            'sigla' =&gt; Coluna::texto(15)-&gt;unico(),
-        ]);
+        Tabela::criar('usuarios', [
+            'nome'     =&gt; Coluna::texto(150),
+            'email'    =&gt; Coluna::texto()-&gt;unico(),
+            'senha'    =&gt; Coluna::texto(255),
+            'status'   =&gt; Coluna::opcoes(['ATIVO', 'INATIVO'])-&gt;padrao('ATIVO'),
+            'setor_id' =&gt; Coluna::pertenceA('setores')-&gt;aoExcluir('SET NULL')-&gt;nulo(),
+        ], ['exclusao_logica' =&gt; true]);
     }
 
     public function descer(): void
     {
-        Tabela::apagar('setores');
+        Tabela::apagar('usuarios');
     }
 };</code></pre>
       </div>
+      <p><code>descer()</code> deve fazer o oposto de <code>subir()</code>. Se uma tabela aponta para outra com chave estrangeira, apague a que aponta antes da que é apontada.</p>
 
-      <div class="callout tip">
-        <span class="callout-label">Dica</span>
-        <p>O <code>descer()</code> deve fazer exatamente o contrário do <code>subir()</code>. Se você criou três tabelas em <code>subir()</code>, apague as três em <code>descer()</code>, na ordem inversa da criação quando houver chave estrangeira.</p>
-      </div>
-
-      <h2 id="elo-migracao-colunas">4. Os comandos mais usados dentro de subir()</h2>
+      <h3 id="elo-migracoes-tabela">Tabela::criar()</h3>
+      <p>Por padrão, a tabela ganha <code>id</code> no início e <code>criado_em</code> e <code>atualizado_em</code> no fim. Você só descreve as suas colunas.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Quero</th><th>Escrevo</th></tr></thead>
+          <thead><tr><th>Opção</th><th>Efeito</th></tr></thead>
           <tbody>
-            <tr><td>Criar uma tabela</td><td><code>Tabela::criar('nome', [...])</code></td></tr>
-            <tr><td>Criar uma tabela sem id, para pivô</td><td><code>Tabela::criar('cargo_usuario', [...], ['sem_id' =&gt; true, 'sem_datas' =&gt; true])</code></td></tr>
-            <tr><td>Criar com exclusão lógica</td><td><code>Tabela::criar('produtos', [...], ['exclusao_logica' =&gt; true])</code></td></tr>
-            <tr><td>Adicionar uma coluna</td><td><code>Tabela::alterar('usuarios', ['telefone' =&gt; Coluna::texto(20)-&gt;nulo()])</code></td></tr>
-            <tr><td>Remover uma coluna</td><td><code>Tabela::alterar('usuarios', ['cpf' =&gt; Coluna::remover()])</code></td></tr>
-            <tr><td>Apagar uma tabela</td><td><code>Tabela::apagar('nome')</code></td></tr>
-            <tr><td>Verificar se existe</td><td><code>Tabela::existe('nome')</code></td></tr>
+            <tr><td><code>'sem_id' =&gt; true</code></td><td>Não cria o <code>id</code>. Use em tabelas pivô.</td></tr>
+            <tr><td><code>'sem_datas' =&gt; true</code></td><td>Não cria <code>criado_em</code> e <code>atualizado_em</code>.</td></tr>
+            <tr><td><code>'exclusao_logica' =&gt; true</code></td><td>Acrescenta <code>excluido_em</code>, usado pela exclusão lógica do model.</td></tr>
           </tbody>
         </table>
       </div>
-      <p>Os tipos de coluna e os modificadores estão no catálogo em <a href="#elo-tabelas-colunas">Tabelas e migrações</a>.</p>
 
-      <h2 id="elo-migracao-chave">5. Ordem para chaves estrangeiras</h2>
-      <p>Uma tabela com <code>Coluna::pertenceA('setores')</code> só pode ser criada depois de <code>setores</code>. Por isso, o arquivo de <code>setores</code> deve ter um número menor que o de <code>usuarios</code>. O mesmo vale para o <code>descer()</code>: apague a tabela que <em>aponta</em> antes da que é apontada.</p>
-
-      <h2 id="elo-migracao-rodar">6. Aplicando no banco</h2>
-      <p>Com o arquivo criado, rode no terminal, na raiz do projeto:</p>
-      <div class="code">
-        <div class="code-title">Terminal</div>
-        <pre><code data-lang="bash">php vendor/bin/elo migrar           # aplica as pendentes
-php vendor/bin/elo migrar:status    # mostra o que já foi aplicado
-php vendor/bin/elo migrar:reverter  # desfaz o último lote</code></pre>
+      <h3 id="elo-migracoes-colunas">Tipos de coluna</h3>
+      <p>Cada tipo é um método de <code>Coluna</code>. Os modificadores vêm depois, encadeados.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Coluna</th><th>Para que serve</th><th>Modificadores</th></tr></thead>
+          <tbody>
+            <tr><td><code>Coluna::texto(100)</code></td><td>Texto de tamanho limitado</td><td><code>nulo()</code>, <code>unico()</code>, <code>padrao()</code>, <code>indice()</code></td></tr>
+            <tr><td><code>Coluna::textoLongo()</code></td><td>Texto sem limite prático</td><td><code>nulo()</code></td></tr>
+            <tr><td><code>Coluna::inteiro()</code></td><td>Números inteiros</td><td><code>nulo()</code>, <code>unico()</code>, <code>padrao()</code>, <code>semSinal()</code>, <code>indice()</code></td></tr>
+            <tr><td><code>Coluna::decimal(10, 2)</code></td><td>Valores monetários e medidas (10 dígitos, 2 casas)</td><td><code>nulo()</code>, <code>padrao()</code></td></tr>
+            <tr><td><code>Coluna::booleano()</code></td><td>Sim ou não</td><td><code>nulo()</code>, <code>padrao(true)</code></td></tr>
+            <tr><td><code>Coluna::opcoes([...])</code></td><td>Uma lista fechada de valores</td><td><code>nulo()</code>, <code>padrao()</code></td></tr>
+            <tr><td><code>Coluna::data()</code></td><td>Só a data</td><td><code>nulo()</code>, <code>padraoAtual()</code></td></tr>
+            <tr><td><code>Coluna::dataHora()</code></td><td>Data e hora</td><td><code>nulo()</code>, <code>padraoAtual()</code></td></tr>
+            <tr><td><code>Coluna::json()</code></td><td>Dados em JSON</td><td><code>nulo()</code></td></tr>
+            <tr><td><code>Coluna::pertenceA('tabela')</code></td><td>Chave estrangeira</td><td><code>nulo()</code>, <code>aoExcluir()</code>, <code>aoAtualizar()</code>, <code>unico()</code>, <code>indice()</code></td></tr>
+          </tbody>
+        </table>
       </div>
-      <p>Na primeira vez, o EloPHP cria sozinho a tabela <code>migracoes</code>, que guarda o nome e o lote de cada arquivo aplicado. Não crie essa tabela na mão.</p>
+      <p><code>padrao()</code> aceita textos, números e booleanos. <code>padraoAtual()</code> usa a data e hora do momento do insert. <code>unico()</code> e <code>indice()</code> criam, respectivamente, uma restrição de unicidade e um índice.</p>
 
-      <h2 id="elo-migracao-lote">Lotes</h2>
-      <p>Tudo o que um <code>migrar</code> aplica recebe o mesmo número de lote. <code>migrar:reverter</code> desfaz só esse último lote, na ordem inversa. Se você rodar <code>migrar</code> duas vezes seguidas, a segunda não faz nada, porque não há pendentes.</p>
+      <h3 id="elo-migracoes-chave">Chave estrangeira</h3>
+      <p><code>Coluna::pertenceA('setores')</code> aponta para <code>setores.id</code>. Para outra coluna, passe o segundo parâmetro: <code>Coluna::pertenceA('setores', 'codigo')</code>.</p>
+      <p><code>aoExcluir()</code> e <code>aoAtualizar()</code> aceitam <code>CASCADE</code>, <code>SET NULL</code>, <code>RESTRICT</code> e <code>NO ACTION</code>. Outro valor gera erro antes de chegar ao banco.</p>
+      <div class="callout tip">
+        <span class="callout-label">Ordem</span>
+        <p>A tabela referenciada precisa existir antes. Por isso, <code>setores</code> tem um número menor que <code>usuarios</code>.</p>
+      </div>
 
-      <h2 id="elo-migracao-falha">Quando uma migração falha</h2>
-      <p>A execução para na migração que falhou, e a mensagem diz o nome dela. As migrações anteriores, do mesmo comando, já foram aplicadas e ficam registradas. Corrija o arquivo e rode <code>migrar</code> de novo: só a que falhou e as seguintes são tentadas.</p>
+      <h3 id="elo-migracoes-alterar">Alterar e apagar</h3>
+      <div class="code">
+        <pre><code data-lang="php">Tabela::alterar('usuarios', [
+    'telefone' =&gt; Coluna::texto(20)-&gt;nulo(),   // adiciona a coluna
+    'cpf'      =&gt; Coluna::remover(),             // remove a coluna
+]);
+
+Tabela::apagar('usuarios');                     // DROP TABLE IF EXISTS
+Tabela::existe('usuarios');                     // true ou false</code></pre>
+      </div>
+      <div class="callout warn">
+        <span class="callout-label">Limite do SQLite</span>
+        <p>O SQLite não aceita <code>UNIQUE</code> nem chave estrangeira em <code>ALTER TABLE</code>. O EloPHP avisa com uma mensagem clara. Nesse caso, recrie a tabela.</p>
+      </div>
+
+      <h3 id="elo-migracoes-pivo">Tabela pivô</h3>
+      <p>A tabela que liga dois models em muitos-para-muitos (veja <a href="#elo-relacionamentos">Relacionamentos</a>) não precisa de <code>id</code> nem de datas:</p>
+      <div class="code">
+        <pre><code data-lang="php">Tabela::criar('cargo_usuario', [
+    'usuario_id' =&gt; Coluna::pertenceA('usuarios')-&gt;aoExcluir('CASCADE'),
+    'cargo_id'   =&gt; Coluna::pertenceA('cargos')-&gt;aoExcluir('CASCADE'),
+], ['sem_id' =&gt; true, 'sem_datas' =&gt; true]);</code></pre>
+      </div>
+
+      <h2 id="elo-migracoes-comandos">3. Aplicando no banco</h2>
+      <p>Na raiz do projeto, use o comando <code>elo</code> do pacote:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Comando</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>php vendor/bin/elo migrar</code></td><td>Aplica as migrações pendentes</td></tr>
+            <tr><td><code>php vendor/bin/elo migrar:status</code></td><td>Lista as migrações e mostra quais já foram aplicadas</td></tr>
+            <tr><td><code>php vendor/bin/elo migrar:reverter</code></td><td>Desfaz o último lote, na ordem inversa</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Na primeira execução, o EloPHP cria sozinho a tabela <code>migracoes</code>, que guarda o nome e o lote de cada migração aplicada. Não crie essa tabela na mão.</p>
+
+      <h3 id="elo-migracoes-lotes">Lotes</h3>
+      <p>Tudo o que um <code>migrar</code> aplica recebe o mesmo número de lote. <code>migrar:reverter</code> desfaz só esse último lote. Rodar <code>migrar</code> de novo, sem arquivos novos, não faz nada.</p>
+
+      <h3 id="elo-migracoes-falhas">Quando uma migração falha</h3>
+      <p>A execução para na migração que falhou, e a mensagem mostra o nome dela. As migrações anteriores do mesmo comando já ficaram aplicadas. Corrija o arquivo e rode <code>migrar</code> de novo: só a que falhou e as seguintes são tentadas.</p>
       <div class="callout warn">
         <span class="callout-label">MySQL</span>
-        <p>No MySQL, <code>CREATE</code> e <code>ALTER</code> não fazem parte de uma transação. Se a migração falhar no meio, uma tabela pode ter ficado criada pela metade. Confira o banco antes de rodar de novo.</p>
+        <p>No MySQL, <code>CREATE</code> e <code>ALTER</code> não entram em transação. Se a migração falhar no meio, uma tabela pode ter ficado pela metade. Confira o banco antes de rodar de novo.</p>
       </div>
 
-      <h2 id="elo-migracao-config">De onde vem a conexão</h2>
-      <p>O comando <code>elo</code> lê o <code>.env</code> da raiz do projeto (as variáveis <code>DB_*</code>). Ele não lê a configuração feita em <code>bootstrap/app.php</code>. Para SQLite, o caminho relativo em <code>DB_DATABASE</code> é resolvido a partir da raiz do projeto.</p>
-
-      <h2 id="elo-migracao-exemplo">Exemplo completo: do zero ao primeiro cadastro</h2>
-      <p>Três migrações, nesta ordem, que criam setores, usuários e a relação de cargos:</p>
-
+      <h2 id="elo-migracoes-exemplo">4. Exemplo completo</h2>
+      <p>Três arquivos, em ordem, que criam setores, usuários, perfis e cargos, e depois adicionam uma coluna:</p>
       <div class="code">
         <div class="code-title">database/migracoes/2026_01_10_000001_criar_setores.php</div>
         <pre><code data-lang="php">&lt;?php
@@ -3074,7 +2963,6 @@ return new class extends Migracao
     }
 };</code></pre>
       </div>
-
       <div class="code">
         <div class="code-title">database/migracoes/2026_01_10_000002_criar_usuarios.php</div>
         <pre><code data-lang="php">&lt;?php
@@ -3119,7 +3007,6 @@ return new class extends Migracao
     }
 };</code></pre>
       </div>
-
       <div class="code">
         <div class="code-title">database/migracoes/2026_01_12_000001_adicionar_telefone_em_usuarios.php</div>
         <pre><code data-lang="php">&lt;?php
@@ -3145,7 +3032,6 @@ return new class extends Migracao
     }
 };</code></pre>
       </div>
-
       <div class="code">
         <div class="code-title">Terminal</div>
         <pre><code data-lang="bash">php vendor/bin/elo migrar
@@ -3155,48 +3041,20 @@ return new class extends Migracao
 
 php vendor/bin/elo migrar:status</code></pre>
       </div>
-
-      <p>Com as tabelas prontas, o próximo passo é criar os <a href="#elo-model-completo">models</a>, que dizem ao código como essas tabelas se ligam.</p>
+      <p>Com as tabelas prontas, o próximo passo é o <a href="#elo-models">model</a>.</p>
     </article>
 
-    <article class="doc-page" id="elo-cli">
-      <h1>Linha de comando: elo</h1>
-      <p class="page-desc">Aplica, desfaz e lista as migrações.</p>
+    <article class="doc-page" id="elo-models">
+      <h1>Models</h1>
+      <p class="page-desc">Uma classe por tabela: o que ela aceita, como salvar, buscar e excluir.</p>
 
-      <h2 id="elo-cli-comandos">Comandos</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Comando</th><th>Faz</th></tr></thead>
-          <tbody>
-            <tr><td><code>php vendor/bin/elo migrar</code></td><td>Aplica as migrações pendentes, em um novo lote</td></tr>
-            <tr><td><code>php vendor/bin/elo migrar:reverter</code></td><td>Desfaz o último lote, na ordem inversa</td></tr>
-            <tr><td><code>php vendor/bin/elo migrar:status</code></td><td>Lista as migrações e se já foram aplicadas</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2 id="elo-cli-lotes">Como os lotes funcionam</h2>
-      <p>A tabela <code>migracoes</code>, criada sozinha na primeira execução, guarda o nome de cada migração aplicada e o número do lote. Um <code>migrar</code> que aplica três arquivos grava os três com o mesmo lote. Assim, <code>migrar:reverter</code> desfaz exatamente essas três, sem tocar nas anteriores.</p>
-
-      <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p>Você não precisa decorar a ordem de desfazer. O reverter usa o lote e a ordem de aplicação, e só desfaz o que o próprio <code>migrar</code> fez.</p>
-      </div>
-
-      <h2 id="elo-cli-binario">O binário</h2>
-      <p>O comando fica em <code>vendor/bin/elo</code>, como o <code>haki</code>. Ele lê o <code>.env</code> da pasta onde é executado.</p>
-    </article>
-
-    <article class="doc-page" id="elo-modelos">
-      <h1>Modelos</h1>
-      <p class="page-desc">Uma classe por tabela, com acesso aos dados, criação, atualização e exclusão.</p>
-
-      <h2 id="elo-modelos-basico">Um model mínimo</h2>
+      <h2 id="elo-models-criar">1. Criando um model</h2>
+      <p class="lead">Crie o arquivo em <code>app/Models/</code>, com o namespace <code>App\Models</code>, e estenda <code>Elo\Modelo</code>. Se a classe não disser nada, o EloPHP já sabe a tabela pelo nome:</p>
       <div class="code">
-        <div class="code-title">app/Modelos/Usuario.php</div>
+        <div class="code-title">app/Models/Usuario.php</div>
         <pre><code data-lang="php">&lt;?php
 
-namespace App\Modelos;
+namespace App\Models;
 
 use Elo\Modelo;
 
@@ -3204,149 +3062,42 @@ class Usuario extends Modelo
 {
 }</code></pre>
       </div>
-      <p>Só isso. O nome da tabela é deduzido (<code>usuarios</code>), todas as colunas podem ser preenchidas, e a chave primária é <code>id</code>.</p>
+      <p>Só isso já permite criar, buscar, salvar e excluir.</p>
 
-      <h2 id="elo-modelos-propriedades">Propriedades que você pode ajustar</h2>
+      <h3 id="elo-models-tabela">Nome da tabela</h3>
+      <p>O nome da classe vira o nome da tabela, no plural, pelas regras do português:</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Propriedade</th><th>Padrão</th><th>Faz</th></tr></thead>
-          <tbody>
-            <tr><td><code>$tabela</code></td><td><code>null</code></td><td>Nome da tabela. Se vazio, é deduzido da classe.</td></tr>
-            <tr><td><code>$chavePrimaria</code></td><td><code>'id'</code></td><td>Nome da chave primária.</td></tr>
-            <tr><td><code>$protegidos</code></td><td><code>['id']</code></td><td>Colunas que o preenchimento em massa ignora.</td></tr>
-            <tr><td><code>$ocultos</code></td><td><code>[]</code></td><td>Colunas que não aparecem no JSON (ex.: <code>['senha']</code>).</td></tr>
-            <tr><td><code>$datas</code></td><td><code>true</code></td><td>Preenche <code>criado_em</code> e <code>atualizado_em</code>.</td></tr>
-            <tr><td><code>$exclusaoLogica</code></td><td><code>false</code></td><td>Usa <code>excluido_em</code> no lugar do DELETE.</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2 id="elo-modelos-massa">Preenchimento em massa</h2>
-      <p>Não existe <code>$fillable</code> para liberar colunas. Tudo é liberado, exceto o que está em <code>$protegidos</code>:</p>
-      <div class="code">
-        <pre><code data-lang="php">$usuario = Usuario::criar(['nome' =&gt; 'Ana', 'id' =&gt; 999]);   // o id é ignorado
-echo $usuario-&gt;id;                                          // 1
-
-class Usuario extends Modelo
-{
-    protected array $protegidos = ['id', 'super_admin'];   // bloqueia também este campo
-}</code></pre>
-      </div>
-
-      <div class="callout warn">
-        <span class="callout-label">Cuidado</span>
-        <p>Como tudo é liberado por padrão, nunca passe direto o <code>$_POST</code> para <code>criar()</code>. Use uma <a href="#validacao">validação</a> antes e passe só os campos validados, ou proteja os campos sensíveis em <code>$protegidos</code>.</p>
-      </div>
-
-      <h2 id="elo-modelos-salvar">Criar, buscar, salvar e excluir</h2>
-      <div class="code">
-        <pre><code data-lang="php">$u = new Usuario(['nome' =&gt; 'Ana']);   // ainda não está no banco
-$u-&gt;email = 'ana@exemplo.br';
-$u-&gt;salvar();                          // INSERT, e $u-&gt;id é preenchido
-
-$u = Usuario::buscar(1);                // pela chave primária, ou null
-$u = Usuario::buscarPor('email', 'ana@exemplo.br');
-$lista = Usuario::buscarTodos(['status' =&gt; 'ATIVO']);
-
-$u-&gt;nome = 'Ana Maria';
-$u-&gt;salvar();                          // UPDATE, só da coluna nome e de atualizado_em
-
-$u-&gt;excluir();                         // DELETE (ou excluido_em, com exclusão lógica)</code></pre>
-      </div>
-
-      <h2 id="elo-modelos-sujos">Dirty checking</h2>
-      <p>O model guarda como os dados estavam ao ser lidos do banco. No <code>salvar()</code>, compara com o estado atual e grava <strong>só o que mudou</strong>. Se nada mudou, não há consulta nenhuma.</p>
-
-      <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p>Dois processos que atualizam colunas diferentes do mesmo registro não se atrapalham: cada um grava só a sua coluna.</p>
-      </div>
-
-      <h2 id="elo-modelos-datas">Datas automáticas</h2>
-      <p>Com <code>$datas = true</code> (padrão), o insert preenche <code>criado_em</code> e <code>atualizado_em</code>, e o update preenche <code>atualizado_em</code>. Um valor que você informar explicitamente em <code>criado_em</code> é respeitado.</p>
-
-      <h2 id="elo-modelos-exclusao">Exclusão lógica</h2>
-      <p>Com <code>protected bool $exclusaoLogica = true;</code>, <code>excluir()</code> grava <code>excluido_em</code> em vez de apagar. As consultas escondem esses registros automaticamente:</p>
-      <div class="code">
-        <pre><code data-lang="php">$produto-&gt;excluir();
-
-Produto::buscar($produto-&gt;id);                 // null
-Produto::comExcluidos()-&gt;obter();              // inclui os excluídos
-Produto::onde('ativo', true)-&gt;obter();          // o filtro de excluídos é aplicado sozinho</code></pre>
-      </div>
-
-      <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p>O filtro de exclusão lógica fica sempre por trás das suas condições, mesmo com <code>ouOnde()</code>. Você não esquece de filtrar e não vaza um registro excluído por causa de um OR.</p>
-      </div>
-
-      <h2 id="elo-modelos-json">JSON</h2>
-      <p>O model implementa <code>JsonSerializable</code>. Ele exporta os atributos, sem os de <code>$ocultos</code>, e as relações que já estiverem carregadas.</p>
-      <div class="code">
-        <pre><code data-lang="php">protected array $ocultos = ['senha'];
-
-echo json_encode($usuario);   // {"id":1,"nome":"Ana",...}   sem a senha</code></pre>
-      </div>
-    </article>
-
-    <article class="doc-page" id="elo-model-completo">
-      <h1>Model: passo a passo e todas as opções</h1>
-      <p class="page-desc">Como criar um model, tudo o que ele aceita e um exemplo completo ligado às migrações.</p>
-
-      <h2 id="elo-model-o-que">O que é um model</h2>
-      <p class="lead">Um model é a classe que representa uma tabela. Cada objeto é uma linha. Você descreve <strong>o que a entidade é</strong> (nome, relações, o que esconder), e o EloPHP cuida do SQL.</p>
-
-      <h2 id="elo-model-pasta">1. Onde criar e como nomear</h2>
-      <p>Crie o arquivo em <code>app/Models/</code>, com o namespace <code>App\Models</code>, e estenda <code>Elo\Modelo</code>. O nome da classe define a tabela:</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Classe</th><th>Tabela deduzida</th></tr></thead>
+          <thead><tr><th>Classe</th><th>Tabela</th></tr></thead>
           <tbody>
             <tr><td><code>Usuario</code></td><td><code>usuarios</code></td></tr>
             <tr><td><code>Setor</code></td><td><code>setores</code></td></tr>
-            <tr><td><code>Perfil</code></td><td><code>perfis</code></td></tr>
+            <tr><td><code>Edital</code></td><td><code>editais</code></td></tr>
             <tr><td><code>ProcessoJudicial</code></td><td><code>processos_judiciais</code></td></tr>
           </tbody>
         </table>
       </div>
-      <p>Se a tabela tiver outro nome, defina <code>$tabela</code>. Os detalhes da pluralização estão em <a href="#elo-nomes">Nomes em português</a>.</p>
+      <p>Se a tabela tiver outro nome, defina <code>protected ?string $tabela = 'nome_da_tabela';</code>. As regras completas e as exceções do dicionário estão na seção <a href="#elo-models-pluralizacao">Pluralização</a>, no fim desta página.</p>
 
-      <div class="code">
-        <div class="code-title">app/Models/Usuario.php (o mínimo)</div>
-        <pre><code data-lang="php">&lt;?php
-
-namespace App\Models;
-
-use Elo\Modelo;
-
-class Usuario extends Modelo
-{
-}</code></pre>
-      </div>
-      <p>Só isso já permite criar, buscar, salvar e excluir. Todo o resto é opcional.</p>
-
-      <h2 id="elo-model-propriedades">2. As propriedades</h2>
-      <p>Você ajusta o comportamento do model sobrescrevendo estas propriedades:</p>
+      <h2 id="elo-models-propriedades">2. Propriedades</h2>
+      <p>Sobrescreva estas propriedades para mudar o comportamento do model. Todas têm um padrão que funciona sem configuração.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Propriedade</th><th>Padrão</th><th>O que faz</th></tr></thead>
+          <thead><tr><th>Propriedade</th><th>Padrão</th><th>Para que serve</th></tr></thead>
           <tbody>
-            <tr><td><code>protected ?string $tabela</code></td><td><code>null</code></td><td>Nome da tabela. Vazio = deduzido da classe.</td></tr>
-            <tr><td><code>protected string $chavePrimaria</code></td><td><code>'id'</code></td><td>Coluna da chave primária, se não for <code>id</code>.</td></tr>
-            <tr><td><code>protected array $protegidos</code></td><td><code>['id']</code></td><td>Colunas que o preenchimento em massa ignora (<code>criar()</code>, <code>preencher()</code>, <code>new Modelo([...])</code>).</td></tr>
-            <tr><td><code>protected array $ocultos</code></td><td><code>[]</code></td><td>Colunas que somem do JSON e do <code>toArray()</code>.</td></tr>
-            <tr><td><code>protected bool $datas</code></td><td><code>true</code></td><td>Preenche <code>criado_em</code> (insert) e <code>atualizado_em</code> (insert e update).</td></tr>
-            <tr><td><code>protected bool $exclusaoLogica</code></td><td><code>false</code></td><td>O <code>excluir()</code> grava <code>excluido_em</code> e as consultas escondem esses registros.</td></tr>
-            <tr><td><code>protected array $temUm</code></td><td><code>[]</code></td><td>Relação 1:1, com a chave no alvo.</td></tr>
-            <tr><td><code>protected array $temMuitos</code></td><td><code>[]</code></td><td>Relação 1:N, com a chave no alvo.</td></tr>
-            <tr><td><code>protected array $pertenceA</code></td><td><code>[]</code></td><td>Relação N:1, com a chave nesta tabela.</td></tr>
-            <tr><td><code>protected array $pertenceAMuitos</code></td><td><code>[]</code></td><td>Relação N:N, por tabela pivô.</td></tr>
+            <tr><td><code>$tabela</code></td><td><code>null</code></td><td>Nome da tabela. Vazio = deduzido da classe.</td></tr>
+            <tr><td><code>$chavePrimaria</code></td><td><code>'id'</code></td><td>Coluna da chave primária.</td></tr>
+            <tr><td><code>$protegidos</code></td><td><code>['id']</code></td><td>Colunas que o preenchimento em massa ignora.</td></tr>
+            <tr><td><code>$ocultos</code></td><td><code>[]</code></td><td>Colunas que não saem no JSON.</td></tr>
+            <tr><td><code>$datas</code></td><td><code>true</code></td><td>Preenche <code>criado_em</code> e <code>atualizado_em</code>.</td></tr>
+            <tr><td><code>$exclusaoLogica</code></td><td><code>false</code></td><td><code>excluir()</code> grava <code>excluido_em</code> em vez de apagar.</td></tr>
+            <tr><td><code>$temUm</code>, <code>$temMuitos</code>, <code>$pertenceA</code>, <code>$pertenceAMuitos</code></td><td><code>[]</code></td><td>Relações. Veja <a href="#elo-relacionamentos">Relacionamentos</a>.</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="code">
-        <div class="code-title">Todas as propriedades, com exemplos</div>
+        <div class="code-title">Com as propriedades mais usadas</div>
         <pre><code data-lang="php">&lt;?php
 
 namespace App\Models;
@@ -3355,209 +3106,99 @@ use Elo\Modelo;
 
 class Usuario extends Modelo
 {
-    protected ?string $tabela = 'usuarios';            // opcional: igual ao padrão
-    protected string $chavePrimaria = 'id';            // opcional: igual ao padrão
+    protected array $protegidos = ['id', 'status'];   // não entra no criar() em massa
+    protected array $ocultos = ['senha'];             // some do JSON
+    protected bool $exclusaoLogica = true;            // excluir() só marca a data
 
-    protected array $protegidos = ['id', 'status'];    // status não entra no criar() em massa
-    protected array $ocultos = ['senha'];              // não aparece no JSON
+    protected array $temUm = [
+        'perfil' =&gt; Perfil::class,
+    ];
 
-    protected bool $datas = true;                      // criado_em e atualizado_em automáticos
-    protected bool $exclusaoLogica = true;             // excluir() grava excluido_em
+    protected array $pertenceA = [
+        'setor' =&gt; Setor::class,
+    ];
 
-    protected array $temUm = [];
-    protected array $temMuitos = [];
-    protected array $pertenceA = [];
-    protected array $pertenceAMuitos = [];
+    protected array $pertenceAMuitos = [
+        'cargos' =&gt; Cargo::class,
+    ];
 }</code></pre>
       </div>
 
-      <div class="callout warn">
-        <span class="callout-label">Cuidado com as datas e a exclusão lógica</span>
-        <p><code>$datas = true</code> exige as colunas <code>criado_em</code> e <code>atualizado_em</code>. <code>$exclusaoLogica = true</code> exige a coluna <code>excluido_em</code>. <code>Tabela::criar()</code> já cria as duas datas, a não ser com <code>'sem_datas' =&gt; true</code>. Para a exclusão lógica, use <code>'exclusao_logica' =&gt; true</code>.</p>
-      </div>
-
-      <h2 id="elo-model-massa">3. Preenchimento em massa e protegidos</h2>
-      <p>Não existe lista de liberados (<code>$fillable</code>). Tudo entra, exceto o que está em <code>$protegidos</code>. Os campos protegidos são ignorados em silêncio, sem erro, e podem ser alterados direto pelo atributo:</p>
+      <h2 id="elo-models-massa">3. Preenchimento em massa</h2>
+      <p>Não há lista de campos liberados. Tudo entra no <code>criar()</code> e no <code>preencher()</code>, exceto o que está em <code>$protegidos</code>. Os protegidos são ignorados sem erro:</p>
       <div class="code">
         <pre><code data-lang="php">$usuario = Usuario::criar(['nome' =&gt; 'Ana', 'status' =&gt; 'INATIVO', 'id' =&gt; 999]);
-echo $usuario-&gt;id;         // 1       (o id foi ignorado)
+echo $usuario-&gt;id;                  // 1: o id foi ignorado
 
 $usuario = Usuario::buscar($usuario-&gt;id);
-echo $usuario-&gt;status;     // ATIVO   (o status foi ignorado e o padrão do banco foi usado)
+echo $usuario-&gt;status;              // ATIVO: o status foi ignorado e o padrão do banco valeu
 
-$usuario-&gt;status = 'INATIVO';   // atribuição direta funciona
+$usuario-&gt;status = 'INATIVO';        // a atribuição direta não passa pela proteção
 $usuario-&gt;salvar();</code></pre>
       </div>
       <div class="callout tip">
         <span class="callout-label">Dica</span>
-        <p>Como tudo é liberado por padrão, não passe <code>$_POST</code> direto para <code>criar()</code>. Valide antes com uma <a href="#validacao">classe de validação</a> e passe só os campos validados.</p>
+        <p>Não passe <code>$_POST</code> direto para <code>criar()</code>. Valide antes com uma <a href="#validacao">classe de validação</a> e passe só os campos validados.</p>
       </div>
 
-      <h2 id="elo-model-ocultos">4. Ocultos no JSON</h2>
-      <p>Os campos de <code>$ocultos</code> saem da resposta do próprio model. Cada model esconde os seus, então um perfil aninhado mostra só o que o model <code>Perfil</code> deixa aparecer.</p>
+      <h2 id="elo-models-ocultos">4. Campos ocultos</h2>
+      <p><code>$ocultos</code> remove campos do JSON do próprio model. Cada model oculta os seus: um perfil aninhado mostra só o que o model <code>Perfil</code> deixa aparecer.</p>
+
+      <h2 id="elo-models-datas">5. Datas e exclusão lógica</h2>
+      <p><strong>Datas (<code>$datas = true</code>, padrão).</strong> O insert preenche <code>criado_em</code> e <code>atualizado_em</code>. O update preenche só <code>atualizado_em</code>. Um valor de <code>criado_em</code> informado por você é respeitado. A tabela precisa dessas colunas, que <code>Tabela::criar()</code> já cria.</p>
+      <p><strong>Exclusão lógica (<code>$exclusaoLogica = true</code>).</strong> <code>excluir()</code> grava a data em <code>excluido_em</code> em vez de apagar a linha. As consultas escondem esses registros sozinhas:</p>
       <div class="code">
-        <pre><code data-lang="php">return ['usuario' =&gt; $usuario];   // o Haki converte em JSON; senha não aparece</code></pre>
-      </div>
+        <pre><code data-lang="php">$produto-&gt;excluir();
 
-      <h2 id="elo-model-relacoes">5. Relações: os quatro arrays</h2>
-      <p>Cada relação é uma linha do array correspondente. A forma simples é só a classe do alvo. A forma completa aceita opções, em um array:</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Array</th><th>Tipo</th><th>Chave padrão</th><th>Forma completa</th></tr></thead>
-          <tbody>
-            <tr><td><code>$temUm</code></td><td>1:1, chave no alvo</td><td><code>{pai}_id</code> no alvo</td><td><code>'perfil' =&gt; [Perfil::class, 'fk' =&gt; 'usuario_id']</code></td></tr>
-            <tr><td><code>$temMuitos</code></td><td>1:N, chave no alvo</td><td><code>{pai}_id</code> no alvo</td><td><code>'processos' =&gt; [Processo::class, 'fk' =&gt; 'autor_id']</code></td></tr>
-            <tr><td><code>$pertenceA</code></td><td>N:1, chave na tabela atual</td><td><code>{nome}_id</code> nesta tabela</td><td><code>'responsavel' =&gt; [Usuario::class, 'fk' =&gt; 'usuario_id']</code></td></tr>
-            <tr><td><code>$pertenceAMuitos</code></td><td>N:N, tabela pivô</td><td>pivô: singulares em ordem alfabética (<code>cargo_usuario</code>); colunas <code>{x}_id</code></td><td><code>'cargos' =&gt; [Cargo::class, 'pivo' =&gt; 'vinculos', 'chave_pai' =&gt; 'usuario_id', 'chave_alvo' =&gt; 'cargo_id']</code></td></tr>
-          </tbody>
-        </table>
+Produto::buscar($produto-&gt;id);             // null
+Produto::comExcluidos()-&gt;obter();          // inclui os excluídos
+Produto::onde('ativo', true)-&gt;obter();      // o filtro de excluídos é aplicado sozinho</code></pre>
       </div>
+      <p>A tabela precisa da coluna <code>excluido_em</code>: crie-a com <code>'exclusao_logica' =&gt; true</code> em <code>Tabela::criar()</code>.</p>
 
-      <h3 id="elo-model-opcoes-relacao">As opções da forma completa</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Opção</th><th>Vale para</th><th>Significa</th></tr></thead>
-          <tbody>
-            <tr><td><code>'fk'</code></td><td>temUm, temMuitos, pertenceA</td><td>Nome da coluna da chave estrangeira</td></tr>
-            <tr><td><code>'pivo'</code></td><td>pertenceAMuitos</td><td>Nome da tabela pivô</td></tr>
-            <tr><td><code>'chave_pai'</code></td><td>pertenceAMuitos</td><td>Coluna da pivô que guarda o id deste model</td></tr>
-            <tr><td><code>'chave_alvo'</code></td><td>pertenceAMuitos</td><td>Coluna da pivô que guarda o id do alvo</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="callout">
-        <span class="callout-label">Importante</span>
-        <p>O alvo de <code>temUm</code>, <code>temMuitos</code> e <code>pertenceAMuitos</code> aponta para a classe do outro model. Se a classe não existir, o erro aparece no uso da relação, não na declaração. Confira o nome e o <code>use</code>.</p>
-      </div>
-
-      <h2 id="elo-model-acesso">6. Acessar uma relação: dado ou motor</h2>
-      <p>Com o mesmo nome, a diferença é um par de parênteses:</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Código</th><th>Devolve</th><th>Consulta o banco?</th></tr></thead>
-          <tbody>
-            <tr><td><code>$usuario-&gt;setor</code></td><td>O <code>Setor</code> ou <code>null</code></td><td>Sim, na primeira vez. Depois usa a memória.</td></tr>
-            <tr><td><code>$usuario-&gt;cargos</code></td><td>Array de <code>Cargo</code></td><td>Sim, na primeira vez.</td></tr>
-            <tr><td><code>$usuario-&gt;cargos()</code></td><td>O motor da relação</td><td>Não. Só ao chamar <code>obter()</code>, <code>primeiro()</code>, <code>contar()</code>...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p>O motor aceita os métodos de consulta e, conforme o tipo da relação, mais alguns:</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Relação</th><th>Métodos próprios</th></tr></thead>
-          <tbody>
-            <tr><td><code>temUm</code></td><td><code>criar($dados)</code>: cria o perfil já com <code>usuario_id</code> preenchido</td></tr>
-            <tr><td><code>temMuitos</code></td><td><code>criar($dados)</code>: cria o registro já vinculado ao pai</td></tr>
-            <tr><td><code>pertenceA</code></td><td>só consultas (<code>obter()</code>, <code>onde()</code>...)</td></tr>
-            <tr><td><code>pertenceAMuitos</code></td><td><code>anexar($ids)</code>, <code>desanexar($ids)</code>, <code>sincronizar($ids)</code></td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="code">
-        <pre><code data-lang="php">$usuario-&gt;perfil()-&gt;criar(['bio' =&gt; 'Desenvolvedora']);
-$usuario-&gt;cargos()-&gt;anexar([1, 2]);
-$usuario-&gt;cargos()-&gt;sincronizar([2, 3]);      // ['anexados' =&gt; [3], 'desanexados' =&gt; [1]]
-$usuario-&gt;cargos()-&gt;onde('nome', 'LIKE', 'Ger%')-&gt;obter();</code></pre>
-      </div>
-
-      <h2 id="elo-model-metodos">7. Métodos do model</h2>
-      <h3 id="elo-model-metodos-instancia">De instância</h3>
+      <h2 id="elo-models-metodos">6. Métodos</h2>
+      <h3 id="elo-models-estaticos">Estáticos</h3>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Método</th><th>Faz</th></tr></thead>
           <tbody>
-            <tr><td><code>preencher(array $dados)</code></td><td>Atribui os campos em massa, respeitando <code>$protegidos</code>. Devolve o próprio objeto.</td></tr>
-            <tr><td><code>salvar()</code></td><td>INSERT se for novo; UPDATE só do que mudou se já existe.</td></tr>
-            <tr><td><code>excluir()</code></td><td>DELETE, ou <code>excluido_em</code> com exclusão lógica. Erro se o registro ainda não foi salvo.</td></tr>
-            <tr><td><code>estaSalvo()</code></td><td><code>true</code> depois de salvar ou de vir do banco.</td></tr>
-            <tr><td><code>toArray()</code></td><td>Atributos (sem os ocultos) e relações já carregadas, como array.</td></tr>
-            <tr><td><code>jsonSerialize()</code></td><td>O mesmo que <code>toArray()</code>; é o que o <code>json_encode</code> usa.</td></tr>
-            <tr><td><code>nomeTabela()</code> / <code>nomeChavePrimaria()</code></td><td>Nome da tabela e da chave primária deste model.</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3 id="elo-model-metodos-estatico">Estáticos</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
-          <tbody>
-            <tr><td><code>criar(array $dados)</code></td><td>Cria, salva e devolve o objeto</td></tr>
-            <tr><td><code>buscar($id)</code></td><td>Pela chave primária, ou <code>null</code></td></tr>
-            <tr><td><code>buscarPor($coluna, $valor)</code></td><td>O primeiro registro com aquele valor, ou <code>null</code></td></tr>
+            <tr><td><code>criar(array $dados)</code></td><td>Cria, salva e devolve o objeto.</td></tr>
+            <tr><td><code>buscar($id)</code></td><td>Busca pela chave primária, ou <code>null</code>.</td></tr>
+            <tr><td><code>buscarPor($coluna, $valor)</code></td><td>Devolve o primeiro registro com esse valor, ou <code>null</code>.</td></tr>
             <tr><td><code>buscarTodos(array $filtros)</code></td><td>Lista com igualdade em cada coluna. Valor <code>null</code> vira <code>IS NULL</code>.</td></tr>
-            <tr><td><code>consulta()</code></td><td>O construtor de consultas deste model</td></tr>
-            <tr><td><code>Usuario::onde(...)</code>, <code>Usuario::com(...)</code>...</td><td>Qualquer método do construtor, direto no model (veja <a href="#elo-consultas">Consultas e paginação</a>)</td></tr>
+            <tr><td><code>consulta()</code></td><td>O construtor de consultas do model.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Qualquer método do construtor também funciona direto no model: <code>Usuario::onde(...)</code>, <code>Usuario::com(...)</code>, <code>Usuario::ordenarPor(...)</code>. Veja <a href="#elo-consultas">Consultas e transações</a>.</p>
+
+      <h3 id="elo-models-instancia">De instância</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>preencher(array $dados)</code></td><td>Atribui campos em massa, respeitando <code>$protegidos</code>.</td></tr>
+            <tr><td><code>salvar()</code></td><td>INSERT se o registro é novo. Se já existe, UPDATE só do que mudou.</td></tr>
+            <tr><td><code>excluir()</code></td><td>DELETE, ou grava <code>excluido_em</code> com exclusão lógica.</td></tr>
+            <tr><td><code>estaSalvo()</code></td><td><code>true</code> depois de salvar ou de vir do banco.</td></tr>
+            <tr><td><code>toArray()</code></td><td>Campos (sem os ocultos) e relações já carregadas, como array. É o que o JSON usa.</td></tr>
+            <tr><td><code>nomeTabela()</code>, <code>nomeChavePrimaria()</code></td><td>Nome da tabela e da chave primária.</td></tr>
           </tbody>
         </table>
       </div>
 
-      <h2 id="elo-model-campos">8. Campos e estado</h2>
+      <h2 id="elo-models-campos">7. Lendo e alterando campos</h2>
       <div class="code">
-        <pre><code data-lang="php">$usuario-&gt;nome = 'Ana Maria';          // altera (ainda não gravado)
-echo $usuario-&gt;nome;                  // lê
-isset($usuario-&gt;telefone);            // verifica se tem valor
+        <pre><code data-lang="php">$usuario-&gt;nome = 'Ana Maria';    // altera; ainda não foi gravado
+echo $usuario-&gt;nome;            // lê
+isset($usuario-&gt;telefone);      // verifica se tem valor
 
-$usuario-&gt;nome = 'Ana Maria';
-$usuario-&gt;salvar();                   // UPDATE só de nome e atualizado_em</code></pre>
+$usuario-&gt;salvar();             // UPDATE só de nome e atualizado_em</code></pre>
       </div>
-      <p>O model guarda como os dados estavam ao chegar do banco, e o <code>salvar()</code> grava só as diferenças. Se nada mudou, não há consulta.</p>
+      <p>O model guarda como os dados estavam ao chegar do banco. Por isso, o <code>salvar()</code> grava apenas o que mudou, e não há consulta quando nada mudou.</p>
 
-      <h2 id="elo-model-exemplo">9. Exemplo completo</h2>
-      <p>Quatro models ligados às tabelas das migrações da aba anterior, e um uso típico:</p>
-
-      <div class="code">
-        <div class="code-title">app/Models/Setor.php</div>
-        <pre><code data-lang="php">&lt;?php
-
-namespace App\Models;
-
-use Elo\Modelo;
-
-class Setor extends Modelo
-{
-    protected array $temMuitos = [
-        'usuarios' =&gt; Usuario::class,         // usuarios.setor_id
-    ];
-}</code></pre>
-      </div>
-
-      <div class="code">
-        <div class="code-title">app/Models/Cargo.php</div>
-        <pre><code data-lang="php">&lt;?php
-
-namespace App\Models;
-
-use Elo\Modelo;
-
-class Cargo extends Modelo
-{
-    protected array $pertenceAMuitos = [
-        'usuarios' =&gt; Usuario::class,        // pivô cargo_usuario (cargo_id, usuario_id)
-    ];
-}</code></pre>
-      </div>
-
-      <div class="code">
-        <div class="code-title">app/Models/Perfil.php</div>
-        <pre><code data-lang="php">&lt;?php
-
-namespace App\Models;
-
-use Elo\Modelo;
-
-class Perfil extends Modelo
-{
-    protected array $pertenceA = [
-        'usuario' =&gt; Usuario::class,         // perfis.usuario_id
-    ];
-}</code></pre>
-      </div>
-
+      <h2 id="elo-models-exemplo">8. Exemplo completo</h2>
+      <p>Models ligados às tabelas da página de <a href="#elo-migracoes">Migrações</a>, e um service que os usa:</p>
       <div class="code">
         <div class="code-title">app/Models/Usuario.php</div>
         <pre><code data-lang="php">&lt;?php
@@ -3573,26 +3214,69 @@ class Usuario extends Modelo
     protected bool $exclusaoLogica = true;
 
     protected array $temUm = [
-        'perfil' =&gt; Perfil::class,           // perfis.usuario_id
+        'perfil' =&gt; Perfil::class,            // perfis.usuario_id
     ];
 
     protected array $pertenceA = [
-        'setor' =&gt; Setor::class,             // usuarios.setor_id
+        'setor' =&gt; Setor::class,              // usuarios.setor_id
     ];
 
     protected array $pertenceAMuitos = [
-        'cargos' =&gt; Cargo::class,            // cargo_usuario
+        'cargos' =&gt; Cargo::class,             // tabela cargo_usuario
     ];
 }</code></pre>
       </div>
-
       <div class="code">
-        <div class="code-title">Uso em um service</div>
+        <div class="code-title">app/Models/Setor.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+namespace App\Models;
+
+use Elo\Modelo;
+
+class Setor extends Modelo
+{
+    protected array $temMuitos = [
+        'usuarios' =&gt; Usuario::class,         // usuarios.setor_id
+    ];
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">app/Models/Cargo.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+namespace App\Models;
+
+use Elo\Modelo;
+
+class Cargo extends Modelo
+{
+    protected array $pertenceAMuitos = [
+        'usuarios' =&gt; Usuario::class,         // tabela cargo_usuario
+    ];
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">app/Models/Perfil.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+namespace App\Models;
+
+use Elo\Modelo;
+
+class Perfil extends Modelo
+{
+    protected array $pertenceA = [
+        'usuario' =&gt; Usuario::class,          // perfis.usuario_id
+    ];
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-title">app/Services/UsuarioService.php</div>
         <pre><code data-lang="php">&lt;?php
 
 namespace App\Services;
 
-use App\Models\Cargo;
 use App\Models\Setor;
 use App\Models\Usuario;
 use Elo\Conexao;
@@ -3621,34 +3305,27 @@ final class UsuarioService
 
     public function mudarSetor(Usuario $usuario, Setor $setor): void
     {
-        $usuario-&gt;setor_id = $setor-&gt;id;   // a chave é uma coluna comum
-        $usuario-&gt;salvar();                 // UPDATE só de setor_id e atualizado_em
+        $usuario-&gt;setor_id = $setor-&gt;id;      // chave estrangeira é uma coluna comum
+        $usuario-&gt;salvar();                    // UPDATE só de setor_id e atualizado_em
     }
 
     public function excluir(Usuario $usuario): void
     {
-        $usuario-&gt;excluir();                // grava excluido_em; some das consultas
+        $usuario-&gt;excluir();                   // grava excluido_em; o registro some das consultas
     }
 }</code></pre>
       </div>
-
       <div class="callout warn">
         <span class="callout-label">Cuidado</span>
-        <p><code>temUm</code> cria um novo perfil a cada chamada de <code>criar()</code>. Como <code>perfis.usuario_id</code> é único na migração, uma segunda chamada para o mesmo usuário falha no banco. Confira antes se ele já tem perfil.</p>
+        <p><code>perfil()-&gt;criar()</code> insere um novo perfil. Como <code>perfis.usuario_id</code> é único, uma segunda chamada para o mesmo usuário falha no banco. Confira antes se ele já tem perfil.</p>
       </div>
+      <p>O controller que chama esse service está em <a href="#fluxo-banco">Do banco ao controller</a>.</p>
 
-      <p>Para ver como o controller usa esse service, veja <a href="#fluxo-banco">Do banco ao controller</a>.</p>
-    </article>
-
-    <article class="doc-page" id="elo-nomes">
-      <h1>Nomes em português</h1>
-      <p class="page-desc">Como o nome da classe vira o nome da tabela.</p>
-
-      <h2 id="elo-nomes-regras">Regras</h2>
-      <p>Quando o model não define <code>$tabela</code>, o EloPHP converte o nome da classe em snake_case e pluraliza cada palavra pelas regras do português:</p>
+      <h2 id="elo-models-pluralizacao">Pluralização</h2>
+      <p>Ao deduzir o nome da tabela, cada palavra da classe é pluralizada pelas regras de sufixo do português:</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Terminação</th><th>Regra</th><th>Exemplo</th></tr></thead>
+          <thead><tr><th>Termina em</th><th>Regra</th><th>Exemplo</th></tr></thead>
           <tbody>
             <tr><td><code>-ao</code></td><td>vira <code>-oes</code></td><td>Movimentacao → movimentacoes</td></tr>
             <tr><td><code>-m</code></td><td>vira <code>-ns</code></td><td>Item → itens</td></tr>
@@ -3659,93 +3336,29 @@ final class UsuarioService
           </tbody>
         </table>
       </div>
-      <p>Nomes compostos pluralizam cada palavra: <code>ProcessoJudicial</code> vira <code>processos_judiciais</code>.</p>
-
-      <h2 id="elo-nomes-excecoes">Exceções</h2>
-      <p>Palavras que fogem da regra entram em um dicionário. Ele já traz algumas (<code>Cidadao</code>, <code>Mao</code>, <code>Perfil</code>), e você pode acrescentar as suas:</p>
-      <div class="code">
-        <pre><code data-lang="php">use Elo\Suporte\Pluralizador;
-
-Pluralizador::excecao('vilao', 'viloes');</code></pre>
-      </div>
-
-      <div class="callout">
-        <span class="callout-label">Nota</span>
-        <p>Palavras como <code>Status</code> ou <code>Lapis</code> não têm plural que a regra acerte. Para elas, defina <code>protected ?string $tabela</code> no model, ou use o dicionário.</p>
-      </div>
-
-      <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p>Você escreve <code>Usuario</code> e o banco recebe <code>usuarios</code>, sem configurar nada. As chaves estrangeiras seguem o mesmo raciocínio: <code>Usuario</code> gera <code>usuario_id</code>.</p>
-      </div>
+      <p>Algumas palavras fogem da regra. Elas estão em um dicionário (<code>Cidadao</code>, <code>Mao</code>, <code>Perfil</code>), e você pode acrescentar as suas com <code>Pluralizador::excecao('vilao', 'viloes')</code>. Para qualquer caso, a saída segura é definir <code>$tabela</code> no model.</p>
     </article>
 
     <article class="doc-page" id="elo-relacionamentos">
       <h1>Relacionamentos</h1>
-      <p class="page-desc">Quatro arrays na model descrevem como os dados se ligam. Nada de método para cada relação.</p>
+      <p class="page-desc">Como ligar models entre si, como usar as relações e como carregá-las em lote.</p>
 
-      <h2 id="elo-rel-tipos">Os quatro arrays</h2>
+      <h2 id="elo-rel-tipos">1. Os quatro tipos</h2>
+      <p class="lead">Cada relação é uma linha em um dos quatro arrays do model. A chave padrão segue o nome do model que tem a coluna.</p>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Array</th><th>Tipo</th><th>Onde fica a chave</th><th>Chave padrão</th></tr></thead>
+          <thead><tr><th>Array</th><th>Tipo</th><th>Onde fica a chave</th><th>Exemplo</th></tr></thead>
           <tbody>
-            <tr><td><code>$temUm</code></td><td>1:1</td><td>Na tabela do alvo</td><td><code>{pai}_id</code></td></tr>
-            <tr><td><code>$temMuitos</code></td><td>1:N</td><td>Na tabela do alvo</td><td><code>{pai}_id</code></td></tr>
-            <tr><td><code>$pertenceA</code></td><td>N:1</td><td>Na tabela atual</td><td><code>{nome}_id</code></td></tr>
-            <tr><td><code>$pertenceAMuitos</code></td><td>N:N</td><td>Tabela pivô</td><td><code>cargo_usuario</code></td></tr>
+            <tr><td><code>$temUm</code></td><td>1 para 1</td><td>Na tabela do outro model</td><td><code>'perfil' =&gt; Perfil::class</code>: <code>perfis.usuario_id</code></td></tr>
+            <tr><td><code>$temMuitos</code></td><td>1 para muitos</td><td>Na tabela do outro model</td><td><code>'processos' =&gt; Processo::class</code>: <code>processos.usuario_id</code></td></tr>
+            <tr><td><code>$pertenceA</code></td><td>Muitos para 1</td><td>Na tabela deste model</td><td><code>'setor' =&gt; Setor::class</code>: <code>usuarios.setor_id</code></td></tr>
+            <tr><td><code>$pertenceAMuitos</code></td><td>Muitos para muitos</td><td>Em uma tabela pivô</td><td><code>'cargos' =&gt; Cargo::class</code>: <code>cargo_usuario</code></td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="code">
-        <div class="code-title">app/Modelos/Usuario.php</div>
-        <pre><code data-lang="php">class Usuario extends Modelo
-{
-    protected array $temUm = [
-        'perfil' =&gt; Perfil::class,                       // perfis.usuario_id
-    ];
-
-    protected array $temMuitos = [
-        'processos' =&gt; Processo::class,                  // processos.usuario_id
-    ];
-
-    protected array $pertenceA = [
-        'setor' =&gt; Setor::class,                         // usuarios.setor_id
-    ];
-
-    protected array $pertenceAMuitos = [
-        'cargos' =&gt; Cargo::class,                        // cargo_usuario (pivô)
-    ];
-}</code></pre>
-      </div>
-
-      <h2 id="elo-rel-dualidade">Acesso e ação</h2>
-      <p>Cada relação tem duas formas, e a diferença é um par de parênteses:</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Código</th><th>O que devolve</th></tr></thead>
-          <tbody>
-            <tr><td><code>$usuario-&gt;setor</code></td><td>O dado pronto: um <code>Setor</code> ou <code>null</code>. Fica em memória, então a segunda leitura não consulta o banco.</td></tr>
-            <tr><td><code>$usuario-&gt;cargos</code></td><td>Um array de <code>Cargo</code>.</td></tr>
-            <tr><td><code>$usuario-&gt;cargos()</code></td><td>O motor da relação, para encadear <code>-&gt;onde(...)</code>, <code>-&gt;obter()</code>, <code>-&gt;anexar(...)</code>...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="code">
-        <pre><code data-lang="php">$usuario-&gt;cargos()-&gt;onde('ativo', true)-&gt;ordenarPor('nome')-&gt;obter();
-$usuario-&gt;perfil;                 // consulta uma vez, depois usa a memória</code></pre>
-      </div>
-
-      <h2 id="elo-rel-criar">Criando o registro já vinculado</h2>
-      <p>Em <code>temUm</code> e <code>temMuitos</code>, o <code>criar()</code> preenche a chave do pai sozinho:</p>
-      <div class="code">
-        <pre><code data-lang="php">$perfil = $usuario-&gt;perfil()-&gt;criar(['bio' =&gt; 'Desenvolvedora']);   // perfis.usuario_id = $usuario-&gt;id
-$processo = $usuario-&gt;processos()-&gt;criar(['titulo' =&gt; 'Ação 1']);</code></pre>
-      </div>
-
-      <h2 id="elo-rel-personalizar">Personalizando</h2>
-      <p>Quando a convenção não serve, use um array no lugar da classe:</p>
+      <h3 id="elo-rel-opcoes">Chaves diferentes</h3>
+      <p>Quando a convenção não serve, troque a classe por um array com as opções:</p>
       <div class="code">
         <pre><code data-lang="php">protected array $temMuitos = [
     'processos' =&gt; [Processo::class, 'fk' =&gt; 'autor_id'],
@@ -3753,126 +3366,152 @@ $processo = $usuario-&gt;processos()-&gt;criar(['titulo' =&gt; 'Ação 1']);</co
 
 protected array $pertenceA = [
     'responsavel' =&gt; [Usuario::class, 'fk' =&gt; 'usuario_id'],
+];
+
+protected array $pertenceAMuitos = [
+    'cargos' =&gt; [Cargo::class, 'pivo' =&gt; 'vinculos', 'chave_pai' =&gt; 'usuario_id', 'chave_alvo' =&gt; 'cargo_id'],
 ];</code></pre>
       </div>
-
-      <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p>A relação é uma linha de configuração, e não um método. Você lê a model inteira de cima a baixo e sabe o que ela se liga, sem abrir nenhuma função.</p>
-      </div>
-    </article>
-
-    <article class="doc-page" id="elo-muitos">
-      <h1>Muitos para muitos</h1>
-      <p class="page-desc">Tabela pivô com <code>anexar</code>, <code>desanexar</code> e <code>sincronizar</code>.</p>
-
-      <h2 id="elo-muitos-pivo">A tabela pivô</h2>
-      <p>Para <code>$pertenceAMuitos</code>, o nome da pivô sai das duas classes em ordem alfabética, no singular: <code>Usuario</code> e <code>Cargo</code> geram <code>cargo_usuario</code>, com as colunas <code>usuario_id</code> e <code>cargo_id</code>. A criação está em <a href="#elo-tabelas-pivo">Tabela pivô</a>.</p>
-
-      <h2 id="elo-muitos-metodos">Os três métodos</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Método</th><th>Faz</th><th>Retorna</th></tr></thead>
+          <thead><tr><th>Opção</th><th>Usada em</th><th>Significa</th></tr></thead>
           <tbody>
-            <tr><td><code>anexar($ids)</code></td><td>Adiciona os vínculos que ainda não existem. Repetidos são ignorados.</td><td>Quantos foram criados</td></tr>
-            <tr><td><code>desanexar($ids)</code></td><td>Remove os ids informados. Com <code>null</code>, remove todos.</td><td>Quantos foram removidos</td></tr>
-            <tr><td><code>sincronizar($ids)</code></td><td>Deixa a pivô exatamente com esses ids: adiciona os que faltam e remove os que sobram.</td><td><code>['anexados' =&gt; [...], 'desanexados' =&gt; [...]]</code></td></tr>
+            <tr><td><code>'fk'</code></td><td><code>$temUm</code>, <code>$temMuitos</code>, <code>$pertenceA</code></td><td>Nome da coluna da chave estrangeira</td></tr>
+            <tr><td><code>'pivo'</code></td><td><code>$pertenceAMuitos</code></td><td>Nome da tabela pivô</td></tr>
+            <tr><td><code>'chave_pai'</code></td><td><code>$pertenceAMuitos</code></td><td>Coluna da pivô com o id deste model</td></tr>
+            <tr><td><code>'chave_alvo'</code></td><td><code>$pertenceAMuitos</code></td><td>Coluna da pivô com o id do outro model</td></tr>
           </tbody>
         </table>
       </div>
 
+      <h2 id="elo-rel-acesso">2. Acessar: dado ou motor</h2>
+      <p>O mesmo nome pode devolver o dado ou o motor da relação. A diferença é um par de parênteses:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Devolve</th><th>Consulta o banco?</th></tr></thead>
+          <tbody>
+            <tr><td><code>$usuario-&gt;setor</code></td><td>O <code>Setor</code>, ou <code>null</code></td><td>Sim, na primeira vez. Depois usa a memória.</td></tr>
+            <tr><td><code>$usuario-&gt;cargos</code></td><td>Lista de <code>Cargo</code></td><td>Sim, na primeira vez.</td></tr>
+            <tr><td><code>$usuario-&gt;cargos()</code></td><td>O motor da relação</td><td>Não. Só ao executar <code>obter()</code>, <code>contar()</code> etc.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code">
+        <pre><code data-lang="php">$usuario-&gt;cargos()-&gt;onde('nome', 'LIKE', 'Ger%')-&gt;ordenarPor('nome')-&gt;obter();
+$usuario-&gt;perfil;                   // carrega uma vez; depois usa a memória</code></pre>
+      </div>
+
+      <h2 id="elo-rel-criar">3. Criar o registro já vinculado</h2>
+      <p>Em <code>$temUm</code> e <code>$temMuitos</code>, o <code>criar()</code> preenche a chave do pai sozinho:</p>
+      <div class="code">
+        <pre><code data-lang="php">$perfil   = $usuario-&gt;perfil()-&gt;criar(['bio' =&gt; 'Desenvolvedora']);   // perfis.usuario_id = $usuario-&gt;id
+$processo = $usuario-&gt;processos()-&gt;criar(['titulo' =&gt; 'Ação 1']);</code></pre>
+      </div>
+      <p>Para criar, o pai precisa estar salvo. Antes de salvar, <code>criar()</code> gera erro com essa explicação.</p>
+
+      <h2 id="elo-rel-muitos">4. Muitos para muitos</h2>
+      <p>A tabela pivô sai dos nomes das duas classes, em ordem alfabética e no singular: <code>Usuario</code> e <code>Cargo</code> geram <code>cargo_usuario</code>, com as colunas <code>usuario_id</code> e <code>cargo_id</code>. A criação dessa tabela está em <a href="#elo-migracoes-pivo">Migrações</a>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th><th>Devolve</th></tr></thead>
+          <tbody>
+            <tr><td><code>anexar($ids)</code></td><td>Adiciona os vínculos que ainda não existem. Repetidos são ignorados.</td><td>Quantos foram criados</td></tr>
+            <tr><td><code>desanexar($ids)</code></td><td>Remove os ids informados. Com <code>null</code>, remove todos.</td><td>Quantos foram removidos</td></tr>
+            <tr><td><code>sincronizar($ids)</code></td><td>Deixa a pivô com exatamente esses ids.</td><td><code>['anexados' =&gt; [...], 'desanexados' =&gt; [...]]</code></td></tr>
+          </tbody>
+        </table>
+      </div>
       <div class="code">
         <pre><code data-lang="php">$usuario-&gt;cargos()-&gt;anexar([1, 2]);
 $usuario-&gt;cargos()-&gt;desanexar(2);
-$usuario-&gt;cargos()-&gt;desanexar();                   // remove todos
+$usuario-&gt;cargos()-&gt;desanexar();              // remove todos
 
 $resultado = $usuario-&gt;cargos()-&gt;sincronizar([2, 3]);
 // $resultado['anexados']    -&gt; [3]
 // $resultado['desanexados'] -&gt; [1]</code></pre>
       </div>
-
       <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p><code>sincronizar()</code> grava só a diferença. Você passa a lista final, e não precisa calcular o que entrar e o que sair.</p>
-      </div>
-    </article>
-
-    <article class="doc-page" id="elo-consultas">
-      <h1>Consultas e paginação</h1>
-      <p class="page-desc">Um construtor fluente, em português, com todos os valores como parâmetros.</p>
-
-      <h2 id="elo-consultas-metodos">Métodos</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Método</th><th>Equivalente SQL</th><th>Exemplo</th></tr></thead>
-          <tbody>
-            <tr><td><code>selecionar(...)</code></td><td>SELECT col1, col2</td><td><code>Usuario::selecionar('id', 'nome')</code></td></tr>
-            <tr><td><code>onde($col, $op, $valor)</code></td><td>WHERE col op ?</td><td><code>Processo::onde('ano', '&gt;=', 2025)</code></td></tr>
-            <tr><td><code>onde($col, $valor)</code></td><td>WHERE col = ?</td><td><code>Processo::onde('status', 'ABERTO')</code></td></tr>
-            <tr><td><code>ouOnde(...)</code></td><td>OR</td><td><code>-&gt;onde('status', 'A')-&gt;ouOnde('status', 'B')</code></td></tr>
-            <tr><td><code>ondeEntre($col, [min, max])</code></td><td>BETWEEN ? AND ?</td><td><code>-&gt;ondeEntre('valor', [100, 500])</code></td></tr>
-            <tr><td><code>ondeEm($col, [...])</code></td><td>IN (?, ?)</td><td><code>-&gt;ondeEm('id', [1, 5, 9])</code></td></tr>
-            <tr><td><code>ondeNulo($col)</code> / <code>ondeNaoNulo($col)</code></td><td>IS NULL / IS NOT NULL</td><td><code>-&gt;ondeNulo('cpf')</code></td></tr>
-            <tr><td><code>ordenarPor($col, $dir)</code></td><td>ORDER BY</td><td><code>-&gt;ordenarPor('criado_em', 'DESC')</code></td></tr>
-            <tr><td><code>limite($n)</code> / <code>pular($n)</code></td><td>LIMIT / OFFSET</td><td><code>-&gt;limite(10)-&gt;pular(20)</code></td></tr>
-            <tr><td><code>obter()</code></td><td>Executa e devolve a lista de models</td><td><code>-&gt;obter()</code></td></tr>
-            <tr><td><code>primeiro()</code></td><td>Executa e devolve um model ou null</td><td><code>-&gt;primeiro()</code></td></tr>
-            <tr><td><code>contar()</code> / <code>existe()</code></td><td>COUNT(*)</td><td><code>-&gt;contar()</code>, <code>-&gt;existe()</code></td></tr>
-            <tr><td><code>paginar($porPagina, $pagina)</code></td><td>Contagem + página</td><td><code>-&gt;paginar(15, 2)</code></td></tr>
-            <tr><td><code>comExcluidos()</code></td><td>Não aplica o filtro de exclusão lógica</td><td><code>Produto::comExcluidos()-&gt;obter()</code></td></tr>
-            <tr><td><code>compilar()</code></td><td>Devolve o SQL e os valores, sem executar</td><td><code>[$sql, $valores] = ...-&gt;compilar()</code></td></tr>
-          </tbody>
-        </table>
+        <span class="callout-label">Dica</span>
+        <p>Prefira <code>sincronizar()</code> quando a tela envia a lista final, por exemplo um formulário com checkboxes. Ele calcula sozinho o que entra e o que sai.</p>
       </div>
 
-      <div class="code">
-        <div class="code-title">Exemplo: busca com paginação</div>
-        <pre><code data-lang="php">$pagina = Processo::onde('status', 'ABERTO')
-    -&gt;ondeEntre('ano', [2024, 2026])
-    -&gt;ordenarPor('criado_em', 'DESC')
-    -&gt;paginar(20, $request-&gt;query('pagina', 1));
-
-// $pagina-&gt;dados, $pagina-&gt;total, $pagina-&gt;pagina, $pagina-&gt;por_pagina, $pagina-&gt;ultima_pagina</code></pre>
-      </div>
-
-      <h2 id="elo-consultas-seguranca">Segurança</h2>
-      <p>Nenhum valor entra no SQL como texto. Operadores são uma lista fechada (<code>=</code>, <code>!=</code>, <code>&lt;</code>, <code>LIKE</code>...), e a direção do <code>ordenarPor()</code> só aceita <code>ASC</code> ou <code>DESC</code>. Nomes de colunas com caracteres estranhos geram erro.</p>
-
-      <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p><code>ondeEm()</code> com lista vazia não quebra: devolve nenhum resultado, sem gerar um <code>IN ()</code> inválido. E <code>paginar()</code> faz a contagem e a página sem você escrever SQL.</p>
-      </div>
-    </article>
-
-    <article class="doc-page" id="elo-eager">
-      <h1>Carregamento ansioso (com)</h1>
-      <p class="page-desc">Carrega relações de uma lista inteira com uma consulta por relação, em vez de uma por registro.</p>
-
-      <h2 id="elo-eager-problema">O problema: N+1</h2>
-      <p>Se você lista 100 usuários e acessa <code>$usuario-&gt;setor</code> em cada um, são 101 consultas: uma para a lista e uma por setor. Com <code>com()</code>, são duas.</p>
-
+      <h2 id="elo-rel-eager">5. Carregar em lote: com()</h2>
+      <p>Se você lista 100 usuários e lê <code>$usuario-&gt;setor</code> em cada um, são 101 consultas: uma para a lista e uma por setor. Com <code>com()</code>, são duas consultas, independentemente do tamanho da lista.</p>
       <div class="code">
         <pre><code data-lang="php">$usuarios = Usuario::com('setor', 'cargos', 'perfil')-&gt;ordenarPor('nome')-&gt;obter();
 
 foreach ($usuarios as $usuario) {
-    echo $usuario-&gt;setor-&gt;sigla;     // já carregado, sem consulta nova
+    echo $usuario-&gt;setor-&gt;sigla;      // já carregado: nenhuma consulta nova
 }</code></pre>
       </div>
-
-      <h2 id="elo-eager-como">Como funciona</h2>
-      <p>Para cada relação pedida, o EloPHP coleta as chaves de todos os registros da lista e faz uma consulta com <code>WHERE ... IN (...)</code>. Depois distribui os resultados para cada model. Isso vale para os quatro tipos de relação, inclusive a pivô, que traz a chave do pai na mesma consulta.</p>
-
-      <div class="callout tip">
-        <span class="callout-label">Diferencial</span>
-        <p>Você pede as relações no próprio <code>com()</code>, na mesma linha da consulta. Não existe um "carregar depois" separado nem a possibilidade de esquecer uma relação e pagar N+1 sem perceber.</p>
-      </div>
+      <p>Você lista as relações no próprio <code>com()</code>, na mesma consulta. Não existe um "carregar depois" separado.</p>
     </article>
 
-    <article class="doc-page" id="elo-transacoes">
-      <h1>Transações</h1>
-      <p class="page-desc">Tudo ou nada: ou todas as operações entram, ou nenhuma.</p>
+    <article class="doc-page" id="elo-consultas">
+      <h1>Consultas e transações</h1>
+      <p class="page-desc">Como buscar, filtrar, ordenar e paginar, e como agrupar gravações em uma transação.</p>
 
-      <h2 id="elo-transacoes-uso">Conexao::transacao()</h2>
+      <h2 id="elo-consultas-metodos">1. Métodos do construtor</h2>
+      <p class="lead">Os métodos são encadeados e voltam a ser lidos em português. Os valores sempre vão como parâmetros, nunca dentro do SQL.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Equivale a</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><code>onde($coluna, $valor)</code></td><td><code>WHERE coluna = ?</code></td><td><code>Processo::onde('status', 'ABERTO')</code></td></tr>
+            <tr><td><code>onde($coluna, $op, $valor)</code></td><td><code>WHERE coluna op ?</code></td><td><code>-&gt;onde('ano', '&gt;=', 2025)</code></td></tr>
+            <tr><td><code>ouOnde(...)</code></td><td><code>OR</code></td><td><code>-&gt;onde('status', 'A')-&gt;ouOnde('status', 'B')</code></td></tr>
+            <tr><td><code>ondeEntre($coluna, [$min, $max])</code></td><td><code>BETWEEN ? AND ?</code></td><td><code>-&gt;ondeEntre('valor', [100, 500])</code></td></tr>
+            <tr><td><code>ondeEm($coluna, [...])</code></td><td><code>IN (?, ?)</code></td><td><code>-&gt;ondeEm('id', [1, 5, 9])</code></td></tr>
+            <tr><td><code>ondeNulo($coluna)</code>, <code>ondeNaoNulo($coluna)</code></td><td><code>IS NULL</code>, <code>IS NOT NULL</code></td><td><code>-&gt;ondeNulo('cpf')</code></td></tr>
+            <tr><td><code>selecionar(...)</code></td><td><code>SELECT colunas</code></td><td><code>Usuario::selecionar('id', 'nome')</code></td></tr>
+            <tr><td><code>ordenarPor($coluna, $direcao)</code></td><td><code>ORDER BY</code></td><td><code>-&gt;ordenarPor('criado_em', 'DESC')</code></td></tr>
+            <tr><td><code>limite($n)</code>, <code>pular($n)</code></td><td><code>LIMIT</code>, <code>OFFSET</code></td><td><code>-&gt;limite(10)-&gt;pular(20)</code></td></tr>
+            <tr><td><code>com(...)</code></td><td>Carrega relações em lote</td><td><code>-&gt;com('setor')</code></td></tr>
+            <tr><td><code>comExcluidos()</code></td><td>Inclui os registros com exclusão lógica</td><td><code>Produto::comExcluidos()-&gt;obter()</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="elo-consultas-executar">Executando</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Devolve</th></tr></thead>
+          <tbody>
+            <tr><td><code>obter()</code></td><td>Lista de models (vazia se não houver nada)</td></tr>
+            <tr><td><code>primeiro()</code></td><td>Um model, ou <code>null</code></td></tr>
+            <tr><td><code>contar()</code></td><td>Quantidade (inteiro)</td></tr>
+            <tr><td><code>existe()</code></td><td><code>true</code> ou <code>false</code></td></tr>
+            <tr><td><code>paginar($porPagina, $pagina)</code></td><td>Um <code>Paginador</code> (veja abaixo)</td></tr>
+            <tr><td><code>compilar()</code></td><td>O SQL e os valores, sem executar. Útil para depurar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="elo-consultas-exemplo">2. Exemplo: busca com paginação</h2>
+      <div class="code">
+        <div class="code-title">Service</div>
+        <pre><code data-lang="php">$pagina = Processo::onde('status', 'ABERTO')
+    -&gt;ondeEntre('ano', [2024, 2026])
+    -&gt;ordenarPor('criado_em', 'DESC')
+    -&gt;paginar(20, $pedidoDaPagina);
+
+// $pagina-&gt;dados          lista de processos da página
+// $pagina-&gt;total          quantos registros existem no total
+// $pagina-&gt;pagina         a página atual
+// $pagina-&gt;por_pagina     itens por página
+// $pagina-&gt;ultima_pagina  número da última página</code></pre>
+      </div>
+      <p>O <code>paginar()</code> faz duas consultas: uma para contar o total e outra para buscar a página pedida. O filtro de exclusão lógica, quando existe, vale nas duas.</p>
+
+      <h2 id="elo-consultas-seguranca">3. Segurança</h2>
+      <p>Nenhum valor entra no SQL como texto. Os operadores são uma lista fechada (<code>=</code>, <code>!=</code>, <code>&lt;</code>, <code>LIKE</code>...), e <code>ordenarPor()</code> só aceita <code>ASC</code> ou <code>DESC</code>. Nomes de colunas com caracteres estranhos geram erro.</p>
+      <div class="callout tip">
+        <span class="callout-label">Listas vazias</span>
+        <p><code>ondeEm($coluna, [])</code> não gera um <code>IN ()</code> inválido. Ele devolve nenhum resultado, o que é o esperado.</p>
+      </div>
+
+      <h2 id="elo-transacoes">4. Transações</h2>
+      <p>Uma transação agrupa várias gravações: ou todas são feitas, ou nenhuma. Use <code>Conexao::transacao()</code>:</p>
       <div class="code">
         <pre><code data-lang="php">use Elo\Conexao;
 
@@ -3886,15 +3525,14 @@ $pedido = Conexao::transacao(function () use ($dados) {
     return $pedido;
 });</code></pre>
       </div>
-
-      <p>Se qualquer passo lançar um erro, todo o bloco é desfeito e o erro é relançado. Se a transação já estiver aberta, a chamada entra nela, sem abrir outra.</p>
-
+      <p>Se qualquer passo lançar um erro, o bloco inteiro é desfeito e o erro é relançado. Se a transação já estiver aberta, a chamada entra nela, sem abrir outra.</p>
       <div class="callout warn">
-        <span class="callout-label">Atenção</span>
-        <p>Em MySQL, comandos de estrutura (<code>CREATE</code>, <code>ALTER</code>) fecham a transação automaticamente. Não misture migrações com transações de dados.</p>
+        <span class="callout-label">MySQL</span>
+        <p>Comandos de estrutura (<code>CREATE</code>, <code>ALTER</code>) fecham a transação automaticamente. Não misture migrações com gravações de dados na mesma transação.</p>
       </div>
     </article>
 
+    <!-- ================================================================== RESPOSTAS -->
     <article class="doc-page" id="respostas">
       <h1>Respostas</h1>
       <p class="page-desc">JSON automático, status, cabeçalhos e o que esconder das respostas.</p>
