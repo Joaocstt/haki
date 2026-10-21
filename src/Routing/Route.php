@@ -27,6 +27,9 @@ final class Route
 
     private ?string $regex = null;
 
+    /** @var array{0: int, 1: int}|null [máximo de requisições, janela em segundos] */
+    private ?array $limite = null;
+
     /**
      * @param callable|array{class-string, string}|class-string $handler
      */
@@ -56,6 +59,31 @@ final class Route
         $this->roles[] = array_values($roles);
 
         return $this;
+    }
+
+    /**
+     * Limita quantas vezes cada IP pode chamar esta rota dentro de uma janela.
+     * Passando do máximo, a resposta é 429 com Retry-After.
+     *
+     *     $app->post('/login', [AuthController::class, 'login'])->limite(5, 900);   // 5 a cada 15 minutos
+     */
+    public function limite(int $maximo, int $janela): self
+    {
+        if ($maximo < 1 || $janela < 1) {
+            throw new \InvalidArgumentException('limite() precisa de máximo e janela maiores que zero.');
+        }
+
+        $this->limite = [$maximo, $janela];
+
+        return $this;
+    }
+
+    /**
+     * @return array{0: int, 1: int}|null
+     */
+    public function getLimite(): ?array
+    {
+        return $this->limite;
     }
 
     /**

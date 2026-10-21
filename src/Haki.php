@@ -12,6 +12,9 @@ use Haki\Auth\Middleware\Authenticate;
 use Haki\Auth\Middleware\AuthorizeRole;
 use Haki\Auth\Storage\SqliteTokenStore;
 use Haki\Auth\Storage\TokenStore;
+use Haki\Auth\Tentativas\ArmazenamentoDeTentativas;
+use Haki\Auth\Tentativas\PdoArmazenamentoDeTentativas;
+use Haki\Middleware\LimitarRequisicoes;
 use Haki\Container\Container;
 use Haki\Container\Invoker;
 use Haki\Errors\ErrorHandler;
@@ -86,6 +89,7 @@ final class Haki
             ->instance(Router::class, $this->router);
 
         $this->registerAuthServices();
+        $this->registerLimitServices();
     }
 
     // ------------------------------------------------------------------ rotas
@@ -272,13 +276,22 @@ final class Haki
     }
 
     /**
-     * Ordem: grupo → autenticação → perfis → rota.
+     * Ordem: grupo → limite → autenticação → perfis → rota.
      *
      * @return list<MiddlewareInterface|Closure|class-string>
      */
     private function routeMiddleware(Route $route): array
     {
         $middleware = $route->getGroupMiddleware();
+
+        if (($limite = $route->getLimite()) !== null) {
+            $middleware[] = new LimitarRequisicoes(
+                $this->container->get(ArmazenamentoDeTentativas::class),
+                $limite[0],
+                $limite[1],
+                $route->getMethod() . ' ' . $route->getPath(),
+            );
+        }
 
         if ($route->requiresAuth()) {
             $middleware[] = Authenticate::class;
@@ -289,6 +302,31 @@ final class Haki
         }
 
         return [...$middleware, ...$route->getMiddleware()];
+    }
+
+    /**
+     * Armazenamento dos limites por rota. Padrão: SQLite em storage/haki.sqlite (o mesmo arquivo
+     * padrão dos tokens). Para vários servidores, troque por um banco compartilhado:
+     *
+     *     $app->container()->singleton(ArmazenamentoDeTentativas::class,
+     *         fn () => new PdoArmazenamentoDeTentativas($pdoCompartilhado));
+     */
+    private function registerLimitServices(): void
+    {
+        $this->container->singleton(ArmazenamentoDeTentativas::class, function (): ArmazenamentoDeTentativas {
+            $arquivo = $this->basePath . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'haki.sqlite';
+
+            if (!is_dir(dirname($arquivo))) {
+                @mkdir(dirname($arquivo), 0775, true);
+            }
+
+            $armazenamento = new PdoArmazenamentoDeTentativas(new \PDO('sqlite:' . $arquivo, null, null, [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            ]));
+            $armazenamento->criarTabela();
+
+            return $armazenamento;
+        });
     }
 
     private function registerAuthServices(): void
