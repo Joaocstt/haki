@@ -999,6 +999,31 @@ GET /usuarios/{id} (auth)</code></pre>
         <li>Rotas fixas têm prioridade: <code>/usuarios/novo</code> vence <code>/usuarios/{id}</code>.</li>
         <li>Registrar a mesma rota duas vezes gera um erro na hora, em vez de um bug silencioso.</li>
       </ul>
+    
+      <h2 id="rotas-limite">Limite de requisições: -&gt;limite()</h2>
+      <p>Limita quantas vezes <strong>cada IP</strong> pode chamar uma rota dentro de uma janela de tempo. Ao passar do máximo, o Haki responde <code>429</code> com o cabeçalho <code>Retry-After</code>, sem chegar ao controller.</p>
+      <div class="code">
+        <pre><code data-lang="php">$app-&gt;post('/login', [AuthController::class, 'login'])-&gt;limite(5, 900);      // 5 vezes a cada 15 minutos
+$app-&gt;post('/contatos', [ContatoController::class, 'store'])-&gt;limite(20, 60);  // 20 por minuto</code></pre>
+      </div>
+      <p>O primeiro número é o máximo e o segundo é a janela, em segundos. Cada rota tem o seu contador: esgotar <code>/login</code> não afeta <code>/refresh</code>.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ponto</th><th>Como funciona</th></tr></thead>
+          <tbody>
+            <tr><td>O que conta</td><td>Cada chamada, com ou sem sucesso. Para contar só senhas erradas, use <a href="#login-limite">LimiteDeTentativas</a> no service de login.</td></tr>
+            <tr><td>Por quem</td><td>Por IP e por rota. Quem não tem IP identificado divide um mesmo contador.</td></tr>
+            <tr><td>Ordem</td><td>Roda antes da autenticação, então um IP bloqueado não gasta consulta ao token.</td></tr>
+            <tr><td>Armazenamento</td><td>SQLite em <code>storage/haki.sqlite</code>. Com vários servidores, aponte para um banco compartilhado (veja <a href="#armazenamento-proprio">PdoTokenStore</a>).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Atrás de proxy</span>
+        <p>Se a API roda atrás de um balanceador, o IP lido é o do balanceador, e todos os clientes compartilham um contador. Nesse caso, o limite precisa de um IP real vindo do proxy, configurado no servidor.</p>
+      </div>
     </article>
 
     <!-- ================================================================== CONTROLLERS -->
@@ -7087,13 +7112,13 @@ interface MiddlewareInterface
         <li><strong>Armazenamento padrão</strong> (SQLite) atende um servidor. Com vários servidores, use o <a href="#armazenamento-proprio">PdoTokenStore</a>, apontando para um banco compartilhado.</li>
         <li><strong>Perfil no token:</strong> uma troca de perfil só vale na hora se você chamar <code>logoutAll()</code> na mesma operação. <a href="#usuario-perfil">Veja o padrão</a>.</li>
         <li><strong>Uma chave assina por vez:</strong> a troca de chave usa uma chave anterior só para validar. <a href="#rs256-rotacao">Veja a rotação</a>.</li>
-        <li><strong>Limite de tentativas</strong> não é automático: é uma classe que você aplica no login, <a href="#login-limite">veja como</a>. Não há ainda um middleware que aplique o limite por rota.</li>
+        <li><strong>Limite de tentativas:</strong> por rota, com <a href="#rotas-limite">-&gt;limite()</a>, e por conta, com <a href="#login-limite">LimiteDeTentativas</a> no login.</li>
       </ul>
 
       <h2 id="roadmap-proximos">Próximos passos</h2>
       <ul>
         <li>ES256 e outras famílias de algoritmo</li>
-        <li>Middleware de CORS e de limite de tentativas por rota</li>
+        <li>Middleware de CORS</li>
         <li>Esqueleto de projeto: <code>composer create-project shankscode/haki-app</code></li>
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
