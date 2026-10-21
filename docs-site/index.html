@@ -3472,71 +3472,326 @@ foreach ($usuarios as $usuario) {
       <p>Você lista as relações no próprio <code>com()</code>, na mesma consulta. Não existe um "carregar depois" separado.</p>
     </article>
 
-    <article class="doc-page" id="elo-consultas">
+        <article class="doc-page" id="elo-consultas">
       <h1>Consultas e transações</h1>
-      <p class="page-desc">Como buscar, filtrar, ordenar e paginar, e como agrupar gravações em uma transação.</p>
+      <p class="page-desc">Referência completa do construtor de consultas do EloPHP: como montar, executar, paginar e agrupar gravações em transações.</p>
 
-      <h2 id="elo-consultas-metodos">1. Métodos do construtor</h2>
-      <p class="lead">Os métodos são encadeados e voltam a ser lidos em português. Os valores sempre vão como parâmetros, nunca dentro do SQL.</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Método</th><th>Equivale a</th><th>Exemplo</th></tr></thead>
-          <tbody>
-            <tr><td><code>onde($coluna, $valor)</code></td><td><code>WHERE coluna = ?</code></td><td><code>Processo::onde('status', 'ABERTO')</code></td></tr>
-            <tr><td><code>onde($coluna, $op, $valor)</code></td><td><code>WHERE coluna op ?</code></td><td><code>-&gt;onde('ano', '&gt;=', 2025)</code></td></tr>
-            <tr><td><code>ouOnde(...)</code></td><td><code>OR</code></td><td><code>-&gt;onde('status', 'A')-&gt;ouOnde('status', 'B')</code></td></tr>
-            <tr><td><code>ondeEntre($coluna, [$min, $max])</code></td><td><code>BETWEEN ? AND ?</code></td><td><code>-&gt;ondeEntre('valor', [100, 500])</code></td></tr>
-            <tr><td><code>ondeEm($coluna, [...])</code></td><td><code>IN (?, ?)</code></td><td><code>-&gt;ondeEm('id', [1, 5, 9])</code></td></tr>
-            <tr><td><code>ondeNulo($coluna)</code>, <code>ondeNaoNulo($coluna)</code></td><td><code>IS NULL</code>, <code>IS NOT NULL</code></td><td><code>-&gt;ondeNulo('cpf')</code></td></tr>
-            <tr><td><code>selecionar(...)</code></td><td><code>SELECT colunas</code></td><td><code>Usuario::selecionar('id', 'nome')</code></td></tr>
-            <tr><td><code>ordenarPor($coluna, $direcao)</code></td><td><code>ORDER BY</code></td><td><code>-&gt;ordenarPor('criado_em', 'DESC')</code></td></tr>
-            <tr><td><code>limite($n)</code>, <code>pular($n)</code></td><td><code>LIMIT</code>, <code>OFFSET</code></td><td><code>-&gt;limite(10)-&gt;pular(20)</code></td></tr>
-            <tr><td><code>com(...)</code></td><td>Carrega relações em lote</td><td><code>-&gt;com('setor')</code></td></tr>
-            <tr><td><code>comExcluidos()</code></td><td>Inclui os registros com exclusão lógica</td><td><code>Produto::comExcluidos()-&gt;obter()</code></td></tr>
-          </tbody>
-        </table>
-      </div>
+      <h2 id="elo-consultas-como">1. Como uma consulta funciona</h2>
+      <p class="lead">Cada método de consulta <strong>só monta</strong> a consulta. Nada vai ao banco até você chamar um <strong>método final</strong>, como <code>obter()</code>, <code>primeiro()</code>, <code>contar()</code>, <code>existe()</code> ou <code>paginar()</code>.</p>
 
-      <h3 id="elo-consultas-executar">Executando</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Método</th><th>Devolve</th></tr></thead>
-          <tbody>
-            <tr><td><code>obter()</code></td><td>Lista de models (vazia se não houver nada)</td></tr>
-            <tr><td><code>primeiro()</code></td><td>Um model, ou <code>null</code></td></tr>
-            <tr><td><code>contar()</code></td><td>Quantidade (inteiro)</td></tr>
-            <tr><td><code>existe()</code></td><td><code>true</code> ou <code>false</code></td></tr>
-            <tr><td><code>paginar($porPagina, $pagina)</code></td><td>Um <code>Paginador</code> (veja abaixo)</td></tr>
-            <tr><td><code>compilar()</code></td><td>O SQL e os valores, sem executar. Útil para depurar.</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2 id="elo-consultas-exemplo">2. Exemplo: busca com paginação</h2>
       <div class="code">
-        <div class="code-title">Service</div>
-        <pre><code data-lang="php">$pagina = Processo::onde('status', 'ABERTO')
-    -&gt;ondeEntre('ano', [2024, 2026])
-    -&gt;ordenarPor('criado_em', 'DESC')
-    -&gt;paginar(20, $pedidoDaPagina);
-
-// $pagina-&gt;dados          lista de processos da página
-// $pagina-&gt;total          quantos registros existem no total
-// $pagina-&gt;pagina         a página atual
-// $pagina-&gt;por_pagina     itens por página
-// $pagina-&gt;ultima_pagina  número da última página</code></pre>
+        <div class="code-title">Errado: não executa nada</div>
+        <pre><code data-lang="php">// Devolve o construtor, não os usuários.
+// Se o método for declarado para devolver uma lista, dá erro de tipo.
+return Usuario::com('endereco');</code></pre>
       </div>
-      <p>O <code>paginar()</code> faz duas consultas: uma para contar o total e outra para buscar a página pedida. O filtro de exclusão lógica, quando existe, vale nas duas.</p>
 
-      <h2 id="elo-consultas-seguranca">3. Segurança</h2>
-      <p>Nenhum valor entra no SQL como texto. Os operadores são uma lista fechada (<code>=</code>, <code>!=</code>, <code>&lt;</code>, <code>LIKE</code>...), e <code>ordenarPor()</code> só aceita <code>ASC</code> ou <code>DESC</code>. Nomes de colunas com caracteres estranhos geram erro.</p>
+      <div class="code">
+        <div class="code-title">Certo: termina com um método final</div>
+        <pre><code data-lang="php">// Devolve a lista de usuários, com o endereço já carregado.
+return Usuario::com('endereco')-&gt;ordenarPor('nome')-&gt;obter();</code></pre>
+      </div>
+
       <div class="callout tip">
-        <span class="callout-label">Listas vazias</span>
-        <p><code>ondeEm($coluna, [])</code> não gera um <code>IN ()</code> inválido. Ele devolve nenhum resultado, o que é o esperado.</p>
+        <span class="callout-label">Regra de bolso</span>
+        <p>Se a função deve devolver dados, a última chamada da cadeia é um método final. Os demais métodos servem para montar a consulta.</p>
       </div>
 
-      <h2 id="elo-transacoes">4. Transações</h2>
-      <p>Uma transação agrupa várias gravações: ou todas são feitas, ou nenhuma. Use <code>Conexao::transacao()</code>:</p>
+      <h2 id="elo-consultas-inicio">2. Por onde começar</h2>
+      <p>Toda consulta começa em um model. Qualquer método do construtor pode ser chamado direto no model:</p>
+      <div class="code">
+        <pre><code data-lang="php">Usuario::onde('ativo', true)-&gt;obter();            // equivalente a:
+Usuario::consulta()-&gt;onde('ativo', true)-&gt;obter();</code></pre>
+      </div>
+      <p><code>consulta()</code> é útil quando você quer guardar a consulta em uma variável antes de executá-la:</p>
+      <div class="code">
+        <pre><code data-lang="php">$consulta = Usuario::consulta()-&gt;onde('status', 'ATIVO');
+
+if ($pedidoComBusca) {
+    $consulta-&gt;onde('nome', 'LIKE', '%' . $busca . '%');
+}
+
+$usuarios = $consulta-&gt;ordenarPor('nome')-&gt;obter();</code></pre>
+      </div>
+
+      <h2 id="elo-consultas-selecionar">3. Escolher colunas: selecionar()</h2>
+      <p>Por padrão, a consulta traz todas as colunas da tabela (<code>tabela.*</code>). Com <code>selecionar()</code>, você traz só as que precisa:</p>
+      <div class="code">
+        <pre><code data-lang="php">Usuario::selecionar('id', 'nome')-&gt;obter();
+
+// Com apelido (as), útil para renomear no resultado
+Usuario::selecionar('id', 'nome as apelido')-&gt;obter();
+
+// Com a tabela, útil quando há join
+Usuario::selecionar('usuarios.nome', 'setores.sigla')-&gt;juntar('setores', 'setores.id', 'usuarios.setor_id')-&gt;obter();</code></pre>
+      </div>
+      <div class="callout warn">
+        <span class="callout-label">Cuidado</span>
+        <p>Um model carregado com colunas selecionadas <strong>não tem</strong> as outras. Se você for salvá-lo, inclua a chave primária (<code>id</code>) na seleção, senão o <code>salvar()</code> não sabe qual registro atualizar.</p>
+      </div>
+
+      <h2 id="elo-consultas-filtros">4. Filtros</h2>
+
+      <h3 id="elo-consultas-onde">onde(): igualdade ou comparação</h3>
+      <p>Com dois argumentos, compara com igualdade. Com três, usa o operador informado:</p>
+      <div class="code">
+        <pre><code data-lang="php">Processo::onde('status', 'ABERTO')-&gt;obter();                 // status = 'ABERTO'
+Processo::onde('ano', '&gt;=', 2025)-&gt;obter();                // ano &gt;= 2025
+Processo::onde('titulo', 'LIKE', 'Ação%')-&gt;obter();          // título começa com "Ação"
+Processo::onde('status', '!=', 'ARQUIVADO')-&gt;obter();        // status diferente de ARQUIVADO</code></pre>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Operador</th><th>Significa</th></tr></thead>
+          <tbody>
+            <tr><td><code>=</code></td><td>igual (é o padrão quando você passa dois argumentos)</td></tr>
+            <tr><td><code>!=</code> ou <code>&lt;&gt;</code></td><td>diferente</td></tr>
+            <tr><td><code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></td><td>menor, menor ou igual, maior, maior ou igual</td></tr>
+            <tr><td><code>LIKE</code></td><td>combina com um padrão; <code>%</code> é qualquer sequência, <code>_</code> é um caractere</td></tr>
+            <tr><td><code>NOT LIKE</code></td><td>não combina com o padrão</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Operadores fora dessa lista geram erro. Isso impede que alguém injete SQL pelo operador.</p>
+
+      <div class="callout warn">
+        <span class="callout-label">Comparar com null</span>
+        <p><code>onde('cpf', null)</code> gera erro. Use <code>ondeNulo()</code> ou <code>ondeNaoNulo()</code>.</p>
+      </div>
+
+      <h3 id="elo-consultas-ou">ouOnde(): alternativas</h3>
+      <p>Une uma condição com <code>OR</code>. Atenção: o construtor <strong>não cria parênteses</strong> para você. Como o <code>AND</code> tem prioridade sobre o <code>OR</code>, a ordem das chamadas importa.</p>
+      <div class="code">
+        <pre><code data-lang="php">Processo::onde('status', 'ABERTO')-&gt;ouOnde('status', 'SUSPENSO')-&gt;obter();
+
+// WHERE status = 'ABERTO' OR status = 'SUSPENSO'</code></pre>
+      </div>
+      <p>Quando o model tem exclusão lógica, a parte de filtros do usuário vai entre parênteses, e o filtro de excluídos continua valendo para tudo.</p>
+
+      <h3 id="elo-consultas-entre">ondeEntre(): intervalo</h3>
+      <p>Valor entre dois limites, incluindo os extremos (<code>BETWEEN</code>):</p>
+      <div class="code">
+        <pre><code data-lang="php">Pedido::ondeEntre('valor', [100, 500])-&gt;obter();
+Pedido::ondeEntre('criado_em', ['2026-01-01', '2026-03-31'])-&gt;obter();</code></pre>
+      </div>
+      <p>A lista precisa ter exatamente dois valores, senão dá erro.</p>
+
+      <h3 id="elo-consultas-em">ondeEm(): lista de valores</h3>
+      <p>Valor igual a algum da lista (<code>IN</code>):</p>
+      <div class="code">
+        <pre><code data-lang="php">Usuario::ondeEm('id', [1, 5, 9])-&gt;obter();
+
+// Lista vazia: não gera erro, e devolve nenhum resultado
+Usuario::ondeEm('id', [])-&gt;obter();   // []</code></pre>
+      </div>
+      <p>Esse caso é comum quando a lista vem de um formulário e pode estar vazia. Nesse caso, o resultado correto é nenhum registro.</p>
+
+      <h3 id="elo-consultas-nulo">ondeNulo() e ondeNaoNulo()</h3>
+      <div class="code">
+        <pre><code data-lang="php">Usuario::ondeNulo('telefone')-&gt;obter();      // telefone IS NULL
+Usuario::ondeNaoNulo('telefone')-&gt;obter();  // telefone IS NOT NULL</code></pre>
+      </div>
+
+      <h3 id="elo-consultas-combinar">Combinando filtros</h3>
+      <p>Filtros encadeados com <code>onde()</code> ou <code>ondeEm()</code> são unidos com <code>AND</code>. Para misturar <code>AND</code> e <code>OR</code>, use <code>ouOnde()</code> em um dos pontos:</p>
+      <div class="code">
+        <pre><code data-lang="php">// WHERE status = 'ATIVO' AND idade &gt;= 18 OR cadastro_antigo = 1
+// lido pelo banco como: (status = 'ATIVO' AND idade &gt;= 18) OR cadastro_antigo = 1
+Usuario::onde('status', 'ATIVO')
+    -&gt;onde('idade', '&gt;=', 18)
+    -&gt;ouOnde('cadastro_antigo', true)
+    -&gt;obter();</code></pre>
+      </div>
+      <div class="callout warn">
+        <span class="callout-label">Atenção à ordem</span>
+        <p>Não existe agrupamento com parênteses no construtor. Se a regra for <code>status = 'ATIVO' AND (idade &gt;= 18 OR cadastro_antigo = 1)</code>, não dá para escrevê-la com <code>ouOnde()</code>. Nesse caso, filtre parte no banco e o resto no código, ou use <code>compilar()</code> (seção 8) para conferir o SQL gerado antes de confiar nele.</p>
+      </div>
+
+      <h2 id="elo-consultas-ordem">5. Ordenação e limite</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr><td><code>ordenarPor($coluna, $direcao)</code></td><td>Ordena. Direção <code>ASC</code> (padrão) ou <code>DESC</code>.</td><td><code>-&gt;ordenarPor('criado_em', 'DESC')</code></td></tr>
+            <tr><td><code>limite($n)</code></td><td>No máximo <code>$n</code> registros.</td><td><code>-&gt;limite(10)</code></td></tr>
+            <tr><td><code>pular($n)</code></td><td>Pula os primeiros <code>$n</code> registros.</td><td><code>-&gt;pular(20)-&gt;limite(10)</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code">
+        <pre><code data-lang="php">// Os 10 mais recentes
+Pedido::ordenarPor('criado_em', 'DESC')-&gt;limite(10)-&gt;obter();
+
+// Terceira página de 10 itens (pula 20)
+Pedido::ordenarPor('id')-&gt;pular(20)-&gt;limite(10)-&gt;obter();</code></pre>
+      </div>
+      <div class="callout">
+        <span class="callout-label">Para paginar de verdade</span>
+        <p>Para uma API com páginas, use <code>paginar()</code> (seção 7). Ele já faz a conta e traz o total.</p>
+      </div>
+      <p><code>ordenarPor()</code> aceita só <code>ASC</code> ou <code>DESC</code>, e <code>limite()</code>/<code>pular()</code> não aceitam números negativos.</p>
+
+      <h2 id="elo-consultas-com">6. Relações na consulta: com()</h2>
+      <p><code>com()</code> carrega as relações junto com a consulta, em lote. Sem ele, acessar <code>$usuario-&gt;endereco</code> em uma lista faria uma consulta extra por usuário.</p>
+      <div class="code">
+        <pre><code data-lang="php">// 2 consultas no total, não importa quantos usuários
+$usuarios = Usuario::com('endereco', 'cargos')-&gt;obter();
+
+foreach ($usuarios as $usuario) {
+    echo $usuario-&gt;endereco-&gt;cidade;   // já carregado
+}</code></pre>
+      </div>
+      <p>Funciona com <code>obter()</code>, <code>primeiro()</code> e <code>paginar()</code>. Relações que não existem no model geram erro com o nome da relação.</p>
+
+      <h2 id="elo-consultas-excluidos">7. Exclusão lógica: comExcluidos()</h2>
+      <p>Se o model tem <code>$exclusaoLogica = true</code>, as consultas escondem os registros com <code>excluido_em</code> preenchido. Esse filtro é aplicado sozinho. Para incluí-los:</p>
+      <div class="code">
+        <pre><code data-lang="php">Produto::comExcluidos()-&gt;obter();                  // todos, inclusive excluídos
+Produto::comExcluidos()-&gt;onde('id', 7)-&gt;primeiro(); // o 7, mesmo que excluído</code></pre>
+      </div>
+
+      <h2 id="elo-consultas-executar">8. Métodos finais: executam a consulta</h2>
+      <p>Estes são os métodos que realmente consultam o banco. Cada um devolve um tipo diferente:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Devolve</th><th>Quando não há resultado</th></tr></thead>
+          <tbody>
+            <tr><td><code>obter()</code></td><td>lista de models (<code>array</code>)</td><td><code>[]</code></td></tr>
+            <tr><td><code>primeiro()</code></td><td>um model</td><td><code>null</code></td></tr>
+            <tr><td><code>contar()</code></td><td>quantidade (<code>int</code>)</td><td><code>0</code></td></tr>
+            <tr><td><code>existe()</code></td><td><code>true</code> ou <code>false</code></td><td><code>false</code></td></tr>
+            <tr><td><code>paginar($porPagina, $pagina)</code></td><td>um <code>Paginador</code></td><td><code>dados</code> vazio, <code>total</code> 0</td></tr>
+            <tr><td><code>compilar()</code></td><td>array com o SQL e os valores</td><td>não executa</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="elo-consultas-obter">obter()</h3>
+      <div class="code">
+        <pre><code data-lang="php">$usuarios = Usuario::onde('status', 'ATIVO')-&gt;ordenarPor('nome')-&gt;obter();
+
+foreach ($usuarios as $usuario) {
+    echo $usuario-&gt;nome;
+}</code></pre>
+      </div>
+
+      <h3 id="elo-consultas-primeiro">primeiro()</h3>
+      <p>Traz no máximo um registro. Use quando a consulta deve achar um só, como buscar por e-mail:</p>
+      <div class="code">
+        <pre><code data-lang="php">$usuario = Usuario::onde('email', 'ana@exemplo.br')-&gt;primeiro();
+
+if ($usuario === null) {
+    // não encontrado
+}</code></pre>
+      </div>
+
+      <h3 id="elo-consultas-contar">contar() e existe()</h3>
+      <p><code>contar()</code> usa <code>COUNT(*)</code>, sem trazer os dados. É mais rápido que <code>obter()</code> quando só o número interessa:</p>
+      <div class="code">
+        <pre><code data-lang="php">$abertos = Processo::onde('status', 'ABERTO')-&gt;contar();     // 42
+
+if (Usuario::onde('email', $email)-&gt;existe()) {
+    // já existe
+}</code></pre>
+      </div>
+      <p><code>contar()</code> ignora <code>limite()</code>, <code>pular()</code> e a ordenação, porque conta o conjunto inteiro.</p>
+
+      <h3 id="elo-consultas-paginar">paginar()</h3>
+      <p>Traz uma página e o total, pronto para uma API com paginação:</p>
+      <div class="code">
+        <pre><code data-lang="php">$pagina = Processo::onde('status', 'ABERTO')
+    -&gt;ordenarPor('criado_em', 'DESC')
+    -&gt;paginar(20, 2);     // 20 por página, página 2
+
+$pagina-&gt;dados;          // os processos da página 2
+$pagina-&gt;total;          // quantos existem no total
+$pagina-&gt;pagina;         // 2
+$pagina-&gt;por_pagina;     // 20
+$pagina-&gt;ultima_pagina; // número da última página</code></pre>
+      </div>
+      <p>Ao devolver da rota, o <code>Paginador</code> vira este JSON:</p>
+      <div class="code">
+        <div class="code-title">Resposta</div>
+        <pre><code data-lang="json">{
+  "dados": [ { "id": 21, "titulo": "..." } ],
+  "total": 42,
+  "pagina": 2,
+  "por_pagina": 20,
+  "ultima_pagina": 3
+}</code></pre>
+      </div>
+      <p>Valores inválidos (página ou quantidade menor que 1) geram erro. Para aceitar valores vindos da URL, limite-os antes:</p>
+      <div class="code">
+        <pre><code data-lang="php">$porPagina = min(100, max(1, (int) $request-&gt;query('por_pagina', 20)));
+$pagina = max(1, (int) $request-&gt;query('pagina', 1));</code></pre>
+      </div>
+
+      <h3 id="elo-consultas-compilar">compilar(): ver o SQL</h3>
+      <p>Devolve o SQL e os valores, sem executar. É a ferramenta de depuração quando um filtro não faz o que você espera:</p>
+      <div class="code">
+        <pre><code data-lang="php">[$sql, $valores] = Usuario::onde('status', 'ATIVO')-&gt;ouOnde('idade', '&gt;', 60)-&gt;compilar();
+
+// $sql    = SELECT `usuarios`.* FROM `usuarios` WHERE ... (com os ? no lugar dos valores)
+// $valores = ['ATIVO', 60]
+
+[$sqlContagem] = Usuario::onde('status', 'ATIVO')-&gt;compilar(true);  // SQL do contar()</code></pre>
+      </div>
+
+      <h2 id="elo-consultas-atalhos">9. Atalhos do model (sem consulta montada)</h2>
+      <p>Estes métodos ficam no próprio model e cobrem os casos mais comuns. Por dentro, usam o construtor:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th><th>Devolve</th></tr></thead>
+          <tbody>
+            <tr><td><code>Usuario::buscar($id)</code></td><td>Busca pela chave primária</td><td>model ou <code>null</code></td></tr>
+            <tr><td><code>Usuario::buscarPor('email', $valor)</code></td><td>Primeiro registro com aquele valor</td><td>model ou <code>null</code></td></tr>
+            <tr><td><code>Usuario::buscarTodos(['status' =&gt; 'ATIVO'])</code></td><td>Lista com igualdade em cada coluna; <code>null</code> vira <code>IS NULL</code></td><td>lista de models</td></tr>
+            <tr><td><code>Usuario::criar($dados)</code></td><td>Cria, salva e devolve</td><td>model</td></tr>
+            <tr><td><code>Usuario::consulta()</code></td><td>Devolve o construtor, para começar uma consulta</td><td>construtor</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code">
+        <pre><code data-lang="php">Usuario::buscarTodos(['status' =&gt; 'ATIVO', 'telefone' =&gt; null]);
+// status = 'ATIVO' AND telefone IS NULL</code></pre>
+      </div>
+
+      <h2 id="elo-consultas-juntar">10. Juntar outra tabela: juntar() (avançado)</h2>
+      <p>Adiciona um <code>INNER JOIN</code>. Normalmente, as relações muitos-para-muitos já fazem isso sozinhas. Use <code>juntar()</code> quando precisar de uma junção fora das relações declaradas.</p>
+      <div class="code">
+        <pre><code data-lang="php">// juntar(tabela, coluna da tabela juntada, coluna da tabela principal)
+Usuario::juntar('setores', 'setores.id', 'usuarios.setor_id')
+    -&gt;selecionar('usuarios.*')
+    -&gt;onde('setores.sigla', 'NAT')
+    -&gt;obter();</code></pre>
+      </div>
+      <div class="callout warn">
+        <span class="callout-label">Use nomes completos</span>
+        <p>Nas junções, escreva as colunas como <code>tabela.coluna</code>, para não haver ambiguidade quando as duas tabelas tiverem <code>id</code>.</p>
+      </div>
+
+      <h2 id="elo-consultas-seguranca">11. Segurança e erros</h2>
+      <p>Os valores nunca entram no SQL como texto: vão como parâmetros do PDO. Nomes de tabelas e colunas são validados e colocados entre aspas pelo banco em uso. Isso bloqueia injeção de SQL pelos nomes, pelos operadores e pelas direções.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Situação</th><th>O que acontece</th></tr></thead>
+          <tbody>
+            <tr><td>Operador desconhecido (ex.: <code>'OR 1=1'</code>)</td><td>Erro antes de consultar o banco</td></tr>
+            <tr><td>Comparação com <code>null</code> usando <code>onde()</code></td><td>Erro, sugerindo <code>ondeNulo()</code></td></tr>
+            <tr><td>Nome de coluna com espaço ou caractere especial</td><td>Erro de nome inválido</td></tr>
+            <tr><td><code>ordenarPor</code> com direção diferente de ASC/DESC</td><td>Erro</td></tr>
+            <tr><td><code>ondeEm</code> com lista vazia</td><td>Nenhum resultado (sem erro)</td></tr>
+            <tr><td><code>ondeEntre</code> com lista que não tem 2 valores</td><td>Erro</td></tr>
+            <tr><td><code>limite</code>/<code>pular</code> negativos</td><td>Erro</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="elo-transacoes">12. Transações: tudo ou nada</h2>
+      <p>Uma transação agrupa gravações. Se qualquer uma falhar, todas são desfeitas. Use <code>Conexao::transacao()</code>:</p>
       <div class="code">
         <pre><code data-lang="php">use Elo\Conexao;
 
@@ -3547,13 +3802,81 @@ $pedido = Conexao::transacao(function () use ($dados) {
         $pedido-&gt;itens()-&gt;criar($item);
     }
 
-    return $pedido;
+    return $pedido;   // este valor é devolvido por transacao()
 });</code></pre>
       </div>
-      <p>Se qualquer passo lançar um erro, o bloco inteiro é desfeito e o erro é relançado. Se a transação já estiver aberta, a chamada entra nela, sem abrir outra.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Caso</th><th>O que acontece</th></tr></thead>
+          <tbody>
+            <tr><td>O bloco termina sem erro</td><td>As gravações são confirmadas (commit)</td></tr>
+            <tr><td>O bloco lança um erro</td><td>Tudo é desfeito (rollback) e o erro é relançado</td></tr>
+            <tr><td>Chamada dentro de outra transação</td><td>Entra na transação que já está aberta; não abre outra</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code">
+        <div class="code-title">Exemplo com erro: nada é gravado</div>
+        <pre><code data-lang="php">try {
+    Conexao::transacao(function () {
+        Cargo::criar(['nome' =&gt; 'Gerente']);
+        throw new \RuntimeException('falhou depois');
+    });
+} catch (\RuntimeException) {
+    // o cargo "Gerente" não existe no banco
+}</code></pre>
+      </div>
+
       <div class="callout warn">
-        <span class="callout-label">MySQL</span>
-        <p>Comandos de estrutura (<code>CREATE</code>, <code>ALTER</code>) fecham a transação automaticamente. Não misture migrações com gravações de dados na mesma transação.</p>
+        <span class="callout-label">MySQL e comandos de estrutura</span>
+        <p><code>CREATE</code> e <code>ALTER</code> fecham a transação automaticamente. Não misture migrações com gravações de dados na mesma transação.</p>
+      </div>
+
+      <h2 id="elo-consultas-conexao">13. Conexão: métodos de apoio</h2>
+      <p>Para uso avançado, a classe <code>Elo\Conexao</code> expõe a conexão e o dialeto do banco. Você quase nunca precisa deles no dia a dia.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Método</th><th>Faz</th></tr></thead>
+          <tbody>
+            <tr><td><code>Conexao::configurar($dados_ou_pdo)</code></td><td>Define a conexão (veja <a href="#elo-configuracao">Configuração</a>)</td></tr>
+            <tr><td><code>Conexao::obter()</code></td><td>Devolve o <code>PDO</code> em uso</td></tr>
+            <tr><td><code>Conexao::gramatica()</code></td><td>Devolve o dialeto do banco (MySQL, PostgreSQL, SQL Server ou SQLite)</td></tr>
+            <tr><td><code>Conexao::executar($sql, $valores)</code></td><td>Executa um SQL com <code>?</code> e devolve o <code>PDOStatement</code></td></tr>
+            <tr><td><code>Conexao::executarDdl($sql)</code></td><td>Executa um comando de estrutura, sem parâmetros</td></tr>
+            <tr><td><code>Conexao::limpar()</code></td><td>Esquece a conexão atual (usado em testes)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code">
+        <pre><code data-lang="php">// Consulta feita à mão, com parâmetros
+$linhas = Conexao::executar(
+    'SELECT COUNT(*) FROM usuarios WHERE status = ?',
+    ['ATIVO']
+)-&gt;fetchColumn();</code></pre>
+      </div>
+      <div class="callout warn">
+        <span class="callout-label">Prefira o construtor</span>
+        <p>O <code>executar()</code> não passa pela validação de nomes nem pelo filtro de exclusão lógica. Use-o só quando o construtor não resolve o caso.</p>
+      </div>
+
+      <h2 id="elo-consultas-tabela">14. Tabela de referência</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Grupo</th><th>Métodos</th><th>Tipo</th></tr></thead>
+          <tbody>
+            <tr><td>Colunas</td><td><code>selecionar</code></td><td>monta</td></tr>
+            <tr><td>Filtros</td><td><code>onde</code>, <code>ouOnde</code>, <code>ondeEntre</code>, <code>ondeEm</code>, <code>ondeNulo</code>, <code>ondeNaoNulo</code></td><td>monta</td></tr>
+            <tr><td>Ordem e limites</td><td><code>ordenarPor</code>, <code>limite</code>, <code>pular</code></td><td>monta</td></tr>
+            <tr><td>Relações e junções</td><td><code>com</code>, <code>juntar</code></td><td>monta</td></tr>
+            <tr><td>Exclusão lógica</td><td><code>comExcluidos</code></td><td>monta</td></tr>
+            <tr><td>Execução</td><td><code>obter</code>, <code>primeiro</code>, <code>contar</code>, <code>existe</code>, <code>paginar</code></td><td>executa</td></tr>
+            <tr><td>Depuração</td><td><code>compilar</code></td><td>não executa</td></tr>
+            <tr><td>Atalhos do model</td><td><code>buscar</code>, <code>buscarPor</code>, <code>buscarTodos</code>, <code>criar</code>, <code>consulta</code></td><td>executa ou monta</td></tr>
+            <tr><td>Transações</td><td><code>Conexao::transacao</code></td><td>executa</td></tr>
+          </tbody>
+        </table>
       </div>
     </article>
 
