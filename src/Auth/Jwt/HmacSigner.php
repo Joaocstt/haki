@@ -13,8 +13,10 @@ final class HmacSigner implements SignerInterface
 {
     public const MIN_SECRET_BYTES = 32;
 
-    public function __construct(#[\SensitiveParameter] private readonly string $secret)
-    {
+    public function __construct(
+        #[\SensitiveParameter] private readonly string $secret,
+        private readonly ?string $kid = null,
+    ) {
         if (strlen($secret) < self::MIN_SECRET_BYTES) {
             throw new ConfigurationException(
                 'O segredo JWT precisa ter pelo menos ' . self::MIN_SECRET_BYTES . ' caracteres.',
@@ -26,6 +28,11 @@ final class HmacSigner implements SignerInterface
     public function algorithm(): string
     {
         return 'HS256';
+    }
+
+    public function kid(): ?string
+    {
+        return $this->kid;
     }
 
     public function sign(string $data): string

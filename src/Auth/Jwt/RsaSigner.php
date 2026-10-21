@@ -17,7 +17,13 @@ final class RsaSigner implements SignerInterface
     public function __construct(
         private readonly OpenSSLAsymmetricKey $publicKey,
         private readonly ?OpenSSLAsymmetricKey $privateKey = null,
+        private readonly ?string $kid = null,
     ) {
+    }
+
+    public function kid(): ?string
+    {
+        return $this->kid;
     }
 
     public function algorithm(): string

@@ -37,7 +37,7 @@ final class Auth
         ?Closure $clock = null,
     ) {
         $this->clock = $clock ?? static fn (): int => time();
-        $this->jwt = new Jwt($config->signer, $config->issuer, $this->clock);
+        $this->jwt = new Jwt($config->signer, $config->issuer, $this->clock, $config->chavesAnteriores);
     }
 
     /**

@@ -28,12 +28,14 @@ final class AuthConfig
         public readonly ?string $issuer,
         public readonly string $database,
         public readonly ?TokenStore $storage,
+        public readonly array $chavesAnteriores = [],
     ) {
     }
 
     /**
      * @param array{
      *     algorithm?: string, secret?: string|null, private_key?: string|null, public_key?: string|null,
+     *     kid?: string|null, previous_keys?: list<array{kid: string, secret?: string|null, public_key?: string|null}>,
      *     expires_in?: int, refresh_in?: int, issuer?: string|null, database?: string, storage?: TokenStore|null
      * } $options
      */
@@ -48,9 +50,43 @@ final class AuthConfig
             );
         }
 
+        $kid = isset($options['kid']) && $options['kid'] !== '' ? self::kid((string) $options['kid']) : null;
+        $previous = $options['previous_keys'] ?? [];
+
+        if (!is_array($previous)) {
+            throw new ConfigurationException("A opção 'previous_keys' deve ser uma lista.");
+        }
+
+        if ($previous !== [] && $kid === null) {
+            throw new ConfigurationException(
+                "Para trocar a chave JWT, a chave atual precisa de um identificador (kid).",
+                'Defina JWT_KID no .env, por exemplo JWT_KID=k2.',
+            );
+        }
+
         $signer = $algorithm === 'HS256'
-            ? self::hmac($options['secret'] ?? null)
-            : self::rsa($options['private_key'] ?? null, $options['public_key'] ?? null, $basePath);
+            ? self::hmac($options['secret'] ?? null, $kid)
+            : self::rsa($options['private_key'] ?? null, $options['public_key'] ?? null, $basePath, $kid);
+
+        $anteriores = [];
+        $kids = $kid === null ? [] : [$kid];
+
+        foreach ($previous as $item) {
+            if (!is_array($item) || !isset($item['kid'])) {
+                throw new ConfigurationException("Cada chave anterior precisa de um 'kid'.");
+            }
+
+            $previousKid = self::kid((string) $item['kid']);
+
+            if (in_array($previousKid, $kids, true)) {
+                throw new ConfigurationException("O kid \"{$previousKid}\" aparece mais de uma vez na configuração de chaves JWT.");
+            }
+
+            $kids[] = $previousKid;
+            $anteriores[] = $algorithm === 'HS256'
+                ? self::hmac($item['secret'] ?? null, $previousKid)
+                : self::rsaPublica($item['public_key'] ?? null, $basePath, $previousKid);
+        }
 
         $storage = $options['storage'] ?? null;
 
@@ -65,6 +101,7 @@ final class AuthConfig
             isset($options['issuer']) && $options['issuer'] !== '' ? (string) $options['issuer'] : null,
             self::absolute((string) ($options['database'] ?? 'storage/haki.sqlite'), $basePath),
             $storage,
+            $anteriores,
         );
     }
 
@@ -83,10 +120,45 @@ final class AuthConfig
             'refresh_in' => self::intOrNull(Env::get('JWT_REFRESH_TTL')),
             'issuer' => Env::get('JWT_ISSUER'),
             'database' => Env::get('JWT_DATABASE'),
+            'kid' => Env::get('JWT_KID'),
+            'previous_keys' => self::previousKeysFromEnv(),
         ], static fn (mixed $v): bool => $v !== null), $basePath);
     }
 
-    private static function hmac(mixed $secret): HmacSigner
+    /**
+     * Uma chave anterior, para a janela de rotação: JWT_KID_ANTERIOR com JWT_SECRET_ANTERIOR
+     * (HS256) ou JWT_PUBLIC_KEY_ANTERIOR (RS256).
+     *
+     * @return list<array{kid: string, secret: mixed, public_key: mixed}>
+     */
+    private static function previousKeysFromEnv(): array
+    {
+        $kid = Env::get('JWT_KID_ANTERIOR');
+
+        if ($kid === null) {
+            return [];
+        }
+
+        return [[
+            'kid' => (string) $kid,
+            'secret' => Env::get('JWT_SECRET_ANTERIOR'),
+            'public_key' => Env::get('JWT_PUBLIC_KEY_ANTERIOR'),
+        ]];
+    }
+
+    private static function kid(string $kid): string
+    {
+        if (preg_match('/^[A-Za-z0-9_-]{1,32}$/', $kid) !== 1) {
+            throw new ConfigurationException(
+                "O kid \"{$kid}\" é inválido. Use de 1 a 32 letras, números, _ ou -.",
+                'Exemplos: k1, k2, 2026-01.',
+            );
+        }
+
+        return $kid;
+    }
+
+    private static function hmac(mixed $secret, ?string $kid = null): HmacSigner
     {
         if (!is_string($secret) || $secret === '') {
             throw new ConfigurationException(
@@ -96,10 +168,27 @@ final class AuthConfig
             );
         }
 
-        return new HmacSigner($secret);
+        return new HmacSigner($secret, $kid);
     }
 
-    private static function rsa(mixed $private, mixed $public, string $basePath): RsaSigner
+    private static function rsaPublica(mixed $public, string $basePath, string $kid): RsaSigner
+    {
+        if (!is_string($public) || $public === '') {
+            throw new ConfigurationException("A chave pública anterior (kid \"{$kid}\") não foi definida.");
+        }
+
+        $key = openssl_pkey_get_public(self::pem($public, $basePath, 'public_key'));
+
+        if ($key === false) {
+            throw new ConfigurationException("A chave pública anterior (kid \"{$kid}\") é inválida.");
+        }
+
+        self::assertRsa($key, 'pública anterior');
+
+        return new RsaSigner($key, null, $kid);
+    }
+
+    private static function rsa(mixed $private, mixed $public, string $basePath, ?string $kid = null): RsaSigner
     {
         $privateKey = null;
 
@@ -131,7 +220,7 @@ final class AuthConfig
 
         self::assertRsa($publicKey, 'pública');
 
-        return new RsaSigner($publicKey, $privateKey);
+        return new RsaSigner($publicKey, $privateKey, $kid);
     }
 
     private static function assertRsa(OpenSSLAsymmetricKey $key, string $label): void

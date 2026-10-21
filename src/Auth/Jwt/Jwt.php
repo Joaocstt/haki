@@ -20,15 +20,21 @@ final class Jwt
     /** @var Closure(): int */
     private readonly Closure $clock;
 
+    /** @var list<SignerInterface> chave atual primeiro, depois as anteriores (rotação) */
+    private readonly array $verificadores;
+
     /**
      * @param (Closure(): int)|null $clock relógio injetável, para testes
+     * @param list<SignerInterface> $chavesAnteriores chaves antigas que ainda validam tokens (rotação de chave)
      */
     public function __construct(
         private readonly SignerInterface $signer,
         private readonly ?string $issuer = null,
         ?Closure $clock = null,
+        array $chavesAnteriores = [],
     ) {
         $this->clock = $clock ?? static fn (): int => time();
+        $this->verificadores = [$signer, ...$chavesAnteriores];
     }
 
     /**
@@ -37,6 +43,10 @@ final class Jwt
     public function encode(array $claims): string
     {
         $header = ['alg' => $this->signer->algorithm(), 'typ' => 'JWT'];
+
+        if ($this->signer->kid() !== null) {
+            $header['kid'] = $this->signer->kid();
+        }
 
         $input = Base64Url::encode(json_encode($header, JSON_THROW_ON_ERROR))
             . '.' . Base64Url::encode(json_encode($claims, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
@@ -76,7 +86,17 @@ final class Jwt
             ));
         }
 
-        if (!$this->signer->verify($encodedHeader . '.' . $encodedPayload, $signature)) {
+        $assinado = $encodedHeader . '.' . $encodedPayload;
+        $valida = false;
+
+        foreach ($this->verificadoresPara($header) as $verificador) {
+            if ($verificador->verify($assinado, $signature)) {
+                $valida = true;
+                break;
+            }
+        }
+
+        if (!$valida) {
             throw new AuthenticationException('Assinatura inválida: o token foi alterado ou assinado com outra chave.');
         }
 
@@ -99,6 +119,35 @@ final class Jwt
         }
 
         return $claims;
+    }
+
+    /**
+     * Com "kid" no header, só a chave com esse identificador é usada.
+     * Sem "kid" (tokens emitidos antes da rotação), todas as chaves configuradas são tentadas.
+     *
+     * @param array<string, mixed> $header
+     * @return list<SignerInterface>
+     */
+    private function verificadoresPara(array $header): array
+    {
+        if (!isset($header['kid'])) {
+            return $this->verificadores;
+        }
+
+        if (!is_string($header['kid'])) {
+            throw new AuthenticationException('Token malformado: kid deve ser texto.');
+        }
+
+        foreach ($this->verificadores as $verificador) {
+            if ($verificador->kid() === $header['kid']) {
+                return [$verificador];
+            }
+        }
+
+        throw new AuthenticationException(sprintf(
+            'Chave desconhecida (kid "%s"): o token foi emitido com uma chave que não está mais configurada.',
+            $header['kid'],
+        ));
     }
 
     /**
