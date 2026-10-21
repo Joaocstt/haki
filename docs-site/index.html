@@ -4415,6 +4415,91 @@ final class AuthController
 });</code></pre>
       </div>
       <p>No próximo passo, veja como <a href="#protegendo-rotas">proteger as rotas</a> para exigir esse token.</p>
+    
+      <h2 id="login-limite">Limite de tentativas de login</h2>
+      <p>O Haki não limita tentativas de login por padrão. Sem esse limite, alguém pode testar senhas sem parar. Use a classe <code>LimiteDeTentativas</code> no service de login: ela conta as falhas por chave (a conta e o IP) e, ao passar do máximo, responde <strong>429</strong> sem nem verificar a senha.</p>
+
+      <div class="code">
+        <div class="code-title">app/Services/LoginService.php</div>
+        <pre><code data-lang="php">&lt;?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Repositories\UsuarioRepositoryInterface;
+use Haki\Auth\Auth;
+use Haki\Auth\Tentativas\LimiteDeTentativas;
+
+final class LoginService
+{
+    public function __construct(
+        private UsuarioRepositoryInterface $usuarios,
+        private Auth $auth,
+        private LimiteDeTentativas $limite,
+    ) {
+    }
+
+    public function entrar(string $email, string $senha, string $ip): array
+    {
+        $usuario = $this-&gt;limite->verificar(
+            ['email:' . $email, 'ip:' . $ip],
+            function () use ($email, $senha) {
+                $usuario = $this-&gt;usuarios->buscarPorEmail($email);
+
+                return $usuario !== null &amp;&amp; password_verify($senha, $usuario->senhaHash) ? $usuario : null;
+            },
+        );
+
+        return $this-&gt;auth->login($usuario->id, ['role' =&gt; $usuario->role]);
+    }
+}</code></pre>
+      </div>
+
+      <div class="code">
+        <div class="code-title">Configuração no bootstrap/app.php</div>
+        <pre><code data-lang="php">use Haki\Auth\Tentativas\LimiteDeTentativas;
+use Haki\Auth\Tentativas\PdoArmazenamentoDeTentativas;
+
+$tentativas = new PdoArmazenamentoDeTentativas(new PDO('sqlite:storage/haki.sqlite'));
+$tentativas->criarTabela();
+
+$app->container()->singleton(
+    LimiteDeTentativas::class,
+    fn () =&gt; new LimiteDeTentativas($tentativas, maximo: 5, janela: 900),   // 5 falhas em 15 minutos
+);</code></pre>
+      </div>
+
+      <h3 id="login-limite-respostas">O que o cliente recebe</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Situação</th><th>Resposta</th></tr></thead>
+          <tbody>
+            <tr><td>Senha ou e-mail errados</td><td><code>401</code>, com a mensagem <em>E-mail ou senha incorretos.</em></td></tr>
+            <tr><td>Muitas falhas na janela</td><td><code>429</code>, com o cabeçalho <code>Retry-After</code> em segundos</td></tr>
+            <tr><td>Login certo</td><td>O normal, e as falhas dessas chaves voltam a zero</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A resposta de erro não diz se o e-mail existe: os dois casos (usuário inexistente ou senha errada) são a mesma falha.</p>
+
+      <h3 id="login-limite-regras">Como contar</h3>
+      <ul>
+        <li><strong>Duas chaves:</strong> <code>email:</code> protege a conta contra ataque direcionado; <code>ip:</code> protege contra quem testa muitas contas de uma vez. Uma falha conta nas duas.</li>
+        <li><strong>Erros de infraestrutura não contam:</strong> se o banco cair no meio da verificação, a falha não entra no contador.</li>
+        <li><strong>Chaves são normalizadas:</strong> <code>Ana@X.br</code> e <code>ana@x.br</code> são a mesma conta.</li>
+        <li><strong>Janela deslizante:</strong> o bloqueio passa quando a última falha contada tem mais que <code>janela</code> segundos.</li>
+      </ul>
+
+      <div class="callout warn">
+        <span class="callout-label">Trade-off do IP</span>
+        <p>Muitos usuários podem sair pelo mesmo IP (rede da empresa, operadora). Um limite de IP baixo demais bloqueia todos eles. Comece com um valor folgado, como 20 falhas por IP, e a chave de conta com 5.</p>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-label">Vários servidores</span>
+        <p>O contador precisa ficar no banco compartilhado, o mesmo do <a href="#armazenamento-proprio">PdoTokenStore</a>. Se cada servidor tiver o próprio contador, o limite vale só para o servidor que recebeu as tentativas.</p>
+      </div>
     </article>
 
     <!-- ================================================================== PROTEGENDO ROTAS -->
@@ -4638,6 +4723,26 @@ $app-&gt;get('/vitrine', function (Request $request, Auth $auth) {
 })-&gt;auth()-&gt;middleware(UsuarioAtivo::class);</code></pre>
       </div>
       <p>O custo é uma consulta ao banco por requisição. Use só se a sua aplicação realmente precisar.</p>
+    
+      <h2 id="usuario-perfil">Trocou o perfil? Revogue as sessões</h2>
+      <p>O perfil (role) fica dentro do token, e o Haki não consulta o banco a cada requisição. Por isso, depois de trocar o perfil de alguém, os tokens dele ainda carregam o perfil antigo até expirarem. Para o efeito valer na hora, revogue as sessões na mesma operação:</p>
+
+      <div class="code">
+        <pre><code data-lang="php">public function trocarPerfil(int $usuarioId, string $novoPerfil): void
+{
+    $this-&gt;usuarios->atualizarPerfil($usuarioId, $novoPerfil);
+
+    // Derruba os tokens e os refresh tokens antigos desse usuário.
+    $this-&gt;auth->logoutAll($usuarioId);
+}</code></pre>
+      </div>
+
+      <p>Com isso, o access token antigo para de valer na próxima requisição, e o refresh token deixa de renovar. O usuário entra de novo e recebe um token com o perfil novo. Um login feito logo depois dessa operação funciona normalmente.</p>
+
+      <div class="callout tip">
+        <span class="callout-label">Bloqueio de conta</span>
+        <p>O mesmo padrão serve para bloquear alguém: marque a conta como inativa e chame <code>logoutAll()</code>. Assim, nenhum token dela continua valendo.</p>
+      </div>
     </article>
 
     <!-- ================================================================== REFRESH / LOGOUT -->
@@ -4858,6 +4963,45 @@ JWT_PUBLIC_KEY=storage/keys/public.pem</code></pre>
         <span class="callout-label">Proteja a chave privada</span>
         <p>Ela é tão sensível quanto uma senha: quem tiver a chave privada consegue criar tokens de qualquer usuário. Nunca envie para o Git (o <code>.gitignore</code> do <code>init</code> já deixa <code>storage/keys/</code> de fora) e nunca compartilhe com outros serviços: eles só precisam da pública.</p>
       </div>
+    
+      <h2 id="rs256-rotacao">Trocando a chave sem derrubar sessões</h2>
+      <p>Trocar a chave de assinatura faz os tokens emitidos com a chave antiga pararem de valer, e todos os usuários precisariam entrar de novo. Para evitar isso, a troca acontece em duas etapas, com uma chave antiga que continua validando por um tempo.</p>
+
+      <div class="code">
+        <div class="code-title">Etapa 1: a chave nova assina, a antiga ainda valida (.env)</div>
+        <pre><code data-lang="env"># chave nova (assina os tokens emitidos daqui para frente)
+JWT_PRIVATE_KEY=storage/keys/jwt-private-2026.pem
+JWT_PUBLIC_KEY=storage/keys/jwt-public-2026.pem
+JWT_KID=k2
+
+# chave antiga (só valida os tokens que ainda estão no prazo)
+JWT_KID_ANTERIOR=k1
+JWT_PUBLIC_KEY_ANTERIOR=storage/keys/jwt-public-2025.pem</code></pre>
+      </div>
+
+      <p>Em HS256, o mesmo esquema vale com o segredo: <code>JWT_SECRET</code> e <code>JWT_KID</code> para a nova, e <code>JWT_SECRET_ANTERIOR</code> com <code>JWT_KID_ANTERIOR</code> para a antiga.</p>
+
+      <div class="code">
+        <div class="code-title">Etapa 2: depois de <code>JWT_TTL</code> (o tempo de vida do access token), remova as variáveis _ANTERIOR</div>
+        <pre><code data-lang="env"># JWT_KID_ANTERIOR e JWT_PUBLIC_KEY_ANTERIOR removidas</code></pre>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ponto</th><th>Como funciona</th></tr></thead>
+          <tbody>
+            <tr><td>Quem assina</td><td>Sempre a chave com <code>JWT_KID</code>.</td></tr>
+            <tr><td>Quem valida</td><td>A chave indicada no <code>kid</code> do token. Tokens sem <code>kid</code>, emitidos antes da troca, são conferidos com todas as chaves.</td></tr>
+            <tr><td>Refresh tokens</td><td>Não mudam: são valores aleatórios guardados no armazenamento, não JWTs.</td></tr>
+            <tr><td>Chave desconhecida</td><td>Um token com <code>kid</code> que não está mais configurado recebe <code>401</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-label">Use kid em toda chave</span>
+        <p>Com uma chave anterior configurada, o <code>JWT_KID</code> da chave atual é obrigatório. Sem ele, o Haki recusa a configuração, porque não saberia qual chave cada token usa.</p>
+      </div>
     </article>
 
     <!-- ================================================================== ARMAZENAMENTO -->
@@ -4909,158 +5053,42 @@ JWT_PUBLIC_KEY=storage/keys/public.pem</code></pre>
       <p>Ou pelo <code>.env</code>: <code>JWT_DATABASE=storage/tokens/auth.sqlite</code>.</p>
 
       <h2 id="armazenamento-servidores">Um servidor ou vários?</h2>
-      <p>O SQLite atende muito bem uma API rodando em <strong>um servidor</strong>, mesmo com bastante tráfego. O problema aparece com <strong>vários servidores</strong> atrás de um balanceador: cada um teria o próprio arquivo, e um logout feito no servidor A não seria conhecido pelo servidor B. Nesse caso, guarde os tokens em um lugar compartilhado, como MySQL ou Redis.</p>
+      <p><strong>Um servidor:</strong> o SQLite padrão basta, mesmo com bastante tráfego.</p>
+      <p><strong>Vários servidores</strong> atrás de um balanceador: cada um teria o próprio arquivo, e um logout feito no servidor A não seria visto pelo servidor B. Nesse caso, use o <a href="#armazenamento-proprio">PdoTokenStore</a>, que grava em um banco compartilhado (MySQL, PostgreSQL ou SQL Server).</p>
 
-      <h2 id="armazenamento-proprio">Usando outro banco</h2>
-      <p>Implemente a interface <code>TokenStore</code> e informe a classe em <code>$app-&gt;auth()</code>. Este é um exemplo completo com MySQL:</p>
+      <h2 id="armazenamento-proprio">Vários servidores: PdoTokenStore</h2>
+      <p class="lead">O <code>PdoTokenStore</code> guarda refresh tokens, revogações de logout e revogações por usuário em qualquer banco que o PDO atenda. Todos os servidores apontam para o mesmo banco, então uma revogação feita em um vale em todos.</p>
 
       <div class="code">
-        <div class="code-title">tabelas (MySQL)</div>
-        <pre><code data-lang="text">CREATE TABLE haki_refresh_tokens (
-    token_hash CHAR(64) PRIMARY KEY,
-    user_id    VARCHAR(64) NOT NULL,
-    family_id  CHAR(32) NOT NULL,
-    claims     JSON NOT NULL,
-    created_at INT NOT NULL,
-    expires_at INT NOT NULL,
-    used_at    INT NULL,
-    revoked_at INT NULL,
-    INDEX (family_id)
-);
+        <div class="code-title">1. Criar as tabelas (uma vez, no deploy)</div>
+        <pre><code data-lang="php">use Haki\Auth\Storage\PdoTokenStore;
 
-CREATE TABLE haki_revoked_tokens (
-    jti        CHAR(32) PRIMARY KEY,
-    expires_at INT NOT NULL
-);
-
-CREATE TABLE haki_user_revocations (
-    user_id        VARCHAR(64) PRIMARY KEY,
-    revoked_before INT NOT NULL
-);</code></pre>
+$pdo = new PDO('mysql:host=127.0.0.1;dbname=app', 'usuario', 'senha');
+(new PdoTokenStore($pdo))-&gt;criarTabelas();   // pode rodar de novo: não apaga nada</code></pre>
       </div>
 
       <div class="code">
-        <div class="code-title">app/Repositories/MysqlTokenStore.php</div>
-        <pre><code data-lang="php">&lt;?php
-
-declare(strict_types=1);
-
-namespace App\Repositories;
-
-use Haki\Auth\Storage\RefreshTokenRecord;
-use Haki\Auth\Storage\TokenStore;
-use PDO;
-
-final class MysqlTokenStore implements TokenStore
-{
-    public function __construct(private readonly PDO $pdo)
-    {
-    }
-
-    public function revokeAccessToken(string $jti, int $expiresAt): void
-    {
-        $this-&gt;pdo-&gt;prepare('REPLACE INTO haki_revoked_tokens (jti, expires_at) VALUES (?, ?)')
-            -&gt;execute([$jti, $expiresAt]);
-    }
-
-    public function isAccessTokenRevoked(string $jti): bool
-    {
-        $stmt = $this-&gt;pdo-&gt;prepare('SELECT 1 FROM haki_revoked_tokens WHERE jti = ?');
-        $stmt-&gt;execute([$jti]);
-
-        return $stmt-&gt;fetchColumn() !== false;
-    }
-
-    public function revokeUser(string $userId, int $before): void
-    {
-        $this-&gt;pdo-&gt;prepare(
-            'INSERT INTO haki_user_revocations (user_id, revoked_before) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE revoked_before = GREATEST(revoked_before, VALUES(revoked_before))'
-        )-&gt;execute([$userId, $before]);
-    }
-
-    public function userRevokedBefore(string $userId): ?int
-    {
-        $stmt = $this-&gt;pdo-&gt;prepare('SELECT revoked_before FROM haki_user_revocations WHERE user_id = ?');
-        $stmt-&gt;execute([$userId]);
-        $value = $stmt-&gt;fetchColumn();
-
-        return $value === false ? null : (int) $value;
-    }
-
-    public function saveRefreshToken(RefreshTokenRecord $r): void
-    {
-        $this-&gt;pdo-&gt;prepare(
-            'INSERT INTO haki_refresh_tokens (token_hash, user_id, family_id, claims, created_at, expires_at)
-             VALUES (?, ?, ?, ?, ?, ?)'
-        )-&gt;execute([$r-&gt;hash, $r-&gt;userId, $r-&gt;familyId, json_encode($r-&gt;claims), $r-&gt;createdAt, $r-&gt;expiresAt]);
-    }
-
-    public function findRefreshToken(string $hash): ?RefreshTokenRecord
-    {
-        $stmt = $this-&gt;pdo-&gt;prepare('SELECT * FROM haki_refresh_tokens WHERE token_hash = ?');
-        $stmt-&gt;execute([$hash]);
-        $row = $stmt-&gt;fetch(PDO::FETCH_ASSOC);
-
-        if ($row === false) {
-            return null;
-        }
-
-        return new RefreshTokenRecord(
-            $row['token_hash'],
-            $row['user_id'],
-            $row['family_id'],
-            json_decode($row['claims'], true) ?: [],
-            (int) $row['created_at'],
-            (int) $row['expires_at'],
-            $row['used_at'] !== null ? (int) $row['used_at'] : null,
-            $row['revoked_at'] !== null ? (int) $row['revoked_at'] : null,
-        );
-    }
-
-    public function consumeRefreshToken(string $hash, int $now): bool
-    {
-        // Atômico: só uma requisição consegue marcar o token como usado.
-        $stmt = $this-&gt;pdo-&gt;prepare(
-            'UPDATE haki_refresh_tokens SET used_at = ?
-             WHERE token_hash = ? AND used_at IS NULL AND revoked_at IS NULL'
-        );
-        $stmt-&gt;execute([$now, $hash]);
-
-        return $stmt-&gt;rowCount() === 1;
-    }
-
-    public function revokeFamily(string $familyId, int $now): void
-    {
-        $this-&gt;pdo-&gt;prepare('UPDATE haki_refresh_tokens SET revoked_at = ? WHERE family_id = ? AND revoked_at IS NULL')
-            -&gt;execute([$now, $familyId]);
-    }
-
-    public function purgeExpired(int $now): int
-    {
-        $a = $this-&gt;pdo-&gt;prepare('DELETE FROM haki_revoked_tokens WHERE expires_at &lt;= ?');
-        $a-&gt;execute([$now]);
-        $b = $this-&gt;pdo-&gt;prepare('DELETE FROM haki_refresh_tokens WHERE expires_at &lt;= ?');
-        $b-&gt;execute([$now]);
-
-        return $a-&gt;rowCount() + $b-&gt;rowCount();
-    }
-}</code></pre>
-      </div>
-
-      <div class="code">
-        <div class="code-title">bootstrap/app.php</div>
+        <div class="code-title">2. Usar no bootstrap/app.php</div>
         <pre><code data-lang="php">$app-&gt;auth([
-    'secret'  =&gt; getenv('JWT_SECRET'),
-    'storage' =&gt; new MysqlTokenStore($pdo),
+    'storage' =&gt; new PdoTokenStore(new PDO('mysql:host=127.0.0.1;dbname=app', 'usuario', 'senha')),
 ]);</code></pre>
       </div>
 
-      <div class="callout">
-        <span class="callout-label">O ponto mais importante</span>
-        <p><code>consumeRefreshToken()</code> precisa ser <strong>atômico</strong>: se duas requisições usarem o mesmo refresh token ao mesmo tempo, só uma pode ter sucesso. No SQL, isso se resolve com <code>UPDATE ... WHERE used_at IS NULL</code> e conferindo se uma linha foi afetada, como no exemplo. No Redis, use <code>SET ... NX</code> ou um script Lua.</p>
+      <div class="callout tip">
+        <span class="callout-label">Mesmo banco do EloPHP</span>
+        <p>Se o projeto já usa o EloPHP com MySQL, passe a mesma conexão PDO para o <code>PdoTokenStore</code>. As tabelas <code>haki_*</code> ficam ao lado das suas.</p>
       </div>
-      <p>Para testes automatizados, o Haki já traz o <code>ArrayTokenStore</code>, que guarda tudo em memória. Veja <a href="#testes-auth">Testando rotas protegidas</a>.</p>
+
+      <h3 id="armazenamento-limite">Contador de tentativas de login</h3>
+      <p>O mesmo banco serve para o <a href="#login-limite">limite de tentativas de login</a>, pela classe <code>PdoArmazenamentoDeTentativas</code>. Use o mesmo <code>PDO</code> nos dois.</p>
+
+      <div class="callout warn">
+        <span class="callout-label">Limpeza</span>
+        <p>Os registros vencidos não somem sozinhos com o <code>PdoTokenStore</code>: a limpeza automática roda em pequena parte das validações. Se preferir, agende a remoção com <code>purgeExpired()</code>.</p>
+      </div>
+
+      <h3 id="armazenamento-interface">Outro armazenamento</h3>
+      <p>Para Redis ou outro sistema, implemente a interface <code>TokenStore</code> e informe a classe em <code>storage</code>. Os métodos estão descritos no código da interface, com o que cada um deve garantir (em especial a atomicidade de <code>consumeRefreshToken()</code>).</p>
     </article>
 
     <!-- ================================================================== TIPAGEM -->
@@ -7056,16 +7084,16 @@ interface MiddlewareInterface
 
       <h2 id="roadmap-limitacoes">Limitações conhecidas</h2>
       <ul>
-        <li>O armazenamento SQLite padrão atende <strong>um servidor</strong>. Com vários servidores, use um <a href="#armazenamento-proprio">TokenStore compartilhado</a>.</li>
-        <li>Mudanças de perfil ou bloqueios só valem depois de <code>logoutAll()</code> ou da expiração do access token.</li>
-        <li>Só existe uma chave ativa por vez: trocar o segredo desconecta todos.</li>
-        <li>Limitação de tentativas de login não está incluída. O ORM é opcional: veja o <a href="#elo">EloPHP</a>.</li>
+        <li><strong>Armazenamento padrão</strong> (SQLite) atende um servidor. Com vários servidores, use o <a href="#armazenamento-proprio">PdoTokenStore</a>, apontando para um banco compartilhado.</li>
+        <li><strong>Perfil no token:</strong> uma troca de perfil só vale na hora se você chamar <code>logoutAll()</code> na mesma operação. <a href="#usuario-perfil">Veja o padrão</a>.</li>
+        <li><strong>Uma chave assina por vez:</strong> a troca de chave usa uma chave anterior só para validar. <a href="#rs256-rotacao">Veja a rotação</a>.</li>
+        <li><strong>Limite de tentativas</strong> não é automático: é uma classe que você aplica no login, <a href="#login-limite">veja como</a>. Não há ainda um middleware que aplique o limite por rota.</li>
       </ul>
 
       <h2 id="roadmap-proximos">Próximos passos</h2>
       <ul>
-        <li>Várias chaves ativas (rotação sem derrubar sessões) e ES256</li>
-        <li>Middleware de CORS e de limitação de tentativas prontos</li>
+        <li>ES256 e outras famílias de algoritmo</li>
+        <li>Middleware de CORS e de limite de tentativas por rota</li>
         <li>Esqueleto de projeto: <code>composer create-project shankscode/haki-app</code></li>
         <li>Comandos <code>make:controller</code> e <code>serve</code></li>
       </ul>
