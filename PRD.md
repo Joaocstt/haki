@@ -647,11 +647,11 @@ Dump legível para depuração: tipos com cor e rótulo, arrays como lista/assoc
 
 **Limitações documentadas:**
 
-- A assinatura prova a integridade do token, não que o usuário continua ativo. Mudanças de perfil ou bloqueios valem só após `logoutAll()` ou expiração do access token.
-- O SQLite atende **um servidor**. Com vários servidores atrás de um load balancer, é preciso um `TokenStore` compartilhado (Redis, MySQL etc.).
-- Rotação de segredo/chaves invalida todos os tokens existentes (não há suporte a múltiplas chaves ativas na v1).
+- A assinatura prova a integridade do token, não que o usuário continua ativo. Mudanças de perfil ou bloqueios valem na hora somente se a aplicação chamar `logoutAll()` na mesma operação; caso contrário, valem após a expiração do access token.
+- O SQLite padrão atende **um servidor**. Com vários servidores atrás de um load balancer, use `PdoTokenStore` apontando para um banco compartilhado (MySQL, PostgreSQL, SQL Server), ou implemente outro `TokenStore` (ex.: Redis).
+- A chave JWT atual assina os tokens. Chaves anteriores (`kid` + `JWT_KID_ANTERIOR`) só validam tokens durante a troca; após a troca, remova-as. Refresh tokens não dependem de chave.
 - O Haki não valida senhas nem credenciais; isso é da aplicação.
-- Limitação de tentativas de login fica a cargo da aplicação (ou de um middleware próprio).
+- Limite de tentativas: por rota, com `->limite(máximo, janela)` (por IP); por conta e IP no login, com `LimiteDeTentativas`. Ambos dependem de um armazenamento compartilhado quando há vários servidores.
 - Use sempre HTTPS em produção.
 
 ## 9. Testes
@@ -701,8 +701,7 @@ PHPUnit, focado no comportamento real:
 ## 12. Roadmap (pós v1.0)
 
 - Query builder leve sobre PDO.
-- Múltiplas chaves ativas (rotação sem derrubar sessões) e ES256.
-- Rate limiting integrado.
+- ES256.
 - Middleware de CORS pronto.
 - Esqueleto `composer create-project shankscode/haki-app`.
 - Comandos `make:controller` e `serve`.
