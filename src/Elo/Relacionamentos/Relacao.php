@@ -53,7 +53,7 @@ abstract class Relacao
      * @param 'temUm'|'temMuitos'|'pertenceA'|'pertenceAMuitos' $tipo
      * @param string|array<int|string, mixed> $definicao
      */
-    public static function criar(string $tipo, Modelo $pai, string $nome, string|array $definicao): self
+    public static function paraTipo(string $tipo, Modelo $pai, string $nome, string|array $definicao): self
     {
         return match ($tipo) {
             'temUm' => new RelacaoUmParaUm($pai, $nome, $definicao),

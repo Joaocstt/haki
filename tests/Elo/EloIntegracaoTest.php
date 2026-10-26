@@ -31,7 +31,7 @@ final class EloIntegracaoTest extends TestCase
             'email' => Coluna::texto()->unico(),
             'senha' => Coluna::texto(100)->nulo(),
             'status' => Coluna::opcoes(['ATIVO', 'INATIVO'])->padrao('ATIVO'),
-            'setor_id' => Coluna::pertenceA('setores')->aoExcluir('CASCADE'),
+            'setor_id' => Coluna::pertenceA('setores')->aoExcluir('CASCADE')->nulo(),
         ]);
         Tabela::criar('perfis', [
             'usuario_id' => Coluna::pertenceA('usuarios')->aoExcluir('CASCADE'),

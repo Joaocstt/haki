@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Haki;
 
 use Closure;
+use Elo\Conexao;
 use ErrorException;
 use Haki\Auth\Auth;
 use Haki\Auth\AuthConfig;
@@ -74,6 +75,8 @@ final class Haki
         $this->basePath = rtrim($basePath ?? (string) getcwd(), '/\\');
 
         Env::load($this->basePath . DIRECTORY_SEPARATOR . '.env');
+        // Caminho relativo de SQLite (DB_DATABASE=database/app.sqlite) parte da raiz, não de public/.
+        Conexao::raizDoProjeto($this->basePath);
 
         $this->debug = $debug ?? in_array(strtolower((string) Env::get('APP_ENV', 'production')), ['development', 'dev', 'local'], true);
         $this->container = new Container();

@@ -38,6 +38,8 @@ final class RevogacaoAoMudarPerfilTest extends TestCase
         self::assertSame('7', $auth->authenticate($antigo['access_token'])->get('sub'));
 
         // Operação de troca de perfil: altera o dado e revoga as sessões na mesma ação.
+        // O iat tem precisão de segundos, então a troca acontece num segundo posterior ao login.
+        $this->agora++;
         $auth->logoutAll('7');
 
         try {
@@ -53,6 +55,7 @@ final class RevogacaoAoMudarPerfilTest extends TestCase
         }
 
         // Um login feito logo depois vale normalmente, já com o perfil novo.
+        $this->agora++;
         $novo = $auth->login('7', ['role' => 'admin']);
         $identidade = $auth->authenticate($novo['access_token']);
 

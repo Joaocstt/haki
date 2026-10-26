@@ -411,7 +411,7 @@ class Modelo implements JsonSerializable
             throw new EloException("A relação \"{$nome}\" não existe em " . static::class . '.');
         }
 
-        return Relacao::criar($definicao['tipo'], $this, $nome, $definicao['definicao']);
+        return Relacao::paraTipo($definicao['tipo'], $this, $nome, $definicao['definicao']);
     }
 
     private static function paraArray(mixed $valor): mixed
