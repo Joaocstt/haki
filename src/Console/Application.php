@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Haki\Console;
 
 use Closure;
-use Haki\Auth\Storage\SqliteTokenStore;
+use Haki\Auth\Storage\TokenStore;
+use Haki\Auth\Storage\TokenStoreFactory;
 use Haki\Console\Commands\AuthCleanCommand;
 use Haki\Console\Commands\AuthInstallCommand;
 use Haki\Console\Commands\CheckCommand;
@@ -36,8 +37,8 @@ final class Application
         $this->add('check', fn () => new CheckCommand($this->basePath));
         $this->add('db', fn () => new DbCommand($this->basePath));
         $this->add('key:generate', fn () => new KeyGenerateCommand($this->basePath));
-        $this->add('auth:install', fn () => new AuthInstallCommand($this->sqlite()));
-        $this->add('auth:clean', fn () => new AuthCleanCommand($this->sqlite()));
+        $this->add('auth:install', fn () => new AuthInstallCommand($this->tokenStore()));
+        $this->add('auth:clean', fn () => new AuthCleanCommand($this->tokenStore()));
     }
 
     /**
@@ -94,7 +95,7 @@ final class Application
         }
     }
 
-    private function sqlite(): SqliteTokenStore
+    private function tokenStore(): TokenStore
     {
         $path = (string) Env::get('JWT_DATABASE', 'storage/haki.sqlite');
 
@@ -102,6 +103,6 @@ final class Application
             $path = $this->basePath . DIRECTORY_SEPARATOR . $path;
         }
 
-        return new SqliteTokenStore($path);
+        return TokenStoreFactory::create($this->basePath, $path);
     }
 }

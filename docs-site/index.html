@@ -1015,7 +1015,7 @@ $app-&gt;post('/contatos', [ContatoController::class, 'store'])-&gt;limite(20, 6
             <tr><td>O que conta</td><td>Cada chamada, com ou sem sucesso. Para contar só senhas erradas, use <a href="#login-limite">LimiteDeTentativas</a> no service de login.</td></tr>
             <tr><td>Por quem</td><td>Por IP e por rota. Quem não tem IP identificado divide um mesmo contador.</td></tr>
             <tr><td>Ordem</td><td>Roda antes da autenticação, então um IP bloqueado não gasta consulta ao token.</td></tr>
-            <tr><td>Armazenamento</td><td>SQLite em <code>storage/haki.sqlite</code>. Com vários servidores, aponte para um banco compartilhado (veja <a href="#armazenamento-proprio">PdoTokenStore</a>).</td></tr>
+            <tr><td>Armazenamento</td><td>MySQL automático com <code>DB_CONNECTION=mysql</code>; nos demais casos, SQLite em <code>storage/haki.sqlite</code>.</td></tr>
           </tbody>
         </table>
       </div>
@@ -4542,7 +4542,7 @@ error_log($texto);</code></pre>
             <tr><td><code>refresh_in</code></td><td><code>604800</code></td><td>Validade do refresh token, em segundos</td><td><code>JWT_REFRESH_TTL</code></td></tr>
             <tr><td><code>issuer</code></td><td>nenhum</td><td>Emissor (claim <code>iss</code>), validado em cada token</td><td><code>JWT_ISSUER</code></td></tr>
             <tr><td><code>database</code></td><td><code>'storage/haki.sqlite'</code></td><td>Arquivo SQLite dos tokens</td><td><code>JWT_DATABASE</code></td></tr>
-            <tr><td><code>storage</code></td><td>SQLite</td><td>Outro armazenamento (<a href="#armazenamento-proprio"><code>TokenStore</code></a>)</td><td>não tem</td></tr>
+            <tr><td><code>storage</code></td><td>MySQL ou SQLite automático</td><td>Outro armazenamento (<a href="#armazenamento-proprio"><code>TokenStore</code></a>)</td><td>não tem</td></tr>
           </tbody>
         </table>
       </div>
@@ -5365,8 +5365,10 @@ JWT_PUBLIC_KEY_ANTERIOR=storage/keys/jwt-public-2025.pem</code></pre>
         <li>A data do último <code>logoutAll()</code> de cada usuário.</li>
       </ul>
 
-      <h2 id="armazenamento-sqlite">SQLite automático</h2>
-      <p>Por padrão, essas informações ficam em um arquivo SQLite que é <strong>criado sozinho</strong> na primeira requisição que usa autenticação:</p>
+      <h2 id="armazenamento-sqlite">Armazenamento automático</h2>
+      <p>Com <code>DB_CONNECTION=mysql</code>, o Haki usa a conexão MySQL configurada em <code>DB_*</code> e cria as tabelas de tokens no primeiro uso. Ative <code>pdo_mysql</code> e conceda permissão para criar tabelas e índices. <code>auth:install</code> também prepara essas tabelas no deploy, e <code>auth:clean</code> usa o mesmo banco.</p>
+      <p>Ao atualizar uma instalação que já usa MySQL e guardava tokens em SQLite, refresh tokens e revogações não são migrados. Access tokens revogados podem voltar a ser aceitos até expirar; planeje a migração dos registros ou a troca da chave JWT.</p>
+      <p>Nos demais casos, essas informações ficam em um arquivo SQLite que é <strong>criado sozinho</strong> na primeira requisição que usa autenticação:</p>
 
 <div class="tree"><span class="dir">storage/</span>
 └── haki.sqlite      <span class="note">criado automaticamente</span></div>
@@ -5402,7 +5404,7 @@ JWT_PUBLIC_KEY_ANTERIOR=storage/keys/jwt-public-2025.pem</code></pre>
 
       <h2 id="armazenamento-servidores">Um servidor ou vários?</h2>
       <p><strong>Um servidor:</strong> o SQLite padrão basta, mesmo com bastante tráfego.</p>
-      <p><strong>Vários servidores</strong> atrás de um balanceador: cada um teria o próprio arquivo, e um logout feito no servidor A não seria visto pelo servidor B. Nesse caso, use o <a href="#armazenamento-proprio">PdoTokenStore</a>, que grava em um banco compartilhado (MySQL, PostgreSQL ou SQL Server).</p>
+      <p><strong>Vários servidores</strong> atrás de um balanceador: use um banco compartilhado. MySQL é selecionado automaticamente por <code>DB_CONNECTION=mysql</code>; outros bancos podem ser configurados com <a href="#armazenamento-proprio">PdoTokenStore</a>.</p>
 
       <h2 id="armazenamento-proprio">Vários servidores: PdoTokenStore</h2>
       <p class="lead">O <code>PdoTokenStore</code> guarda refresh tokens, revogações de logout e revogações por usuário em qualquer banco que o PDO atenda. Todos os servidores apontam para o mesmo banco, então uma revogação feita em um vale em todos.</p>
@@ -5424,7 +5426,7 @@ $pdo = new PDO('mysql:host=127.0.0.1;dbname=app', 'usuario', 'senha');
 
       <div class="callout tip">
         <span class="callout-label">Mesmo banco do EloPHP</span>
-        <p>Se o projeto já usa o EloPHP com MySQL, passe a mesma conexão PDO para o <code>PdoTokenStore</code>. As tabelas <code>haki_*</code> ficam ao lado das suas.</p>
+        <p>Com <code>DB_CONNECTION=mysql</code> não é necessária configuração explícita: o Haki usa a conexão do EloPHP automaticamente. A configuração acima é útil para escolher outro banco manualmente.</p>
       </div>
 
       <h3 id="armazenamento-limite">Contador de tentativas de login</h3>
@@ -5874,7 +5876,7 @@ Comandos:
   check           Confere interfaces, controllers e dependências antes de publicar
   db              Testa a conexão com o banco configurado no .env (DB_*)
   key:generate    Gera JWT_SECRET no .env (use --rsa para gerar chaves RS256, --force para sobrescrever)
-  auth:install    Cria o banco SQLite e as tabelas de tokens
+  auth:install    Prepara o armazenamento de tokens
   auth:clean      Remove refresh tokens e revogações vencidos</code></pre>
       </div>
 
@@ -5991,7 +5993,7 @@ php vendor/bin/haki key:generate --rsa     # gera as chaves RS256 em storage/key
       </div>
 
       <h2 id="cli-auth-install">auth:install</h2>
-      <p>Cria o banco SQLite de tokens e as tabelas. Ele seria criado sozinho no primeiro login, mas rodar no deploy ajuda a descobrir problemas de permissão ou de extensão antes do primeiro usuário.</p>
+      <p>Prepara as tabelas de tokens no MySQL configurado ou no SQLite padrão. Elas também são criadas no primeiro uso; rodar no deploy ajuda a detectar problemas de permissão ou extensão.</p>
       <div class="code">
         <pre><code data-lang="bash">php vendor/bin/haki auth:install</code></pre>
       </div>
@@ -7432,7 +7434,7 @@ interface MiddlewareInterface
 
       <h2 id="roadmap-limitacoes">Limitações conhecidas</h2>
       <ul>
-        <li><strong>Armazenamento padrão</strong> (SQLite) atende um servidor. Com vários servidores, use o <a href="#armazenamento-proprio">PdoTokenStore</a>, apontando para um banco compartilhado.</li>
+        <li><strong>Armazenamento padrão:</strong> MySQL quando configurado em <code>DB_CONNECTION</code>; caso contrário, SQLite. Para vários servidores, use um banco compartilhado.</li>
         <li><strong>Perfil no token:</strong> uma troca de perfil só vale na hora se você chamar <code>logoutAll()</code> na mesma operação. <a href="#usuario-perfil">Veja o padrão</a>.</li>
         <li><strong>Uma chave assina por vez:</strong> a troca de chave usa uma chave anterior só para validar. <a href="#rs256-rotacao">Veja a rotação</a>.</li>
         <li><strong>Limite de tentativas:</strong> por rota, com <a href="#rotas-limite">-&gt;limite()</a>, e por conta, com <a href="#login-limite">LimiteDeTentativas</a> no login.</li>

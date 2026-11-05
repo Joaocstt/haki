@@ -7,7 +7,7 @@ namespace Haki\Auth\Storage;
 /**
  * Onde o Haki guarda refresh tokens e revogações.
  *
- * Padrão: SqliteTokenStore. Para vários servidores, implemente esta interface com Redis, MySQL etc.
+ * Padrão: MySQL quando DB_CONNECTION=mysql; SQLite nos demais casos.
  */
 interface TokenStore
 {

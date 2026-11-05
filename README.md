@@ -4,6 +4,10 @@
 
 Miniframework PHP para APIs REST: rotas, injeção de dependências, middleware e autenticação JWT própria (HS256/RS256, refresh token e logout). Não depende de nenhuma biblioteca externa.
 
+Com `DB_CONNECTION=mysql`, a autenticação usa automaticamente o banco MySQL configurado em `DB_*` para tokens e revogações. As tabelas são criadas no primeiro uso; `auth:install` permite prepará-las no deploy. A conta do banco precisa ter permissão para criar tabelas e índices. Nos demais casos, o armazenamento padrão continua sendo o SQLite em `JWT_DATABASE` (ou `storage/haki.sqlite`). Um `storage` explícito em `$app->auth()` prevalece sobre essa escolha.
+
+Ao mudar de uma instalação existente com MySQL de aplicação e tokens em SQLite, os refresh tokens e as revogações antigas não são migrados. Os usuários precisarão entrar novamente e access tokens anteriormente revogados poderão voltar a ser aceitos até expirarem; planeje a troca da chave JWT ou a migração dos registros.
+
 ```php
 <?php
 
@@ -143,7 +147,7 @@ Acesse `http://localhost:8000`.
 | `php vendor/bin/haki check` | Confere interfaces, controllers e dependências antes de publicar |
 | `php vendor/bin/haki db` | Testa a conexão com o banco configurado no `.env` (`DB_*`) |
 | `php vendor/bin/haki key:generate` | Cria `JWT_SECRET` no `.env` (`--rsa` para chaves RS256) |
-| `php vendor/bin/haki auth:install` | Cria o banco SQLite de tokens |
+| `php vendor/bin/haki auth:install` | Prepara as tabelas de tokens no armazenamento configurado |
 | `php vendor/bin/haki auth:clean` | Remove tokens vencidos |
 
 ## Desenvolvimento do pacote

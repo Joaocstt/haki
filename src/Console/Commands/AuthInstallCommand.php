@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Haki\Console\Commands;
 
 use Haki\Auth\Storage\SqliteTokenStore;
+use Haki\Auth\Storage\PdoTokenStore;
+use Haki\Auth\Storage\TokenStore;
 use Haki\Console\Output;
 
 /**
@@ -12,7 +14,7 @@ use Haki\Console\Output;
  */
 final class AuthInstallCommand implements CommandInterface
 {
-    public function __construct(private readonly SqliteTokenStore $store)
+    public function __construct(private readonly TokenStore $store)
     {
     }
 
@@ -23,13 +25,20 @@ final class AuthInstallCommand implements CommandInterface
 
     public function description(): string
     {
-        return 'Cria o banco SQLite e as tabelas de tokens';
+        return 'Prepara o armazenamento de tokens';
     }
 
     public function run(array $args, Output $output): int
     {
-        $this->store->install();
-        $output->success('Banco de tokens pronto em ' . $this->store->path());
+        if ($this->store instanceof SqliteTokenStore) {
+            $this->store->install();
+            $output->success('Banco de tokens pronto em ' . $this->store->path());
+        } elseif ($this->store instanceof PdoTokenStore) {
+            $this->store->criarTabelas();
+            $output->success('Tabelas de tokens prontas no banco configurado.');
+        } else {
+            throw new \LogicException('Armazenamento de tokens não suporta instalação automática.');
+        }
 
         return 0;
     }

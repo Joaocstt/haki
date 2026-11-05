@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Haki\Auth\Storage;
 
+use Closure;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -12,14 +13,17 @@ use PDOStatement;
  * Armazenamento de tokens em qualquer banco que o PDO atenda (MySQL, PostgreSQL, SQL Server, SQLite).
  *
  * Use quando há mais de um servidor: todos apontam para o mesmo banco, então uma revogação
- * feita em um servidor vale em todos. As tabelas são criadas com criarTabelas(), uma vez,
- * no processo de deploy.
+ * feita em um servidor vale em todos. Com PDO explícito, crie as tabelas com criarTabelas();
+ * o armazenamento automático do MySQL cria as tabelas no primeiro uso.
  *
  *     $app->auth(['storage' => new PdoTokenStore(new PDO('mysql:host=...;dbname=app', 'user', 'senha'))]);
  */
 final class PdoTokenStore implements TokenStore
 {
-    public function __construct(private readonly PDO $pdo)
+    private ?PDO $connection = null;
+    private bool $initialized = false;
+
+    public function __construct(private readonly PDO|Closure $pdo, private readonly bool $automatico = false)
     {
     }
 
@@ -28,7 +32,8 @@ final class PdoTokenStore implements TokenStore
      */
     public function criarTabelas(): void
     {
-        $this->pdo->exec(
+        $pdo = $this->connection();
+        $pdo->exec(
             'CREATE TABLE IF NOT EXISTS haki_refresh_tokens (
                 token_hash  VARCHAR(64) NOT NULL PRIMARY KEY,
                 user_id     VARCHAR(191) NOT NULL,
@@ -41,14 +46,14 @@ final class PdoTokenStore implements TokenStore
             )',
         );
 
-        $this->pdo->exec(
+        $pdo->exec(
             'CREATE TABLE IF NOT EXISTS haki_revoked_tokens (
                 jti         VARCHAR(64) NOT NULL PRIMARY KEY,
                 expires_at  BIGINT NOT NULL
             )',
         );
 
-        $this->pdo->exec(
+        $pdo->exec(
             'CREATE TABLE IF NOT EXISTS haki_user_revocations (
                 user_id         VARCHAR(191) NOT NULL PRIMARY KEY,
                 revoked_before  BIGINT NOT NULL
@@ -62,14 +67,16 @@ final class PdoTokenStore implements TokenStore
             'CREATE INDEX haki_refresh_user ON haki_refresh_tokens (user_id)',
         ] as $sql) {
             try {
-                $this->pdo->exec($sql);
+                $pdo->exec($sql);
             } catch (PDOException) {
             }
         }
+        $this->initialized = true;
     }
 
     public function revokeAccessToken(string $jti, int $expiresAt): void
     {
+        $this->initialize();
         try {
             $this->run('INSERT INTO haki_revoked_tokens (jti, expires_at) VALUES (?, ?)', [$jti, $expiresAt]);
         } catch (PDOException) {
@@ -84,6 +91,7 @@ final class PdoTokenStore implements TokenStore
 
     public function revokeUser(string $userId, int $before): void
     {
+        $this->initialize();
         try {
             $this->run('INSERT INTO haki_user_revocations (user_id, revoked_before) VALUES (?, ?)', [$userId, $before]);
         } catch (PDOException) {
@@ -176,9 +184,22 @@ final class PdoTokenStore implements TokenStore
      */
     private function run(string $sql, array $params = []): PDOStatement
     {
-        $statement = $this->pdo->prepare($sql);
+        $this->initialize();
+        $statement = $this->connection()->prepare($sql);
         $statement->execute($params);
 
         return $statement;
+    }
+
+    private function initialize(): void
+    {
+        if ($this->automatico && !$this->initialized) {
+            $this->criarTabelas();
+        }
+    }
+
+    private function connection(): PDO
+    {
+        return $this->connection ??= $this->pdo instanceof Closure ? ($this->pdo)() : $this->pdo;
     }
 }

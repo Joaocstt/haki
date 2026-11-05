@@ -11,7 +11,7 @@ use Haki\Auth\Auth;
 use Haki\Auth\AuthConfig;
 use Haki\Auth\Middleware\Authenticate;
 use Haki\Auth\Middleware\AuthorizeRole;
-use Haki\Auth\Storage\SqliteTokenStore;
+use Haki\Auth\Storage\TokenStoreFactory;
 use Haki\Auth\Storage\TokenStore;
 use Haki\Auth\Tentativas\ArmazenamentoDeTentativas;
 use Haki\Auth\Tentativas\PdoArmazenamentoDeTentativas;
@@ -339,7 +339,7 @@ final class Haki
             ->singleton(TokenStore::class, function (Container $c): TokenStore {
                 $config = $c->get(AuthConfig::class);
 
-                return $config->storage ?? new SqliteTokenStore($config->database);
+                return $config->storage ?? TokenStoreFactory::create($this->basePath, $config->database);
             })
             ->singleton(Auth::class, fn (Container $c): Auth => new Auth($c->get(AuthConfig::class), $c->get(TokenStore::class)));
     }

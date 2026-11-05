@@ -14,7 +14,8 @@
         "phpunit/phpunit": "^11.0"
     },
     "suggest": {
-        "ext-pdo_sqlite": "Necessária para o armazenamento padrão de tokens da autenticação JWT",
+        "ext-pdo_sqlite": "Necessária para o armazenamento SQLite de tokens da autenticação JWT",
+        "ext-pdo_mysql": "Necessária para o armazenamento MySQL de tokens e para o EloPHP com MySQL",
         "ext-pdo": "Necessária apenas se você usar o EloPHP (ORM opcional)"
     },
     "autoload": {
