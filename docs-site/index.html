@@ -816,7 +816,7 @@ $app-&gt;isDebug();               // true em desenvolvimento</code></pre>
             <tr><td><code>JWT_TTL</code></td><td><code>900</code></td><td>Validade do access token em segundos (15 min)</td></tr>
             <tr><td><code>JWT_REFRESH_TTL</code></td><td><code>604800</code></td><td>Validade do refresh token em segundos (7 dias)</td></tr>
             <tr><td><code>JWT_ISSUER</code></td><td>nenhum</td><td>Nome do emissor (claim <code>iss</code>), opcional</td></tr>
-            <tr><td><code>JWT_DATABASE</code></td><td><code>storage/haki.sqlite</code></td><td>Onde fica o banco de tokens</td></tr>
+            <tr><td><code>JWT_DATABASE</code></td><td><code>storage/haki.sqlite</code></td><td>Arquivo de tokens quando o armazenamento padrão é SQLite; não usado no MySQL automático</td></tr>
             <tr><td><code>DB_CONNECTION</code></td><td>nenhum</td><td><code>sqlite</code> ou <code>mysql</code> (usado pelo comando <a href="#cli-db">db</a> e pela sua conexão)</td></tr>
             <tr><td><code>DB_DATABASE</code></td><td>nenhum</td><td>Caminho do arquivo (SQLite) ou nome do banco (MySQL)</td></tr>
             <tr><td><code>DB_HOST</code> / <code>DB_PORT</code></td><td><code>127.0.0.1</code> / <code>3306</code></td><td>Servidor MySQL</td></tr>
@@ -5367,6 +5367,18 @@ JWT_PUBLIC_KEY_ANTERIOR=storage/keys/jwt-public-2025.pem</code></pre>
 
       <h2 id="armazenamento-sqlite">Armazenamento automático</h2>
       <p>Com <code>DB_CONNECTION=mysql</code>, o Haki usa a conexão MySQL configurada em <code>DB_*</code> e cria as tabelas de tokens no primeiro uso. Ative <code>pdo_mysql</code> e conceda permissão para criar tabelas e índices. <code>auth:install</code> também prepara essas tabelas no deploy, e <code>auth:clean</code> usa o mesmo banco.</p>
+      <div class="code">
+        <div class="code-title">.env — MySQL e autenticação</div>
+        <pre><code data-lang="env">DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=loja
+DB_USERNAME=seu_usuario
+DB_PASSWORD=sua_senha
+JWT_SECRET=sua_chave_gerada</code></pre>
+      </div>
+      <p>Crie antes o banco MySQL e gere a chave com <code>php vendor/bin/haki key:generate</code>. Não é necessário configurar <code>PdoTokenStore</code> no bootstrap: o Haki usa o mesmo PDO do EloPHP. O usuário do banco precisa de permissão para criar tabelas e índices também no primeiro uso de cada processo ou requisição.</p>
+      <p>Se <code>storage</code> for informado em <code>$app-&gt;auth([...])</code>, ele tem prioridade. A CLI escolhe o armazenamento padrão a partir do <code>.env</code> e não carrega essa configuração personalizada do bootstrap.</p>
       <p>Ao atualizar uma instalação que já usa MySQL e guardava tokens em SQLite, refresh tokens e revogações não são migrados. Access tokens revogados podem voltar a ser aceitos até expirar; planeje a migração dos registros ou a troca da chave JWT.</p>
       <p>Nos demais casos, essas informações ficam em um arquivo SQLite que é <strong>criado sozinho</strong> na primeira requisição que usa autenticação:</p>
 
@@ -5400,7 +5412,7 @@ JWT_PUBLIC_KEY_ANTERIOR=storage/keys/jwt-public-2025.pem</code></pre>
     'database' =&gt; 'storage/tokens/auth.sqlite',   // relativo à raiz do projeto
 ]);</code></pre>
       </div>
-      <p>Ou pelo <code>.env</code>: <code>JWT_DATABASE=storage/tokens/auth.sqlite</code>.</p>
+      <p>Ou pelo <code>.env</code>: <code>JWT_DATABASE=storage/tokens/auth.sqlite</code>. Essas opções de caminho se aplicam ao armazenamento SQLite; com <code>DB_CONNECTION=mysql</code>, o padrão é MySQL.</p>
 
       <h2 id="armazenamento-servidores">Um servidor ou vários?</h2>
       <p><strong>Um servidor:</strong> o SQLite padrão basta, mesmo com bastante tráfego.</p>
@@ -5420,6 +5432,7 @@ $pdo = new PDO('mysql:host=127.0.0.1;dbname=app', 'usuario', 'senha');
       <div class="code">
         <div class="code-title">2. Usar no bootstrap/app.php</div>
         <pre><code data-lang="php">$app-&gt;auth([
+    'secret'  =&gt; getenv('JWT_SECRET'),
     'storage' =&gt; new PdoTokenStore(new PDO('mysql:host=127.0.0.1;dbname=app', 'usuario', 'senha')),
 ]);</code></pre>
       </div>
@@ -5977,7 +5990,7 @@ DB_PASSWORD=senha</code></pre>
       <p>Como o <code>check</code>, termina com código 0 quando conecta e 1 quando falha, então pode ser usado num script de deploy.</p>
       <div class="callout">
         <span class="callout-label">Nota</span>
-        <p>O Haki não tem uma camada de banco própria: as variáveis <code>DB_*</code> são uma convenção para o comando <code>db</code> e para a sua classe de conexão. Veja um exemplo de conexão em <a href="#armazenamento-proprio">Usando outro banco</a> e na página <a href="#container-closure">Container</a>.</p>
+        <p>As variáveis <code>DB_*</code> são usadas pelo comando <code>db</code> e pelo EloPHP. Com <code>DB_CONNECTION=mysql</code>, elas também configuram automaticamente o armazenamento de tokens JWT.</p>
       </div>
 
       <h2 id="cli-key">key:generate</h2>
@@ -6177,7 +6190,7 @@ $app-&gt;container()-&gt;instance(UsuarioRepositoryInterface::class, new ArrayUs
             <tr><td><code>JWT_SECRET</code> próprio da produção</td><td>Gerado com <code>key:generate</code> no servidor, diferente do de desenvolvimento.</td></tr>
             <tr><td><code>.env</code>, <code>storage/*.sqlite*</code> e <code>storage/keys/</code> fora do Git</td><td>São segredos. O <code>.gitignore</code> do <code>init</code> já cuida disso.</td></tr>
             <tr><td><code>storage/</code> com permissão de escrita</td><td>O banco de tokens fica ali.</td></tr>
-            <tr><td>Extensão <code>pdo_sqlite</code> ativa</td><td>Necessária para o login (ou configure outro <code>TokenStore</code>).</td></tr>
+            <tr><td>Extensão PDO do banco de tokens ativa</td><td>Use <code>pdo_mysql</code> para o MySQL automático ou <code>pdo_sqlite</code> para o armazenamento SQLite.</td></tr>
             <tr><td>Nenhum <code>haki()</code> esquecido</td><td>A saída do dump quebra o JSON das respostas.</td></tr>
             <tr><td>CORS liberando só o seu domínio</td><td>Liberar <code>*</code> permite que qualquer site chame a sua API pelo navegador.</td></tr>
           </tbody>
@@ -7325,7 +7338,7 @@ interface MiddlewareInterface
         <table>
           <thead><tr><th>Classe</th><th>Uso</th></tr></thead>
           <tbody>
-            <tr><td><code>SqliteTokenStore($caminho)</code></td><td>Padrão. Cria o arquivo e as tabelas sozinho. Tem <code>install()</code> e <code>path()</code>.</td></tr>
+            <tr><td><code>SqliteTokenStore($caminho)</code></td><td>Padrão quando <code>DB_CONNECTION</code> não é <code>mysql</code>. Cria o arquivo e as tabelas sozinho. Tem <code>install()</code> e <code>path()</code>.</td></tr>
             <tr><td><code>ArrayTokenStore()</code></td><td>Em memória, para testes.</td></tr>
           </tbody>
         </table>

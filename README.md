@@ -6,6 +6,18 @@ Miniframework PHP para APIs REST: rotas, injeção de dependências, middleware 
 
 Com `DB_CONNECTION=mysql`, a autenticação usa automaticamente o banco MySQL configurado em `DB_*` para tokens e revogações. As tabelas são criadas no primeiro uso; `auth:install` permite prepará-las no deploy. A conta do banco precisa ter permissão para criar tabelas e índices. Nos demais casos, o armazenamento padrão continua sendo o SQLite em `JWT_DATABASE` (ou `storage/haki.sqlite`). Um `storage` explícito em `$app->auth()` prevalece sobre essa escolha.
 
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=loja
+DB_USERNAME=seu_usuario
+DB_PASSWORD=sua_senha
+JWT_SECRET=sua_chave_gerada
+```
+
+Crie o banco no MySQL, habilite `pdo_mysql` e gere a chave com `php vendor/bin/haki key:generate`. Não é necessário configurar o armazenamento no bootstrap. A aplicação precisa de permissão de criação também no primeiro uso em cada processo ou requisição. Os comandos `auth:install` e `auth:clean` selecionam o armazenamento padrão pelo `.env`; eles não leem um `storage` personalizado do bootstrap.
+
 Ao mudar de uma instalação existente com MySQL de aplicação e tokens em SQLite, os refresh tokens e as revogações antigas não são migrados. Os usuários precisarão entrar novamente e access tokens anteriormente revogados poderão voltar a ser aceitos até expirarem; planeje a troca da chave JWT ou a migração dos registros.
 
 ```php
